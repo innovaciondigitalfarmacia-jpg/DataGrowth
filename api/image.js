@@ -1,4 +1,4 @@
-// v3
+// v4
 export default async function handler(req, res) {
   const { prompt, test } = req.query;
   const K = process.env.GEMINI_API_KEY;
@@ -39,7 +39,7 @@ export default async function handler(req, res) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: "Professional social media image: " + prompt + ". No text, no words, no letters." }] }],
+          contents: [{ parts: [{ text: prompt }] }],
           generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
         })
       }
