@@ -597,15 +597,15 @@ const Factory = ({ brands, gemKey }) => {
   const [videoUrl, setVideoUrl] = useState(null);
   const [videoProgress, setVideoProgress] = useState("");
   const pollVideo = async (opName) => {
-    setVideoLoading(true); setVideoProgress("Generando video con IA... (1-2 min)");
+    setVideoLoading(true); setVideoProgress("Generando video con IA... (2-5 min)");
     let attempts = 0;
-    const maxAttempts = 40;
+    const maxAttempts = 60;
     while (attempts < maxAttempts) {
-      await new Promise(r => setTimeout(r, 5000));
+      await new Promise(r => setTimeout(r, 8000));
       attempts++;
       setVideoProgress("Generando video... " + Math.min(Math.round((attempts/maxAttempts)*100), 95) + "%");
       try {
-        const r = await fetch("/api/video?action=check&op=" + encodeURIComponent(opName));
+        const r = await fetch("/api/video?action=check&op=" + encodeURIComponent(opName) + "&t=" + Date.now());
         const d = await r.json();
         if (d.status === "completed" && d.video_base64) {
           const byteChars = atob(d.video_base64);
