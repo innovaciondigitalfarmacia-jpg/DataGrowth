@@ -637,15 +637,59 @@ const Factory = ({ brands, gemKey }) => {
     } else if (fmt === "carousel") {
       msg = 'Carrusel 5 slides: "' + topic + '". JSON:{"slides":[{"title":"..","body":"emojis","emoji":".."}],"caption":"CTA","hashtags":"8"}';
     } else if (fmt === "reel") {
-      msg = 'Reel 5 escenas: "' + topic + '". Responde SOLO JSON:{"scenes":[{"title":"..","duration":"3s","emoji":"..","visual":"camara","text_overlay":"texto+emoji","audio":"musica","transition":"tipo"}],"caption":"CTA","hashtags":"8","video_prompt":"(en ingles) describe un video de 8 segundos para reel vertical 9:16. Describe la escena principal, movimientos de camara, estilo visual. ALL spoken dialogue and voiceover MUST be in Spanish. All visible text in the video MUST be in Spanish. Brand: ' + brand.name + '. Colores: ' + brandColors + '. Estilo: ' + brandStyle + '. Industria: ' + brand.industry + '. Sin logos."}';
+      msg = 'Reel 5 escenas: "' + topic + '". Responde SOLO JSON:{"scenes":[{"title":"..","duration":"3s","emoji":"..","visual":"camara","text_overlay":"texto+emoji","audio":"musica","transition":"tipo"}],"caption":"CTA","hashtags":"8","video_prompt":"Create a vertical 9:16 promotional video in SPANISH language. ALL voiceover, narration and spoken words MUST be in SPANISH (Latin American). The video is about: ' + topic + '. Brand: ' + brand.name + ' (' + brand.industry + '). Use brand colors: ' + brandColors + '. Visual style: ' + brandStyle + '. Make it eye-catching, professional, and designed to attract customers on social media. Include any discounts, promotions or text mentioned by the user VISUALLY in the video. Do NOT include any logo."}';
     } else {
       msg = ct.label + ': "' + topic + '". Emojis, Gancho>Valor>CTA. 8 hashtags.';
     }
-    try { const r = await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2500,system:sys,messages:[{role:"user",content:msg}]})}); const d = await r.json(); const raw = d.content?.map(c=>c.text||"").join("")||""; if(fmt==="text"){setTxt(raw);setResult({t:"text"});}else{try{let clean=raw;if(clean.indexOf("{")>-1)clean=clean.substring(clean.indexOf("{"),clean.lastIndexOf("}")+1);const pd=JSON.parse(clean);const imgUrl=pd.image_prompt?"/api/image?prompt="+encodeURIComponent(pd.image_prompt.substring(0,500)):null;setResult({t:fmt,d:pd,img:imgUrl});if(fmt==="reel"&&pd.video_prompt){fetch("/api/video",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:pd.video_prompt.substring(0,500),aspect_ratio:"9:16"})}).then(r=>r.json()).then(d=>{if(d.operation){pollVideo(d.operation);}else{setVideoProgress("Error: "+(d.error||"no se pudo iniciar"));}}).catch(()=>setVideoProgress("Error al conectar con API de video"));}}catch{setTxt(raw);setResult({t:"text"});}} } catch{setTxt("Error.");setResult({t:"text"});} setLoading(false);
+    try { const r = await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2500,system:sys,messages:[{role:"user",content:msg}]})}); const d = await r.json(); const raw = d.content?.map(c=>c.text||"").join("")||""; if(fmt==="text"){setTxt(raw);setResult({t:"text"});}else{try{let clean=raw;if(clean.indexOf("{")>-1)clean=clean.substring(clean.indexOf("{"),clean.lastIndexOf("}")+1);const pd=JSON.parse(clean);const imgUrl=pd.image_prompt?"/api/image?prompt="+encodeURIComponent(pd.image_prompt.substring(0,500)):null;setResult({t:fmt,d:pd,img:imgUrl});if(fmt==="reel"){const directVideoPrompt="Create a vertical 9:16 promotional video for "+brand.name+" ("+brand.industry+"). IMPORTANT: ALL voiceover and narration MUST be in SPANISH (Latin American Spanish). Topic: "+topic+". Brand colors: "+brandColors+". Style: "+brandStyle+". Make it professional, eye-catching and designed to attract customers on social media. Include any discounts or promotions mentioned. Do NOT include any logo. Make it realistic and high quality.";fetch("/api/video",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:directVideoPrompt.substring(0,500),aspect_ratio:"9:16"})}).then(r=>r.json()).then(d=>{if(d.operation){pollVideo(d.operation);}else{setVideoProgress("Error: "+(d.error||"no se pudo iniciar"));}}).catch(()=>setVideoProgress("Error al conectar con API de video"));}}catch{setTxt(raw);setResult({t:"text"});}} } catch{setTxt("Error.");setResult({t:"text"});} setLoading(false);
   };
+  const [showGuide, setShowGuide] = useState(false);
   if(!brands.length) return <Section title="Crear Contenido"><Card style={{textAlign:"center",padding:48}}><div style={{fontSize:48,marginBottom:12}}>🏢</div><div style={{fontSize:16,fontWeight:600,color:t.tx}}>Primero crea una marca en "Mis Marcas"</div></Card></Section>;
   return (
     <Section title="Crear Contenido" sub="Genera contenido profesional con IA." right={<Badge>Claude AI</Badge>}>
+      <div onClick={()=>setShowGuide(!showGuide)} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 16px",background:t.bgI,border:"1px solid "+t.brd,borderRadius:12,cursor:"pointer",marginBottom:showGuide?0:14}}>
+        <span style={{fontSize:16}}>📋</span>
+        <span style={{fontSize:13,fontWeight:600,color:t.tx,flex:1}}>Guia: Como escribir instrucciones para mejores resultados</span>
+        <span style={{color:t.txM,fontSize:12}}>{showGuide?"▲ Cerrar":"▼ Ver guia"}</span>
+      </div>
+      {showGuide&&<Card style={{marginBottom:14,marginTop:8,border:"1px solid "+t.ac+"30"}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+          <div>
+            <div style={{fontSize:14,fontWeight:700,color:t.ac,marginBottom:10}}>🖼️ Imagenes (Post + Imagen, Anuncio)</div>
+            <div style={{fontSize:12,color:t.txS,lineHeight:1.7}}>
+              <div style={{marginBottom:6}}><span style={{fontWeight:600,color:t.tx}}>Se especifico:</span> Describe exactamente lo que quieres ver. No digas solo "una imagen bonita", di "una doctora animada estilo 3D sosteniendo un cartel con 30% de descuento en una farmacia moderna".</div>
+              <div style={{marginBottom:6}}><span style={{fontWeight:600,color:t.tx}}>Estilo:</span> Indica si quieres estilo realista, animado 3D tipo Pixar, ilustracion, minimalista, etc.</div>
+              <div style={{marginBottom:6}}><span style={{fontWeight:600,color:t.tx}}>Texto en la imagen:</span> Si necesitas texto visible (ej: "20% de descuento"), incluyelo en tu instruccion. La IA lo pone en la imagen.</div>
+              <div style={{marginBottom:6}}><span style={{fontWeight:600,color:t.tx}}>Colores:</span> La IA usa automaticamente los colores de tu marca, pero puedes especificar colores adicionales.</div>
+              <div><span style={{fontWeight:600,color:t.tx}}>Logos:</span> La IA no puede poner tu logo real. Agrega el logo manualmente despues de descargar la imagen.</div>
+            </div>
+          </div>
+          <div>
+            <div style={{fontSize:14,fontWeight:700,color:t.ac,marginBottom:10}}>🎬 Videos (Reel / Story)</div>
+            <div style={{fontSize:12,color:t.txS,lineHeight:1.7}}>
+              <div style={{marginBottom:6}}><span style={{fontWeight:600,color:t.tx}}>Duracion:</span> Cada video generado dura maximo 8 segundos. Para videos mas largos, genera varios clips y unes despues.</div>
+              <div style={{marginBottom:6}}><span style={{fontWeight:600,color:t.tx}}>Formato:</span> Los videos se generan en formato vertical 9:16 (ideal para Reels e Historias de Instagram).</div>
+              <div style={{marginBottom:6}}><span style={{fontWeight:600,color:t.tx}}>Tiempo:</span> La generacion tarda entre 2-5 minutos. No cierres la pagina mientras se genera.</div>
+              <div style={{marginBottom:6}}><span style={{fontWeight:600,color:t.tx}}>Idioma:</span> El audio y narraccion se genera en espanol latinoamericano.</div>
+              <div style={{marginBottom:6}}><span style={{fontWeight:600,color:t.tx}}>Se especifico:</span> Describe la escena, la accion, el ambiente. Ej: "Un video cinematografico de una pareja entrando a una cabana romantica con jacuzzi al atardecer, con texto de 20% de descuento".</div>
+              <div><span style={{fontWeight:600,color:t.tx}}>Costo:</span> Cada video consume creditos de tu cuenta de Google Cloud (~$6 USD por video de 8 seg).</div>
+            </div>
+          </div>
+        </div>
+        <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid "+t.brd}}>
+          <div style={{fontSize:14,fontWeight:700,color:t.ac,marginBottom:8}}>✍️ Ejemplos de buenas instrucciones</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div style={{padding:10,background:t.bgI,borderRadius:8,fontSize:11,color:t.tx,lineHeight:1.5}}>
+              <div style={{fontWeight:600,color:"#22c55e",marginBottom:4}}>✅ Buena instruccion:</div>
+              "Quiero una imagen animada estilo 3D de una doctora sonriendo en una farmacia moderna sosteniendo un cartel que diga 30% de descuento por el dia del hombre, colores azul y rojo"
+            </div>
+            <div style={{padding:10,background:t.bgI,borderRadius:8,fontSize:11,color:t.tx,lineHeight:1.5}}>
+              <div style={{fontWeight:600,color:"#ef4444",marginBottom:4}}>❌ Mala instruccion:</div>
+              "Hazme una imagen bonita para redes sociales"
+            </div>
+          </div>
+        </div>
+      </Card>}
       <div style={{marginBottom:14}}><Label>Marca</Label><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{brands.map(b=><button key={b.id} onClick={()=>setBrand(b)} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 12px",borderRadius:10,border:brand?.id===b.id?`2px solid ${b.color}`:`1px solid ${t.brd}`,background:brand?.id===b.id?b.color+"12":t.bgC,color:brand?.id===b.id?t.tx:t.txS,fontSize:12,fontWeight:600,cursor:"pointer"}}><span>{b.emoji}</span>{b.short||b.name.slice(0,3)}</button>)}</div></div>
       <div style={{marginBottom:14}}><Label>Tipo</Label><div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>{CTYPES.map(c=><button key={c.id} onClick={()=>setCt(c)} style={{padding:"12px 10px",borderRadius:12,border:ct.id===c.id?`2px solid ${t.ac}`:`1px solid ${t.brd}`,background:ct.id===c.id?t.acS:t.bgC,cursor:"pointer",textAlign:"center"}}><div style={{fontSize:22,marginBottom:4}}>{c.icon}</div><div style={{fontSize:12,fontWeight:600,color:ct.id===c.id?t.tx:t.txS}}>{c.label}</div></button>)}</div></div>
       <div style={{display:"flex",gap:10,marginBottom:22}}><Input value={topic} onChange={e=>setTopic(e.target.value)} placeholder="Describe qué contenido necesitas..." onKeyDown={e=>e.key==="Enter"&&go()}/><Btn onClick={go} disabled={loading||!topic.trim()} primary style={{whiteSpace:"nowrap",padding:"14px 28px"}}>{loading?<><Spin/> Creando...</>:<><Ic name="sparkle" size={16}/> Generar</>}</Btn></div>
