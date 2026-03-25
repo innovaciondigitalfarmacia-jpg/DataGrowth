@@ -1,4 +1,4 @@
-// v1 - Veo 3.1 Video Generation
+// v2 - Veo 3.1 Video Generation (corrected REST format)
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -6,73 +6,79 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const K = process.env.GEMINI_API_KEY;
-  if (!K) return res.status(500).json({ error: "No API key" });
+  if (!K) return res.status(500).json({ error: "No API key configured" });
 
   const BASE = "https://generativelanguage.googleapis.com/v1beta";
-  const action = req.query.action || req.body?.action;
+  const HEADERS = { "Content-Type": "application/json", "x-goog-api-key": K };
 
-  // ── TEST: /api/video?action=test ──
-  if (action === "test") {
-    return res.status(200).json({ key: K ? "SI" : "NO", model: "veo-3.1-generate-preview", status: "ready" });
-  }
+  // ── GET actions: test and check ──
+  if (req.method === 'GET') {
+    const action = req.query.action;
 
-  // ── CHECK STATUS: /api/video?action=check&op=OPERATION_NAME ──
-  if (action === "check") {
-    const op = req.query.op || req.body?.op;
-    if (!op) return res.status(400).json({ error: "No operation name" });
-    try {
-      const r = await fetch(BASE + "/" + op + "?key=" + K);
-      const d = await r.json();
-      if (d.done) {
-        const video = d.response?.generatedVideos?.[0];
-        const videoUri = video?.video?.uri;
-        if (videoUri) {
-          // Fetch the actual video file
-          const vr = await fetch(videoUri + "&key=" + K);
-          if (vr.ok) {
-            const buf = Buffer.from(await vr.arrayBuffer());
-            const b64 = buf.toString("base64");
-            return res.status(200).json({
-              status: "completed",
-              video_base64: b64,
-              mime_type: "video/mp4"
-            });
-          }
-        }
-        return res.status(200).json({ status: "completed", raw: JSON.stringify(d.response).substring(0, 500) });
-      } else {
-        return res.status(200).json({ status: "processing" });
-      }
-    } catch (e) {
-      return res.status(200).json({ status: "error", error: e.message });
+    if (action === "test") {
+      return res.status(200).json({ key: "SI", model: "veo-3.1-generate-preview", status: "ready" });
     }
+
+    if (action === "check") {
+      const op = req.query.op;
+      if (!op) return res.status(400).json({ error: "No operation name" });
+      try {
+        const r = await fetch(BASE + "/" + op, { headers: { "x-goog-api-key": K } });
+        const d = await r.json();
+        if (d.done) {
+          const videoUri = d.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri;
+          if (videoUri) {
+            const vr = await fetch(videoUri, { headers: { "x-goog-api-key": K }, redirect: "follow" });
+            if (vr.ok) {
+              const buf = Buffer.from(await vr.arrayBuffer());
+              const b64 = buf.toString("base64");
+              return res.status(200).json({ status: "completed", video_base64: b64, mime_type: "video/mp4" });
+            }
+            return res.status(200).json({ status: "completed_no_download", video_uri: videoUri });
+          }
+          return res.status(200).json({ status: "completed_unknown", raw: JSON.stringify(d.response || d).substring(0, 800) });
+        } else {
+          return res.status(200).json({ status: "processing" });
+        }
+      } catch (e) {
+        return res.status(200).json({ status: "error", error: e.message });
+      }
+    }
+
+    return res.status(400).json({ error: "Unknown action. Use ?action=test or ?action=check&op=..." });
   }
 
-  // ── GENERATE: POST /api/video ──
+  // ── POST: Generate video ──
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
 
-  const { prompt, aspect_ratio } = req.body;
-  if (!prompt) return res.status(400).json({ error: "No prompt" });
+  let body;
+  try {
+    body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+  } catch (e) {
+    return res.status(400).json({ error: "Invalid JSON body" });
+  }
+
+  const { prompt, aspect_ratio } = body || {};
+  if (!prompt) return res.status(400).json({ error: "No prompt provided" });
 
   try {
     const r = await fetch(
-      BASE + "/models/veo-3.1-generate-preview:generateVideos?key=" + K,
+      BASE + "/models/veo-3.1-generate-preview:predictLongRunning",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: HEADERS,
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          config: {
-            aspectRatio: aspect_ratio || "9:16",
-            numberOfVideos: 1
-          }
+          instances: [{ prompt: prompt }],
+          parameters: { aspectRatio: aspect_ratio || "9:16" }
         })
       }
     );
-    const d = await r.json();
+    const text = await r.text();
+    let d;
+    try { d = JSON.parse(text); } catch { return res.status(200).json({ status: "error", error: "Invalid response from Veo", raw: text.substring(0, 500) }); }
 
     if (d.error) {
-      return res.status(200).json({ status: "error", error: d.error.message || JSON.stringify(d.error) });
+      return res.status(200).json({ status: "error", error: d.error.message || JSON.stringify(d.error).substring(0, 300) });
     }
 
     const opName = d.name;
