@@ -1,4 +1,4 @@
-// v2 - Veo 3.1 Video Generation (corrected REST format)
+// v3 - Veo 3.1 Video Generation with image-to-video support
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -45,7 +45,7 @@ export default async function handler(req, res) {
       }
     }
 
-    return res.status(400).json({ error: "Unknown action. Use ?action=test or ?action=check&op=..." });
+    return res.status(400).json({ error: "Unknown action" });
   }
 
   // ── POST: Generate video ──
@@ -58,8 +58,18 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Invalid JSON body" });
   }
 
-  const { prompt, aspect_ratio } = body || {};
+  const { prompt, aspect_ratio, image_base64 } = body || {};
   if (!prompt) return res.status(400).json({ error: "No prompt provided" });
+
+  // Build request body
+  const instance = { prompt: prompt };
+
+  // If image provided, add it as first frame for image-to-video
+  if (image_base64) {
+    instance.image = {
+      bytesBase64Encoded: image_base64
+    };
+  }
 
   try {
     const r = await fetch(
@@ -68,7 +78,7 @@ export default async function handler(req, res) {
         method: "POST",
         headers: HEADERS,
         body: JSON.stringify({
-          instances: [{ prompt: prompt }],
+          instances: [instance],
           parameters: { aspectRatio: aspect_ratio || "9:16" }
         })
       }
