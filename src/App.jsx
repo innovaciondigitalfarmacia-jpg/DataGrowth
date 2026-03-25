@@ -593,8 +593,38 @@ const Factory = ({ brands, gemKey }) => {
   const [result, setResult] = useState(null);
   const [txt, setTxt] = useState("");
   const [loading, setLoading] = useState(false);
+  const [videoLoading, setVideoLoading] = useState(false);
+  const [videoUrl, setVideoUrl] = useState(null);
+  const [videoProgress, setVideoProgress] = useState("");
+  const pollVideo = async (opName) => {
+    setVideoLoading(true); setVideoProgress("Generando video con IA... (1-2 min)");
+    let attempts = 0;
+    const maxAttempts = 40;
+    while (attempts < maxAttempts) {
+      await new Promise(r => setTimeout(r, 5000));
+      attempts++;
+      setVideoProgress("Generando video... " + Math.min(Math.round((attempts/maxAttempts)*100), 95) + "%");
+      try {
+        const r = await fetch("/api/video?action=check&op=" + encodeURIComponent(opName));
+        const d = await r.json();
+        if (d.status === "completed" && d.video_base64) {
+          const byteChars = atob(d.video_base64);
+          const byteNums = new Array(byteChars.length);
+          for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
+          const blob = new Blob([new Uint8Array(byteNums)], { type: "video/mp4" });
+          const url = URL.createObjectURL(blob);
+          setVideoUrl(url);
+          setVideoLoading(false);
+          setVideoProgress("");
+          return;
+        }
+        if (d.status === "error") { setVideoProgress("Error: " + (d.error || "fallo")); setVideoLoading(false); return; }
+      } catch (e) { /* keep polling */ }
+    }
+    setVideoProgress("Timeout - el video tardo demasiado"); setVideoLoading(false);
+  };
   const go = async () => {
-    if (!topic.trim() || !brand) return; setLoading(true); setResult(null); setTxt("");
+    if (!topic.trim() || !brand) return; setLoading(true); setResult(null); setTxt(""); setVideoUrl(null); setVideoLoading(false);
     const brandColors = (brand.colors || [brand.color]).join(", ");
     const brandStyle = brand.imgStyle || "professional modern";
     const brandCtx = "MARCA:" + brand.name + "|INDUSTRIA:" + brand.industry + "|TONO:" + brand.tone + "|AUDIENCIA:" + brand.audience + "|VOZ:" + (brand.brandVoice || "Profesional") + "|PRODUCTOS:" + (brand.products || "N/A") + "|COLORES:" + brandColors + "|ESTILO_VISUAL:" + brandStyle;
@@ -607,11 +637,11 @@ const Factory = ({ brands, gemKey }) => {
     } else if (fmt === "carousel") {
       msg = 'Carrusel 5 slides: "' + topic + '". JSON:{"slides":[{"title":"..","body":"emojis","emoji":".."}],"caption":"CTA","hashtags":"8"}';
     } else if (fmt === "reel") {
-      msg = 'Reel 5 escenas: "' + topic + '". JSON:{"scenes":[{"title":"..","duration":"3s","emoji":"..","visual":"camara","text_overlay":"texto+emoji","audio":"musica","transition":"tipo"}],"caption":"CTA","hashtags":"8"}';
+      msg = 'Reel 5 escenas: "' + topic + '". Responde SOLO JSON:{"scenes":[{"title":"..","duration":"3s","emoji":"..","visual":"camara","text_overlay":"texto+emoji","audio":"musica","transition":"tipo"}],"caption":"CTA","hashtags":"8","video_prompt":"(en ingles) describe un video de 8 segundos para reel vertical 9:16. Describe la escena principal, movimientos de camara, estilo visual. Brand: ' + brand.name + '. Colores: ' + brandColors + '. Estilo: ' + brandStyle + '. Industria: ' + brand.industry + '. Texto visible en espanol si aplica. Sin logos."}';
     } else {
       msg = ct.label + ': "' + topic + '". Emojis, Gancho>Valor>CTA. 8 hashtags.';
     }
-    try { const r = await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2500,system:sys,messages:[{role:"user",content:msg}]})}); const d = await r.json(); const raw = d.content?.map(c=>c.text||"").join("")||""; if(fmt==="text"){setTxt(raw);setResult({t:"text"});}else{try{let clean=raw;if(clean.indexOf("{")>-1)clean=clean.substring(clean.indexOf("{"),clean.lastIndexOf("}")+1);const pd=JSON.parse(clean);const imgUrl=pd.image_prompt?"/api/image?prompt="+encodeURIComponent(pd.image_prompt.substring(0,500)):null;setResult({t:fmt,d:pd,img:imgUrl});}catch{setTxt(raw);setResult({t:"text"});}} } catch{setTxt("Error.");setResult({t:"text"});} setLoading(false);
+    try { const r = await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2500,system:sys,messages:[{role:"user",content:msg}]})}); const d = await r.json(); const raw = d.content?.map(c=>c.text||"").join("")||""; if(fmt==="text"){setTxt(raw);setResult({t:"text"});}else{try{let clean=raw;if(clean.indexOf("{")>-1)clean=clean.substring(clean.indexOf("{"),clean.lastIndexOf("}")+1);const pd=JSON.parse(clean);const imgUrl=pd.image_prompt?"/api/image?prompt="+encodeURIComponent(pd.image_prompt.substring(0,500)):null;setResult({t:fmt,d:pd,img:imgUrl});if(fmt==="reel"&&pd.video_prompt){fetch("/api/video",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:pd.video_prompt.substring(0,500),aspect_ratio:"9:16"})}).then(r=>r.json()).then(d=>{if(d.operation){pollVideo(d.operation);}else{setVideoProgress("Error: "+(d.error||"no se pudo iniciar"));}}).catch(()=>setVideoProgress("Error al conectar con API de video"));}}catch{setTxt(raw);setResult({t:"text"});}} } catch{setTxt("Error.");setResult({t:"text"});} setLoading(false);
   };
   if(!brands.length) return <Section title="Crear Contenido"><Card style={{textAlign:"center",padding:48}}><div style={{fontSize:48,marginBottom:12}}>🏢</div><div style={{fontSize:16,fontWeight:600,color:t.tx}}>Primero crea una marca en "Mis Marcas"</div></Card></Section>;
   return (
@@ -623,7 +653,15 @@ const Factory = ({ brands, gemKey }) => {
       {result&&!loading&&result.t==="text"&&<Card><div style={{display:"flex",justifyContent:"space-between",marginBottom:14}}><span style={{fontSize:13,fontWeight:600,color:t.txS}}>{brand?.emoji} {brand?.name}</span><CopyBtn text={txt}/></div><div style={{fontSize:14,color:t.tx,lineHeight:1.8,whiteSpace:"pre-wrap"}}>{txt}</div></Card>}
       {result&&!loading&&result.t==="visual"&&result.d&&<Card>{result.img&&<div style={{marginBottom:16,borderRadius:14,overflow:"hidden"}}><img id="ai-generated-img" crossOrigin="anonymous" src={result.img} alt="AI Generated" style={{width:"100%",maxHeight:500,objectFit:"contain",display:"block",borderRadius:14}}/></div>}<div style={{fontSize:22,fontWeight:800,color:t.tx,marginBottom:6}}>{result.d.headline}</div>{result.d.subtext&&<div style={{color:t.txS,marginBottom:12}}>{result.d.subtext}</div>}<div style={{fontSize:14,color:t.tx,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{result.d.caption}</div>{result.d.hashtags&&<div style={{fontSize:12,color:brand?.color,marginTop:10}}>{result.d.hashtags}</div>}<div style={{marginTop:12,display:"flex",gap:8}}><CopyBtn text={`${result.d.caption}\n\n${result.d.hashtags||""}`} label="📱 Copiar"/>{result.img&&<button onClick={()=>{const img=document.getElementById("ai-generated-img");if(!img)return;const c=document.createElement("canvas");c.width=img.naturalWidth;c.height=img.naturalHeight;c.getContext("2d").drawImage(img,0,0);c.toBlob(b=>{const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=(brand?.short||"img")+"_"+Date.now()+".png";a.click();URL.revokeObjectURL(u);},"image/png");}} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",background:"rgba(55,194,235,.08)",border:"1px solid rgba(55,194,235,.2)",borderRadius:10,color:"#37c2eb",fontSize:12,fontWeight:600,cursor:"pointer"}}>⬇️ Descargar imagen</button>}</div></Card>}
       {result&&!loading&&result.t==="carousel"&&result.d?.slides&&<Card>{result.d.slides.map((sl,i)=><div key={i} style={{padding:"12px 0",borderBottom:i<result.d.slides.length-1?`1px solid ${t.brd}`:"none"}}><div style={{fontSize:14,fontWeight:600,color:t.tx}}>{sl.emoji} Slide {i+1}: {sl.title}</div><div style={{fontSize:13,color:t.txS,marginTop:3}}>{sl.body}</div></div>)}{result.d.caption&&<div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${t.brd}`,fontSize:14,color:t.tx,whiteSpace:"pre-wrap"}}>{result.d.caption}</div>}<div style={{marginTop:12}}><CopyBtn text={result.d.slides.map((s,i)=>`${s.emoji} Slide ${i+1}: ${s.title}\n${s.body}`).join("\n\n")+`\n\n${result.d.caption||""}\n${result.d.hashtags||""}`} label="📋 Todo"/></div></Card>}
-      {result&&!loading&&result.t==="reel"&&result.d?.scenes&&<Card>{result.d.scenes.map((sc,i)=><div key={i} style={{padding:"14px 0",borderBottom:i<result.d.scenes.length-1?`1px solid ${t.brd}`:"none"}}><div style={{fontSize:15,fontWeight:700,color:t.tx,marginBottom:4}}>🎬 Escena {i+1}: {sc.title} <span style={{fontSize:12,color:t.txM}}>({sc.duration})</span></div><div style={{fontSize:13,color:t.txS,marginBottom:4}}>📹 {sc.visual}</div><div style={{fontSize:14,fontWeight:700,color:brand?.color}}>📝 {sc.text_overlay}</div>{sc.audio&&<div style={{fontSize:12,color:t.txM,marginTop:4}}>🎵 {sc.audio}</div>}</div>)}{result.d.caption&&<div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${t.brd}`,fontSize:14,color:t.tx,whiteSpace:"pre-wrap"}}>{result.d.caption}</div>}<div style={{marginTop:12}}><CopyBtn text={result.d.scenes.map((s,i)=>`🎬 ${i+1}(${s.duration}):${s.title}\n📹${s.visual}\n📝${s.text_overlay}\n🎵${s.audio||""}`).join("\n\n")+`\n\n${result.d.caption||""}\n${result.d.hashtags||""}`} label="📋 Storyboard"/></div></Card>}
+      {result&&!loading&&result.t==="reel"&&result.d?.scenes&&<Card>
+        {videoUrl&&<div style={{marginBottom:16,borderRadius:14,overflow:"hidden"}}><video src={videoUrl} controls style={{width:"100%",maxHeight:400,borderRadius:14,display:"block"}}/></div>}
+        {videoLoading&&<div style={{marginBottom:16,padding:24,textAlign:"center",background:t.bgI,borderRadius:14,border:"1px solid "+t.brd}}><div style={{width:40,height:40,border:"3px solid "+t.brd,borderTop:"3px solid "+(brand?.color||t.ac),borderRadius:"50%",animation:"spin .8s linear infinite",margin:"0 auto 12px"}}/><div style={{color:t.ac,fontSize:14,fontWeight:600}}>{videoProgress}</div><div style={{color:t.txM,fontSize:12,marginTop:4}}>El video se esta generando con Veo AI. No cierres esta pagina.</div></div>}
+        {videoUrl&&<div style={{marginBottom:14,display:"flex",gap:8}}><button onClick={()=>{const a=document.createElement("a");a.href=videoUrl;a.download=(brand?.short||"reel")+"_"+Date.now()+".mp4";a.click();}} style={{display:"flex",alignItems:"center",gap:6,padding:"10px 20px",background:t.gr,border:"none",borderRadius:10,color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer"}}>⬇️ Descargar video</button></div>}
+        {!videoUrl&&!videoLoading&&videoProgress&&<div style={{marginBottom:14,padding:12,background:"rgba(239,68,68,.1)",borderRadius:10,color:"#ef4444",fontSize:13}}>{videoProgress}</div>}
+        {result.d.scenes.map((sc,i)=><div key={i} style={{padding:"14px 0",borderBottom:i<result.d.scenes.length-1?"1px solid "+t.brd:"none"}}><div style={{fontSize:15,fontWeight:700,color:t.tx,marginBottom:4}}>🎬 Escena {i+1}: {sc.title} <span style={{fontSize:12,color:t.txM}}>({sc.duration})</span></div><div style={{fontSize:13,color:t.txS,marginBottom:4}}>📹 {sc.visual}</div><div style={{fontSize:14,fontWeight:700,color:brand?.color}}>📝 {sc.text_overlay}</div>{sc.audio&&<div style={{fontSize:12,color:t.txM,marginTop:4}}>🎵 {sc.audio}</div>}</div>)}
+        {result.d.caption&&<div style={{marginTop:14,paddingTop:14,borderTop:"1px solid "+t.brd,fontSize:14,color:t.tx,whiteSpace:"pre-wrap"}}>{result.d.caption}</div>}
+        <div style={{marginTop:12}}><CopyBtn text={result.d.scenes.map((s,i)=>"🎬 "+(i+1)+"("+s.duration+"):"+s.title+"\n📹"+s.visual+"\n📝"+s.text_overlay+"\n🎵"+(s.audio||"")).join("\n\n")+"\n\n"+(result.d.caption||"")+"\n"+(result.d.hashtags||"")} label="📋 Storyboard"/></div>
+      </Card>}
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </Section>
   );
