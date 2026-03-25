@@ -637,7 +637,7 @@ const Factory = ({ brands, gemKey }) => {
     } else if (fmt === "carousel") {
       msg = 'Carrusel 5 slides: "' + topic + '". JSON:{"slides":[{"title":"..","body":"emojis","emoji":".."}],"caption":"CTA","hashtags":"8"}';
     } else if (fmt === "reel") {
-      msg = 'Reel 5 escenas: "' + topic + '". Responde SOLO JSON:{"scenes":[{"title":"..","duration":"3s","emoji":"..","visual":"camara","text_overlay":"texto+emoji","audio":"musica","transition":"tipo"}],"caption":"CTA","hashtags":"8","video_prompt":"(en ingles) describe un video de 8 segundos para reel vertical 9:16. Describe la escena principal, movimientos de camara, estilo visual. Brand: ' + brand.name + '. Colores: ' + brandColors + '. Estilo: ' + brandStyle + '. Industria: ' + brand.industry + '. Texto visible en espanol si aplica. Sin logos."}';
+      msg = 'Reel 5 escenas: "' + topic + '". Responde SOLO JSON:{"scenes":[{"title":"..","duration":"3s","emoji":"..","visual":"camara","text_overlay":"texto+emoji","audio":"musica","transition":"tipo"}],"caption":"CTA","hashtags":"8","video_prompt":"(en ingles) describe un video de 8 segundos para reel vertical 9:16. Describe la escena principal, movimientos de camara, estilo visual. ALL spoken dialogue and voiceover MUST be in Spanish. All visible text in the video MUST be in Spanish. Brand: ' + brand.name + '. Colores: ' + brandColors + '. Estilo: ' + brandStyle + '. Industria: ' + brand.industry + '. Sin logos."}';
     } else {
       msg = ct.label + ': "' + topic + '". Emojis, Gancho>Valor>CTA. 8 hashtags.';
     }
