@@ -757,6 +757,7 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
     const currentTopic = topic;
     const currentImages = [...uploadedImages];
     const isRefining = ct.fmt === "visual" && lastAiImage;
+    const isDirectEdit = ct.fmt === "visual" && currentImages.length > 0 && !lastAiImage;
     // For visual, add to chat and clear input immediately
     if (ct.fmt === "visual") {
       setChatHistory(prev => [...prev, { role: "user", text: currentTopic, images: uploadedPreviews.length > 0 ? [...uploadedPreviews] : null }]);
@@ -769,6 +770,26 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
     setLoading(true); setResult(null); setTxt(""); setVideoUrl(null); setVideoLoading(false); setVideoProgress("");
     const brandColors = (brand.colors || [brand.color]).join(", ");
     const brandStyle = brand.imgStyle || "professional modern";
+
+    // ── DIRECT EDIT: user uploaded a photo, send instruction directly to image API ──
+    if (isDirectEdit) {
+      const editPrompt = currentTopic + ". Brand: " + brand.name + ". Use brand colors: " + brandColors + ". Style: " + brandStyle + ". Make it professional for social media. Any visible text must be in Spanish.";
+      setChatHistory(prev => [...prev, { role: "ai", text: "", headline: "", loading: true }]);
+      try {
+        const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: editPrompt, image_base64: currentImages[0] }) });
+        const b = await r.blob();
+        const u = URL.createObjectURL(b);
+        const reader = new FileReader();
+        reader.onload = () => { setLastAiImage(reader.result.split(",")[1]); };
+        reader.readAsDataURL(b);
+        setChatHistory(prev => { const n = [...prev]; const last = n.findLastIndex(m => m.role === "ai" && m.loading); if (last > -1) { n[last] = { ...n[last], img: u, loading: false }; } return n; });
+      } catch (e) {
+        setChatHistory(prev => { const n = [...prev]; const last = n.findLastIndex(m => m.role === "ai" && m.loading); if (last > -1) { n[last] = { ...n[last], text: "Error al generar. Intenta de nuevo.", loading: false }; } return n; });
+      }
+      if (!isAdmin) { const np = postCount + 1; setPostCount(np); try { localStorage.setItem("dg_posts", String(np)); } catch {} }
+      setLoading(false);
+      return;
+    }
 
     // ── DIRECT REFINEMENT: skip text gen, send instruction directly to image API ──
     if (isRefining) {
