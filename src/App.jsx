@@ -747,24 +747,36 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
     if (!topic.trim() || !brand) return;
     if (!isAdmin && ct.fmt === "reel" && videosLeft <= 0) { setTxt("Has alcanzado el limite de videos de tu plan. Actualiza a Pro o Agency para generar mas videos."); setResult({t:"text"}); return; }
     if (!isAdmin && ct.fmt !== "reel" && postsLeft <= 0) { setTxt("Has alcanzado el limite de posts de tu plan. Actualiza a Pro o Agency para generar mas contenido."); setResult({t:"text"}); return; }
-    setLoading(true); setResult(null); setTxt(""); setVideoUrl(null); setVideoLoading(false);
+    setLoading(true); setResult(null); setTxt(""); setVideoUrl(null); setVideoLoading(false); setVideoProgress("");
     const brandColors = (brand.colors || [brand.color]).join(", ");
     const brandStyle = brand.imgStyle || "professional modern";
-    // Fetch real info from brand website
+    // Fetch real info from brand website (5 sec timeout)
     let realInfo = "";
     const scrapeUrl = brand.website || brand.instagram || brand.facebook || "";
     if (scrapeUrl) {
       try {
-        const wr = await fetch("/api/scrape?url=" + encodeURIComponent(scrapeUrl.startsWith("http") ? scrapeUrl : "https://" + scrapeUrl));
+        const ctrl = new AbortController();
+        const tmout = setTimeout(() => ctrl.abort(), 5000);
+        const wr = await fetch("/api/scrape?url=" + encodeURIComponent(scrapeUrl.startsWith("http") ? scrapeUrl : "https://" + scrapeUrl), { signal: ctrl.signal });
+        clearTimeout(tmout);
         const wd = await wr.json();
-        if (wd.text) realInfo = wd.text.substring(0, 2000);
+        if (wd.text) realInfo = wd.text.substring(0, 1500);
       } catch (e) { /* continue without web info */ }
+    }
+    // Start video generation IMMEDIATELY for reels (in parallel)
+    const fmt = ct.fmt;
+    if (fmt === "reel") {
+      const directVideoPrompt = "Create a vertical 9:16 promotional video for " + brand.name + " (" + brand.industry + "). IMPORTANT: ALL voiceover and narration MUST be in SPANISH (Latin American Spanish). Topic: " + topic + ". Brand colors: " + brandColors + ". Style: " + brandStyle + ". Make it professional, eye-catching and designed to attract customers on social media. Include any discounts or promotions mentioned. Do NOT include any logo. Make it realistic and high quality.";
+      const videoBody = { prompt: directVideoPrompt.substring(0, 500), aspect_ratio: "9:16" };
+      if (reelImage) { videoBody.image_base64 = reelImage; }
+      fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(videoBody) })
+        .then(r => r.json()).then(d => { if (d.operation) { pollVideo(d.operation); } else { setVideoProgress("Error: " + (d.error || "no se pudo iniciar")); } })
+        .catch(() => setVideoProgress("Error al conectar con API de video"));
     }
     const brandCtx = "MARCA:" + brand.name + "|INDUSTRIA:" + brand.industry + "|TONO:" + brand.tone + "|AUDIENCIA:" + brand.audience + "|VOZ:" + (brand.brandVoice || "Profesional") + "|PRODUCTOS:" + (brand.products || "N/A") + "|COLORES:" + brandColors + "|ESTILO_VISUAL:" + brandStyle;
     const realInfoBlock = realInfo ? "\n\nINFORMACION REAL DE LA PAGINA WEB DE " + brand.name + " (USA SOLO ESTA INFORMACION REAL, NO INVENTES DATOS):\n" + realInfo : "";
     const jsonRule = (fmt === "text") ? " Responde en texto plano, NO JSON." : " SOLO JSON sin markdown sin backticks.";
     const sys = "Eres DIRECTOR CREATIVO SENIOR agencia Bogota. " + brandCtx + ". REGLAS:1)Gancho 2)3-5 emojis 3)Gancho>Valor>CTA 4)8 hashtags 5)Espanol colombiano tu 6)Valor primero 7)Saltos linea." + jsonRule + " MUY IMPORTANTE: Usa SOLO informacion REAL de la marca. NUNCA inventes precios, productos, servicios ni datos que no sean reales." + realInfoBlock;
-    const fmt = ct.fmt;
     const imgInst = "image_prompt: MUST be in english BUT any visible text inside the image MUST be in Spanish. Translate the user request LITERALLY into an image description. If user asks for animated/cartoon style, specify 3D Pixar-style animated. If user mentions discounts or text, include that text visually in the image. Brand name: " + brand.name + ". Brand colors: " + brandColors + ". Brand visual style: " + brandStyle + ". Industry: " + brand.industry + ". Be EXTREMELY specific and literal. Copy the user instructions as closely as possible into the image description. NEVER include any logo or brand logo in the image because the AI will generate a fake incorrect logo. The real logo will be added manually later.";
     let msg = "";
     if (fmt === "visual") {
@@ -778,7 +790,7 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
     } else {
       msg = 'Escribe un copy para redes sociales de ' + brand.name + ' sobre: "' + topic + '". Escribe el caption de corrido con emojis, gancho al inicio, valor en el medio, CTA al final. NO uses JSON. Solo el texto listo para copiar y pegar en Instagram. Agrega saltos de linea para que se vea bien. Al final agrega 8 hashtags relevantes.';
     }
-    try { const r = await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2500,system:sys,messages:[{role:"user",content:msg}]})}); const d = await r.json(); const raw = d.content?.map(c=>c.text||"").join("")||""; if(fmt==="text"){setTxt(raw);setResult({t:"text"});}else{try{let clean=raw;if(clean.indexOf("{")>-1)clean=clean.substring(clean.indexOf("{"),clean.lastIndexOf("}")+1);const pd=JSON.parse(clean);const imgUrl=pd.image_prompt?"/api/image?prompt="+encodeURIComponent(pd.image_prompt.substring(0,500))+(reelImage?"&ref=1":""):null;if(reelImage&&pd.image_prompt){setResult({t:fmt,d:pd,img:null,imgLoading:true});fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:pd.image_prompt.substring(0,500),image_base64:reelImage})}).then(r=>r.blob()).then(b=>{const u=URL.createObjectURL(b);setResult(prev=>({...prev,img:u,imgLoading:false}));}).catch(()=>{setResult(prev=>({...prev,imgLoading:false}));});}else{setResult({t:fmt,d:pd,img:imgUrl,imgLoading:!!imgUrl});if(imgUrl){const testImg=new Image();testImg.onload=()=>setResult(prev=>({...prev,imgLoading:false}));testImg.onerror=()=>setResult(prev=>({...prev,imgLoading:false}));testImg.src=imgUrl;}}if(fmt==="reel"){const directVideoPrompt="Create a vertical 9:16 promotional video for "+brand.name+" ("+brand.industry+"). IMPORTANT: ALL voiceover and narration MUST be in SPANISH (Latin American Spanish). Topic: "+topic+". Brand colors: "+brandColors+". Style: "+brandStyle+". Make it professional, eye-catching and designed to attract customers on social media. Include any discounts or promotions mentioned. Do NOT include any logo. Make it realistic and high quality.";const videoBody={prompt:directVideoPrompt.substring(0,500),aspect_ratio:"9:16"};if(reelImage){videoBody.image_base64=reelImage;}fetch("/api/video",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(videoBody)}).then(r=>r.json()).then(d=>{if(d.operation){pollVideo(d.operation);}else{setVideoProgress("Error: "+(d.error||"no se pudo iniciar"));}}).catch(()=>setVideoProgress("Error al conectar con API de video"));}}catch{setTxt(raw);setResult({t:"text"});}} } catch{setTxt("Error.");setResult({t:"text"});} if(!isAdmin){if(ct.fmt==="reel"){const nv=videoCount+1;setVideoCount(nv);try{localStorage.setItem("dg_videos",String(nv));}catch{}}else{const np=postCount+1;setPostCount(np);try{localStorage.setItem("dg_posts",String(np));}catch{}}} setLoading(false);
+    try { const gc = new AbortController(); const gt = setTimeout(() => gc.abort(), 30000); const r = await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"gemini-2.5-flash",max_tokens:2500,system:sys,messages:[{role:"user",content:msg}]}),signal:gc.signal}); clearTimeout(gt); const d = await r.json(); const raw = d.content?.map(c=>c.text||"").join("")||""; if(fmt==="text"){setTxt(raw);setResult({t:"text"});}else{try{let clean=raw;if(clean.indexOf("{")>-1)clean=clean.substring(clean.indexOf("{"),clean.lastIndexOf("}")+1);const pd=JSON.parse(clean);const imgUrl=pd.image_prompt?"/api/image?prompt="+encodeURIComponent(pd.image_prompt.substring(0,500))+(reelImage?"&ref=1":""):null;if(reelImage&&pd.image_prompt){setResult({t:fmt,d:pd,img:null,imgLoading:true});fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:pd.image_prompt.substring(0,500),image_base64:reelImage})}).then(r=>r.blob()).then(b=>{const u=URL.createObjectURL(b);setResult(prev=>({...prev,img:u,imgLoading:false}));}).catch(()=>{setResult(prev=>({...prev,imgLoading:false}));});}else{setResult({t:fmt,d:pd,img:imgUrl,imgLoading:!!imgUrl});if(imgUrl){const testImg=new Image();testImg.onload=()=>setResult(prev=>({...prev,imgLoading:false}));testImg.onerror=()=>setResult(prev=>({...prev,imgLoading:false}));testImg.src=imgUrl;}}if(fmt==="reel"){/* video already started in parallel above */}}catch{setTxt(raw);setResult({t:"text"});}} } catch(err){setTxt(err.name==="AbortError"?"La generacion tardo demasiado. Intenta con una instruccion mas corta.":"Error al generar. Intenta de nuevo.");setResult({t:"text"});} if(!isAdmin){if(ct.fmt==="reel"){const nv=videoCount+1;setVideoCount(nv);try{localStorage.setItem("dg_videos",String(nv));}catch{}}else{const np=postCount+1;setPostCount(np);try{localStorage.setItem("dg_posts",String(np));}catch{}}} setLoading(false);
   };
   const [showGuide, setShowGuide] = useState(false);
   if(!brands.length) return <Section title="Crear Contenido"><Card style={{textAlign:"center",padding:48}}><div style={{fontSize:48,marginBottom:12}}>🏢</div><div style={{fontSize:16,fontWeight:600,color:t.tx}}>Primero crea una marca en "Mis Marcas"</div></Card></Section>;
