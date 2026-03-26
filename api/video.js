@@ -67,7 +67,8 @@ export default async function handler(req, res) {
   // If image provided, add it as first frame for image-to-video
   if (image_base64) {
     instance.image = {
-      bytesBase64Encoded: image_base64
+      bytesBase64Encoded: image_base64,
+      mimeType: "image/jpeg"
     };
   }
 
