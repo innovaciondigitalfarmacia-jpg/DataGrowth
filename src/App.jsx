@@ -756,6 +756,7 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
     if (!topic.trim() || !brand) return;
     const currentTopic = topic;
     const currentImages = [...uploadedImages];
+    const isRefining = ct.fmt === "visual" && lastAiImage;
     // For visual, add to chat and clear input immediately
     if (ct.fmt === "visual") {
       setChatHistory(prev => [...prev, { role: "user", text: currentTopic, images: uploadedPreviews.length > 0 ? [...uploadedPreviews] : null }]);
@@ -768,6 +769,28 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
     setLoading(true); setResult(null); setTxt(""); setVideoUrl(null); setVideoLoading(false); setVideoProgress("");
     const brandColors = (brand.colors || [brand.color]).join(", ");
     const brandStyle = brand.imgStyle || "professional modern";
+
+    // ── DIRECT REFINEMENT: skip text gen, send instruction directly to image API ──
+    if (isRefining) {
+      const editPrompt = "Modify this existing image. ONLY make this specific change: " + currentTopic + ". Keep EVERYTHING else in the image exactly the same. Do NOT recreate the image from scratch. Only apply the requested modification.";
+      setChatHistory(prev => [...prev, { role: "ai", text: "", headline: "", loading: true }]);
+      try {
+        const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: editPrompt, image_base64: lastAiImage }) });
+        const b = await r.blob();
+        const u = URL.createObjectURL(b);
+        const reader = new FileReader();
+        reader.onload = () => { setLastAiImage(reader.result.split(",")[1]); };
+        reader.readAsDataURL(b);
+        setChatHistory(prev => { const n = [...prev]; const last = n.findLastIndex(m => m.role === "ai" && m.loading); if (last > -1) { n[last] = { ...n[last], img: u, loading: false }; } return n; });
+      } catch (e) {
+        setChatHistory(prev => { const n = [...prev]; const last = n.findLastIndex(m => m.role === "ai" && m.loading); if (last > -1) { n[last] = { ...n[last], text: "Error al modificar la imagen. Intenta de nuevo.", loading: false }; } return n; });
+      }
+      if (!isAdmin) { const np = postCount + 1; setPostCount(np); try { localStorage.setItem("dg_posts", String(np)); } catch {} }
+      setLoading(false);
+      return;
+    }
+
+    // ── NORMAL GENERATION FLOW ──
     // Fetch real info from brand website (5 sec timeout)
     let realInfo = "";
     const scrapeUrl = brand.website || brand.instagram || brand.facebook || "";
