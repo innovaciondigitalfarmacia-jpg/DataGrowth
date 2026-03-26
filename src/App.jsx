@@ -38,7 +38,7 @@ const Ic = ({ name, size = 18 }) => {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={d[name] || ""}/></svg>;
 };
 const Spin = () => <span style={{ display: "inline-block", width: 16, height: 16, border: "2px solid rgba(255,255,255,0.3)", borderTop: "2px solid #fff", borderRadius: "50%", animation: "spin .8s linear infinite" }}/>;
-const Btn = ({ children, primary, danger, ghost, onClick, style: s, disabled }) => { const t = useT(); return <button onClick={onClick} disabled={disabled} style={{ padding: "10px 22px", background: danger ? "#ef4444" : primary ? t.gr : ghost ? "transparent" : t.bgC, color: danger || primary ? "#fff" : ghost ? t.txS : t.tx, border: ghost ? "none" : danger || primary ? "none" : `1px solid ${t.brd}`, borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: disabled ? "default" : "pointer", display: "inline-flex", alignItems: "center", gap: 8, opacity: disabled ? .5 : 1, boxShadow: primary ? "0 4px 20px rgba(55,194,235,.25)" : "none", transition: "all .2s", ...s }}>{children}</button>; };
+const Btn = ({ children, primary, danger, ghost, secondary, onClick, style: s, disabled }) => { const t = useT(); return <button onClick={onClick} disabled={disabled} style={{ padding: "10px 22px", background: danger ? "#ef4444" : primary ? t.gr : secondary ? t.acS : ghost ? "transparent" : t.bgC, color: danger || primary ? "#fff" : secondary ? t.ac : ghost ? t.txS : t.tx, border: ghost ? "none" : danger || primary ? "none" : secondary ? "1px solid " + t.ac + "40" : `1px solid ${t.brd}`, borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: disabled ? "default" : "pointer", display: "inline-flex", alignItems: "center", gap: 8, opacity: disabled ? .5 : 1, boxShadow: primary ? "0 4px 20px rgba(55,194,235,.25)" : "none", transition: "all .2s", ...s }}>{children}</button>; };
 const Card = ({ children, style: s, onClick }) => { const t = useT(); return <div onClick={onClick} style={{ background: t.bgC, border: `1px solid ${t.brd}`, borderRadius: 14, padding: 20, boxShadow: `0 2px 12px ${t.sh}`, cursor: onClick ? "pointer" : "default", ...s }}>{children}</div>; };
 const Input = ({ value, onChange, placeholder, type, style: s, onKeyDown }) => { const t = useT(); return <input value={value} onChange={onChange} onKeyDown={onKeyDown} type={type} placeholder={placeholder} style={{ padding: "12px 16px", background: t.bgI, border: `1px solid ${t.brd}`, borderRadius: 10, color: t.tx, fontSize: 14, outline: "none", width: "100%", boxSizing: "border-box", ...s }} onFocus={e => e.target.style.borderColor = t.ac} onBlur={e => e.target.style.borderColor = t.brd}/>; };
 const Textarea = ({ value, onChange, placeholder, rows }) => { const t = useT(); return <textarea value={value} onChange={onChange} placeholder={placeholder} rows={rows || 3} style={{ padding: "12px 16px", background: t.bgI, border: `1px solid ${t.brd}`, borderRadius: 10, color: t.tx, fontSize: 14, outline: "none", width: "100%", boxSizing: "border-box", resize: "vertical", fontFamily: "inherit" }}/>; };
@@ -52,12 +52,15 @@ const Logo = ({ size = 32 }) => <img src="/logo.jpg" alt="DataGrowth" style={{ w
 const Landing = ({ onLogin, onRegister, dark, setDark }) => {
   const t = useT();
   const features = [
-    { icon: "🖼️", title: "Imágenes AI", desc: "Genera fotos profesionales con Gemini para cada post, carrusel y story." },
-    { icon: "✍️", title: "Copy Experto", desc: "Textos nivel agencia con emojis estratégicos, ganchos y CTAs que convierten." },
-    { icon: "🎬", title: "Storyboards", desc: "Guiones de reels escena por escena con indicaciones de cámara y audio." },
-    { icon: "🎠", title: "Carruseles", desc: "5 slides optimizados con estructura gancho-valor-CTA." },
-    { icon: "🏢", title: "Multi-marca", desc: "Gestiona múltiples marcas desde un solo panel, cada una con su voz." },
-    { icon: "📊", title: "Branding Kit", desc: "Configura tono, audiencia, colores y personalidad. La IA aprende de ti." },
+    { icon: "🖼️", title: "Imagenes AI", desc: "Genera imagenes profesionales con Nano Banana de Google. Sube fotos reales de tu producto y la IA las transforma." },
+    { icon: "🎬", title: "Videos AI", desc: "Crea reels de 8 segundos con Veo 3.1. Videos realistas con audio, desde texto o animando tus propias fotos." },
+    { icon: "✍️", title: "Copy Profesional", desc: "Captions con emojis, ganchos que atrapan, CTAs que convierten. Texto listo para copiar y publicar." },
+    { icon: "🎠", title: "Carruseles", desc: "5 slides optimizados con estructura gancho-valor-CTA. Solo arma el diseno con los textos generados." },
+    { icon: "📧", title: "Email Marketing", desc: "Emails completos y persuasivos listos para enviar a tus clientes. Con CTA claro y tono de tu marca." },
+    { icon: "🏢", title: "Multi-marca", desc: "Gestiona multiples marcas desde un solo panel. Cada una con sus colores, tono, audiencia y voz unica." },
+    { icon: "🎨", title: "Branding Kit", desc: "Configura colores, tipografias, tono, audiencia y productos. La IA usa TODO para generar contenido fiel a tu marca." },
+    { icon: "🌐", title: "Info Real", desc: "Se conecta a tu pagina web y redes para usar informacion REAL. Nunca inventa precios ni datos falsos." },
+    { icon: "📢", title: "Anuncios", desc: "Genera imagenes y textos publicitarios listos para pauta en Meta Ads, Google Ads y mas." },
   ];
 
   return (
@@ -72,7 +75,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div onClick={() => setDark(!dark)} style={{ cursor: "pointer", color: t.txM, padding: 6 }}><Ic name={dark ? "sun" : "moon"} size={16}/></div>
             <Btn ghost onClick={onLogin} style={{ fontSize: 13 }}>Iniciar sesion</Btn>
-            <Btn onClick={() => onRegister()} style={{ fontSize: 13, padding: "8px 18px" }}>Crear cuenta gratis</Btn>
+            <Btn secondary onClick={() => onRegister()} style={{ fontSize: 13, padding: "8px 18px" }}>Crear cuenta gratis</Btn>
             <Btn primary onClick={() => { document.getElementById("pricing-section")?.scrollIntoView({ behavior: "smooth" }); }} style={{ fontSize: 13, padding: "8px 18px" }}>Ver planes</Btn>
           </div>
         </div>
@@ -88,24 +91,27 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
         <p style={{ fontSize: 18, color: t.txS, maxWidth: 640, margin: "0 auto 36px", lineHeight: 1.6 }}>DataGrowth es la plataforma de inteligencia artificial que genera posts, imagenes, videos, carruseles, reels, copys y emails profesionales para tu marca o la de tus clientes. Configura tu identidad de marca una sola vez y genera contenido ilimitado con un clic.</p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
           <Btn primary onClick={() => onRegister()} style={{ fontSize: 16, padding: "14px 32px" }}>Crear cuenta gratis</Btn>
-          <Btn onClick={() => { document.getElementById("pricing-section")?.scrollIntoView({ behavior: "smooth" }); }} style={{ fontSize: 16, padding: "14px 32px" }}>Ver planes <Ic name="ar" size={16}/></Btn>
-          <Btn ghost onClick={onLogin} style={{ fontSize: 16, padding: "14px 20px" }}>Ya tengo cuenta</Btn>
+          <Btn secondary onClick={() => { document.getElementById("pricing-section")?.scrollIntoView({ behavior: "smooth" }); }} style={{ fontSize: 16, padding: "14px 32px" }}>Ver planes <Ic name="ar" size={16}/></Btn>
+          <Btn ghost onClick={onLogin} style={{ fontSize: 14, padding: "14px 20px" }}>Ya tengo cuenta</Btn>
+        </div>
+        {/* Stats bar */}
+        <div style={{ display: "flex", justifyContent: "center", gap: 40, marginTop: 48, flexWrap: "wrap" }}>
+          {[{ n: "6+", l: "Tipos de contenido" }, { n: "5", l: "Marcas gestionadas" }, { n: "IA", l: "Imagenes + Videos + Texto" }, { n: "24/7", l: "Disponibilidad" }].map((s, i) => <div key={i} style={{ textAlign: "center" }}><div style={{ fontSize: 28, fontWeight: 800, color: t.ac }}>{s.n}</div><div style={{ fontSize: 12, color: t.txM, marginTop: 2 }}>{s.l}</div></div>)}
         </div>
       </div>
-
-      {/* FEATURES */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px" }}>
-        <div style={{ textAlign: "center", marginBottom: 48 }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px" }}>
+        <div style={{ textAlign: "center", marginBottom: 56 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Funcionalidades</div>
           <h2 style={{ fontSize: 36, fontWeight: 700, letterSpacing: -1 }}>Todo lo que tu agencia necesita</h2>
+          <p style={{ fontSize: 15, color: t.txS, marginTop: 10, maxWidth: 500, margin: "10px auto 0" }}>Una sola plataforma para generar todo el contenido de tus marcas.</p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
           {features.map((f, i) => (
-            <Card key={i} style={{ padding: 28, transition: "border-color .3s" }}>
-              <div style={{ fontSize: 32, marginBottom: 14 }}>{f.icon}</div>
+            <div key={i} style={{ background: t.bgC, border: "1px solid " + t.brd, borderRadius: 16, padding: 28, transition: "all .3s", cursor: "default" }} onMouseEnter={e => { e.currentTarget.style.borderColor = t.ac + "50"; e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 40px " + t.sh; }} onMouseLeave={e => { e.currentTarget.style.borderColor = t.brd; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: t.acS, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, marginBottom: 16 }}>{f.icon}</div>
               <div style={{ fontSize: 17, fontWeight: 600, color: t.tx, marginBottom: 8 }}>{f.title}</div>
               <div style={{ fontSize: 14, color: t.txS, lineHeight: 1.6 }}>{f.desc}</div>
-            </Card>
+            </div>
           ))}
         </div>
       </div>
@@ -119,73 +125,68 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
           <p style={{ fontSize: 16, color: t.txS, marginTop: 12, maxWidth: 700, margin: "12px auto 0", lineHeight: 1.7 }}>DataGrowth es una plataforma de inteligencia artificial disenada para agencias digitales, emprendedores y empresas que necesitan generar contenido profesional de forma rapida, consistente y alineado con su identidad de marca.</p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-          <Card style={{ padding: 28 }}>
-            <div style={{ fontSize: 28, marginBottom: 12 }}>🎯</div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: t.tx, marginBottom: 10 }}>Que hacemos</div>
-            <div style={{ fontSize: 14, color: t.txS, lineHeight: 1.7 }}>Generamos contenido completo para redes sociales usando inteligencia artificial de ultima generacion. Desde imagenes y videos hasta copys, carruseles, reels, anuncios y emails de marketing. Todo personalizado con los colores, tono de voz, productos e informacion real de tu marca. No mas contenido generico, no mas publicidad falsa.</div>
-          </Card>
-          <Card style={{ padding: 28 }}>
-            <div style={{ fontSize: 28, marginBottom: 12 }}>🚀</div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: t.tx, marginBottom: 10 }}>Como funciona</div>
-            <div style={{ fontSize: 14, color: t.txS, lineHeight: 1.7 }}>1. Creas tu marca y configuras tu Brand Kit (colores, logo, tono, audiencia, productos). 2. Conectas tu pagina web o redes sociales para que la IA use informacion real. 3. Seleccionas el tipo de contenido que necesitas. 4. Describes lo que quieres en una instruccion. 5. La IA genera todo en segundos: imagen, texto, hashtags, listo para publicar.</div>
-          </Card>
-          <Card style={{ padding: 28 }}>
-            <div style={{ fontSize: 28, marginBottom: 12 }}>💡</div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: t.tx, marginBottom: 10 }}>Que nos diferencia</div>
-            <div style={{ fontSize: 14, color: t.txS, lineHeight: 1.7 }}>A diferencia de otras herramientas, DataGrowth se conecta a tu pagina web y redes sociales para extraer informacion REAL de tu empresa. Nunca inventa precios, productos ni servicios. Cada pieza de contenido refleja tu marca tal como es. Ademas, puedes subir fotos reales de tus productos y la IA las transforma en contenido profesional.</div>
-          </Card>
-          <Card style={{ padding: 28 }}>
-            <div style={{ fontSize: 28, marginBottom: 12 }}>🏢</div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: t.tx, marginBottom: 10 }}>Para quien es</div>
-            <div style={{ fontSize: 14, color: t.txS, lineHeight: 1.7 }}>Para agencias digitales que manejan multiples marcas. Para emprendedores que necesitan contenido profesional sin contratar un disenador. Para empresas que quieren mantener sus redes activas con contenido de calidad. Para cualquier negocio que quiera escalar su presencia digital sin multiplicar costos.</div>
-          </Card>
+          {[
+            { icon: "🎯", title: "Que hacemos", desc: "Generamos contenido completo para redes sociales usando inteligencia artificial de ultima generacion. Desde imagenes y videos hasta copys, carruseles, reels, anuncios y emails de marketing. Todo personalizado con los colores, tono de voz, productos e informacion real de tu marca." },
+            { icon: "🚀", title: "Como funciona", desc: "1. Creas tu marca y configuras tu Brand Kit. 2. Conectas tu pagina web o redes sociales. 3. Seleccionas el tipo de contenido. 4. Describes lo que quieres. 5. La IA genera todo en segundos: imagen, texto, hashtags, listo para publicar." },
+            { icon: "💡", title: "Que nos diferencia", desc: "DataGrowth se conecta a tu pagina web y redes sociales para extraer informacion REAL. Nunca inventa precios, productos ni servicios. Cada pieza de contenido refleja tu marca tal como es. Sube fotos reales y la IA las transforma en contenido profesional." },
+            { icon: "🏢", title: "Para quien es", desc: "Para agencias digitales que manejan multiples marcas. Para emprendedores que necesitan contenido profesional. Para empresas que quieren mantener sus redes activas. Para cualquier negocio que quiera escalar su presencia digital." }
+          ].map((item, i) => <div key={i} style={{ background: t.bgC, border: "1px solid " + t.brd, borderRadius: 16, padding: 28, transition: "all .3s" }} onMouseEnter={e => { e.currentTarget.style.borderColor = t.ac + "50"; e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 40px " + t.sh; }} onMouseLeave={e => { e.currentTarget.style.borderColor = t.brd; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}>
+            <div style={{ width: 48, height: 48, borderRadius: 12, background: t.acS, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, marginBottom: 14 }}>{item.icon}</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: t.tx, marginBottom: 10 }}>{item.title}</div>
+            <div style={{ fontSize: 14, color: t.txS, lineHeight: 1.7 }}>{item.desc}</div>
+          </div>)}
         </div>
-        <div style={{ marginTop: 24 }}>
-          <Card style={{ padding: 28 }}>
-            <div style={{ fontSize: 17, fontWeight: 700, color: t.tx, marginBottom: 14, textAlign: "center" }}>🛠️ Tecnologia que usamos</div>
+        <div style={{ marginTop: 24, background: t.bgC, border: "1px solid " + t.brd, borderRadius: 16, padding: 28 }}>
+          <div style={{ fontSize: 17, fontWeight: 700, color: t.tx, marginBottom: 16, textAlign: "center" }}>🛠️ Tecnologia que impulsa DataGrowth</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
               {[
                 { icon: "🤖", name: "Claude AI", desc: "Genera textos, copys y emails de nivel agencia" },
                 { icon: "🖼️", name: "Nano Banana", desc: "Crea imagenes profesionales con IA de Google" },
                 { icon: "🎬", name: "Veo 3.1", desc: "Genera videos de 8 segundos en alta calidad" },
                 { icon: "🌐", name: "Web Scraping", desc: "Extrae info real de tu pagina web y redes" }
-              ].map((t2, i) => <div key={i} style={{ textAlign: "center", padding: 14, background: t.bgI, borderRadius: 12 }}><div style={{ fontSize: 24, marginBottom: 6 }}>{t2.icon}</div><div style={{ fontSize: 13, fontWeight: 600, color: t.tx, marginBottom: 4 }}>{t2.name}</div><div style={{ fontSize: 11, color: t.txS }}>{t2.desc}</div></div>)}
+              ].map((t2, i) => <div key={i} style={{ textAlign: "center", padding: 16, background: t.bgI, borderRadius: 12, transition: "all .3s" }} onMouseEnter={e => { e.currentTarget.style.background = t.acS; e.currentTarget.style.transform = "translateY(-2px)"; }} onMouseLeave={e => { e.currentTarget.style.background = t.bgI; e.currentTarget.style.transform = "none"; }}><div style={{ fontSize: 24, marginBottom: 6 }}>{t2.icon}</div><div style={{ fontSize: 13, fontWeight: 600, color: t.tx, marginBottom: 4 }}>{t2.name}</div><div style={{ fontSize: 11, color: t.txS }}>{t2.desc}</div></div>)}
             </div>
-          </Card>
+          </div>
         </div>
       </div>
 
       {/* PRICING */}
-      <div id="pricing-section" style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px 80px" }}>
-        <div style={{ textAlign: "center", marginBottom: 48 }}>
+      <div id="pricing-section" style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px 80px" }}>
+        <div style={{ textAlign: "center", marginBottom: 56 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Precios</div>
           <h2 style={{ fontSize: 36, fontWeight: 700, letterSpacing: -1 }}>Planes simples y transparentes</h2>
-          <p style={{ fontSize: 16, color: t.txS, marginTop: 10 }}>Empieza gratis. Escala cuando lo necesites.</p>
+          <p style={{ fontSize: 15, color: t.txS, marginTop: 10 }}>Empieza gratis. Escala cuando lo necesites. Sin permanencia.</p>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20, alignItems: "start" }}>
           {PLANS.map(p => (
-            <Card key={p.id} style={{ position: "relative", border: p.pop ? `2px solid ${p.color}` : `1px solid ${t.brd}`, textAlign: "center", padding: 32, overflow: "visible" }}>
-              {p.pop && <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: p.color, color: "#fff", padding: "5px 20px", borderRadius: 20, fontSize: 12, fontWeight: 700 }}>Más popular</div>}
-              <div style={{ fontSize: 18, fontWeight: 600, color: t.tx, marginBottom: 4, paddingTop: p.pop ? 8 : 0 }}>{p.name}</div>
-              <div style={{ fontSize: 12, color: t.txS, marginBottom: 16 }}>{p.desc}</div>
-              <div style={{ fontSize: 44, fontWeight: 800, color: p.color, marginBottom: 4 }}>{p.price}<span style={{ fontSize: 16, fontWeight: 400, color: t.txM }}>/mes</span></div>
-              <div style={{ borderTop: `1px solid ${t.brd}`, margin: "20px 0", paddingTop: 20 }}>
-                {p.features.map((f, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", fontSize: 14, color: t.tx }}><span style={{ color: t.ac }}>✓</span>{f}</div>)}
+            <div key={p.id} style={{ position: "relative", background: t.bgC, border: p.pop ? "2px solid " + p.color : "1px solid " + t.brd, borderRadius: 18, textAlign: "center", padding: 36, overflow: "visible", transition: "all .3s", transform: p.pop ? "scale(1.04)" : "none" }} onMouseEnter={e => { e.currentTarget.style.transform = p.pop ? "scale(1.06)" : "translateY(-6px)"; e.currentTarget.style.boxShadow = "0 16px 50px " + t.sh; }} onMouseLeave={e => { e.currentTarget.style.transform = p.pop ? "scale(1.04)" : "none"; e.currentTarget.style.boxShadow = "none"; }}>
+              {p.pop && <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: t.gr, color: "#fff", padding: "6px 24px", borderRadius: 20, fontSize: 12, fontWeight: 700, boxShadow: "0 4px 15px rgba(55,194,235,.3)" }}>Mas popular</div>}
+              <div style={{ fontSize: 20, fontWeight: 700, color: t.tx, marginBottom: 4, paddingTop: p.pop ? 8 : 0 }}>{p.name}</div>
+              <div style={{ fontSize: 13, color: t.txS, marginBottom: 20 }}>{p.desc}</div>
+              <div style={{ fontSize: 48, fontWeight: 800, color: p.color, marginBottom: 4 }}>{p.price}<span style={{ fontSize: 16, fontWeight: 400, color: t.txM }}>/mes</span></div>
+              <div style={{ borderTop: "1px solid " + t.brd, margin: "24px 0", paddingTop: 20 }}>
+                {p.features.map((f, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", fontSize: 14, color: t.tx, textAlign: "left" }}><span style={{ color: t.ac, fontSize: 16, flexShrink: 0 }}>✓</span>{f}</div>)}
               </div>
-              <Btn primary={p.pop} onClick={() => onRegister(p)} style={{ width: "100%", justifyContent: "center" }}>Empezar con {p.name}</Btn>
-            </Card>
+              <Btn primary={p.pop} secondary={!p.pop} onClick={() => onRegister(p)} style={{ width: "100%", justifyContent: "center", padding: "14px 24px", borderRadius: 12, fontSize: 15 }}>{p.id === "free" ? "Crear cuenta gratis" : "Empezar con " + p.name}</Btn>
+            </div>
           ))}
         </div>
       </div>
 
       {/* CTA */}
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px 80px" }}>
-        <Card style={{ textAlign: "center", padding: "60px 40px", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", top: -100, left: "50%", transform: "translateX(-50%)", width: 500, height: 300, background: t.ac, borderRadius: "50%", filter: "blur(140px)", opacity: .08, pointerEvents: "none" }}/>
-          <h2 style={{ fontSize: 32, fontWeight: 700, marginBottom: 12, position: "relative" }}>Empieza a crear contenido <span style={{ color: t.ac }}>hoy</span></h2>
-          <p style={{ fontSize: 16, color: t.txS, marginBottom: 28, position: "relative" }}>Únete a las agencias que ya generan contenido profesional con IA.</p>
-          <Btn primary onClick={onRegister} style={{ fontSize: 16, padding: "14px 36px", position: "relative" }}>Crear cuenta gratis</Btn>
-        </Card>
+        <div style={{ textAlign: "center", padding: "70px 40px", position: "relative", overflow: "hidden", background: t.bgC, border: "1px solid " + t.brd, borderRadius: 20 }}>
+          <div style={{ position: "absolute", top: -100, left: "50%", transform: "translateX(-50%)", width: 600, height: 400, background: t.ac, borderRadius: "50%", filter: "blur(150px)", opacity: .1, pointerEvents: "none" }}/>
+          <div style={{ position: "relative" }}>
+            <div style={{ fontSize: 40, marginBottom: 16 }}>🚀</div>
+            <h2 style={{ fontSize: 34, fontWeight: 700, marginBottom: 14 }}>Empieza a crear contenido <span style={{ color: t.ac }}>hoy</span></h2>
+            <p style={{ fontSize: 16, color: t.txS, marginBottom: 32, maxWidth: 500, margin: "0 auto 32px" }}>Unete a las agencias y emprendedores que ya generan contenido profesional con IA. Sin tarjeta de credito.</p>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+              <Btn primary onClick={() => onRegister()} style={{ fontSize: 16, padding: "16px 40px", borderRadius: 50 }}>Crear cuenta gratis</Btn>
+              <Btn secondary onClick={() => { document.getElementById("pricing-section")?.scrollIntoView({ behavior: "smooth" }); }} style={{ fontSize: 16, padding: "16px 32px", borderRadius: 50 }}>Ver planes</Btn>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* FOOTER */}
@@ -214,7 +215,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
         </div>
       </div>
 
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}`}</style>
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}} @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}} nav,section,h1,h2,p{animation:fadeUp .6s ease-out}`}</style>
     </div>
   );
 };
