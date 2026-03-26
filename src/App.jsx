@@ -71,8 +71,9 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div onClick={() => setDark(!dark)} style={{ cursor: "pointer", color: t.txM, padding: 6 }}><Ic name={dark ? "sun" : "moon"} size={16}/></div>
-            <Btn ghost onClick={onLogin} style={{ fontSize: 13 }}>Iniciar sesión</Btn>
-            <Btn primary onClick={onRegister} style={{ fontSize: 13, padding: "8px 18px" }}>Empezar gratis</Btn>
+            <Btn ghost onClick={onLogin} style={{ fontSize: 13 }}>Iniciar sesion</Btn>
+            <Btn onClick={() => onRegister()} style={{ fontSize: 13, padding: "8px 18px" }}>Crear cuenta gratis</Btn>
+            <Btn primary onClick={() => onRegister(PLANS[1])} style={{ fontSize: 13, padding: "8px 18px" }}>Empezar con plan</Btn>
           </div>
         </div>
       </nav>
@@ -84,10 +85,11 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: t.ac, animation: "pulse 2s infinite" }}/> Plataforma AI para agencias digitales
         </div>
         <h1 style={{ fontSize: "clamp(36px,5.5vw,64px)", fontWeight: 800, lineHeight: 1.08, letterSpacing: -2, marginBottom: 20 }}>Crea contenido en minutos{" "}<span style={{ background: t.gr, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Escala a miles</span></h1>
-        <p style={{ fontSize: 18, color: t.txS, maxWidth: 560, margin: "0 auto 36px", lineHeight: 1.6 }}>DataGrowth genera posts, carruseles, reels e imágenes profesionales con IA para múltiples marcas. Todo desde un solo lugar.</p>
-        <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-          <Btn primary onClick={onRegister} style={{ fontSize: 16, padding: "14px 32px" }}>Empezar gratis</Btn>
-          <Btn onClick={onLogin} style={{ fontSize: 16, padding: "14px 32px" }}>Iniciar sesión <Ic name="ar" size={16}/></Btn>
+        <p style={{ fontSize: 18, color: t.txS, maxWidth: 640, margin: "0 auto 36px", lineHeight: 1.6 }}>DataGrowth es la plataforma de inteligencia artificial que genera posts, imagenes, videos, carruseles, reels, copys y emails profesionales para tu marca o la de tus clientes. Configura tu identidad de marca una sola vez y genera contenido ilimitado con un clic.</p>
+        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+          <Btn primary onClick={() => onRegister()} style={{ fontSize: 16, padding: "14px 32px" }}>Crear cuenta gratis</Btn>
+          <Btn onClick={() => onRegister(PLANS[1])} style={{ fontSize: 16, padding: "14px 32px" }}>Ver planes <Ic name="ar" size={16}/></Btn>
+          <Btn ghost onClick={onLogin} style={{ fontSize: 16, padding: "14px 20px" }}>Ya tengo cuenta</Btn>
         </div>
       </div>
 
@@ -105,6 +107,51 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
               <div style={{ fontSize: 14, color: t.txS, lineHeight: 1.6 }}>{f.desc}</div>
             </Card>
           ))}
+        </div>
+      </div>
+
+      {/* ABOUT US */}
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px", position: "relative" }}>
+        <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 500, height: 300, background: t.ac, borderRadius: "50%", filter: "blur(160px)", opacity: .04, pointerEvents: "none" }}/>
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Quienes Somos</div>
+          <h2 style={{ fontSize: 36, fontWeight: 700, letterSpacing: -1 }}>La agencia digital que trabaja 24/7 para tu marca</h2>
+          <p style={{ fontSize: 16, color: t.txS, marginTop: 12, maxWidth: 700, margin: "12px auto 0", lineHeight: 1.7 }}>DataGrowth es una plataforma de inteligencia artificial disenada para agencias digitales, emprendedores y empresas que necesitan generar contenido profesional de forma rapida, consistente y alineado con su identidad de marca.</p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+          <Card style={{ padding: 28 }}>
+            <div style={{ fontSize: 28, marginBottom: 12 }}>🎯</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: t.tx, marginBottom: 10 }}>Que hacemos</div>
+            <div style={{ fontSize: 14, color: t.txS, lineHeight: 1.7 }}>Generamos contenido completo para redes sociales usando inteligencia artificial de ultima generacion. Desde imagenes y videos hasta copys, carruseles, reels, anuncios y emails de marketing. Todo personalizado con los colores, tono de voz, productos e informacion real de tu marca. No mas contenido generico, no mas publicidad falsa.</div>
+          </Card>
+          <Card style={{ padding: 28 }}>
+            <div style={{ fontSize: 28, marginBottom: 12 }}>🚀</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: t.tx, marginBottom: 10 }}>Como funciona</div>
+            <div style={{ fontSize: 14, color: t.txS, lineHeight: 1.7 }}>1. Creas tu marca y configuras tu Brand Kit (colores, logo, tono, audiencia, productos). 2. Conectas tu pagina web o redes sociales para que la IA use informacion real. 3. Seleccionas el tipo de contenido que necesitas. 4. Describes lo que quieres en una instruccion. 5. La IA genera todo en segundos: imagen, texto, hashtags, listo para publicar.</div>
+          </Card>
+          <Card style={{ padding: 28 }}>
+            <div style={{ fontSize: 28, marginBottom: 12 }}>💡</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: t.tx, marginBottom: 10 }}>Que nos diferencia</div>
+            <div style={{ fontSize: 14, color: t.txS, lineHeight: 1.7 }}>A diferencia de otras herramientas, DataGrowth se conecta a tu pagina web y redes sociales para extraer informacion REAL de tu empresa. Nunca inventa precios, productos ni servicios. Cada pieza de contenido refleja tu marca tal como es. Ademas, puedes subir fotos reales de tus productos y la IA las transforma en contenido profesional.</div>
+          </Card>
+          <Card style={{ padding: 28 }}>
+            <div style={{ fontSize: 28, marginBottom: 12 }}>🏢</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: t.tx, marginBottom: 10 }}>Para quien es</div>
+            <div style={{ fontSize: 14, color: t.txS, lineHeight: 1.7 }}>Para agencias digitales que manejan multiples marcas. Para emprendedores que necesitan contenido profesional sin contratar un disenador. Para empresas que quieren mantener sus redes activas con contenido de calidad. Para cualquier negocio que quiera escalar su presencia digital sin multiplicar costos.</div>
+          </Card>
+        </div>
+        <div style={{ marginTop: 24 }}>
+          <Card style={{ padding: 28 }}>
+            <div style={{ fontSize: 17, fontWeight: 700, color: t.tx, marginBottom: 14, textAlign: "center" }}>🛠️ Tecnologia que usamos</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+              {[
+                { icon: "🤖", name: "Claude AI", desc: "Genera textos, copys y emails de nivel agencia" },
+                { icon: "🖼️", name: "Nano Banana", desc: "Crea imagenes profesionales con IA de Google" },
+                { icon: "🎬", name: "Veo 3.1", desc: "Genera videos de 8 segundos en alta calidad" },
+                { icon: "🌐", name: "Web Scraping", desc: "Extrae info real de tu pagina web y redes" }
+              ].map((t2, i) => <div key={i} style={{ textAlign: "center", padding: 14, background: t.bgI, borderRadius: 12 }}><div style={{ fontSize: 24, marginBottom: 6 }}>{t2.icon}</div><div style={{ fontSize: 13, fontWeight: 600, color: t.tx, marginBottom: 4 }}>{t2.name}</div><div style={{ fontSize: 11, color: t.txS }}>{t2.desc}</div></div>)}
+            </div>
+          </Card>
         </div>
       </div>
 
