@@ -708,13 +708,13 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
       setUploadedPreviews(prev => [...prev, preview]);
       const img = new Image();
       img.onload = () => {
-        const maxW = 720;
+        const maxW = 512;
         const scale = img.width > maxW ? maxW / img.width : 1;
         const c = document.createElement("canvas");
         c.width = img.width * scale;
         c.height = img.height * scale;
         c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        const b64 = c.toDataURL("image/jpeg", 0.85).split(",")[1];
+        const b64 = c.toDataURL("image/jpeg", 0.7).split(",")[1];
         setUploadedImages(prev => [...prev, b64]);
       };
       img.src = preview;
@@ -756,8 +756,8 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
     if (!topic.trim() || !brand) return;
     const currentTopic = topic;
     const currentImages = [...uploadedImages];
-    const isRefining = ct.fmt === "visual" && lastAiImage;
-    const isDirectEdit = ct.fmt === "visual" && currentImages.length > 0 && !lastAiImage;
+    const isRefining = ct.fmt === "visual" && lastAiImage && currentImages.length === 0;
+    const isDirectEdit = ct.fmt === "visual" && currentImages.length > 0;
     // For visual, add to chat and clear input immediately
     if (ct.fmt === "visual") {
       setChatHistory(prev => [...prev, { role: "user", text: currentTopic, images: uploadedPreviews.length > 0 ? [...uploadedPreviews] : null }]);
@@ -777,7 +777,9 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
       setChatHistory(prev => [...prev, { role: "ai", text: "", headline: "", loading: true }]);
       try {
         const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: editPrompt, image_base64: currentImages[0] }) });
+        if (!r.ok) throw new Error("API error " + r.status);
         const b = await r.blob();
+        if (b.type.includes("json")) throw new Error("Image generation failed");
         const u = URL.createObjectURL(b);
         const reader = new FileReader();
         reader.onload = () => { setLastAiImage(reader.result.split(",")[1]); };
@@ -797,7 +799,9 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
       setChatHistory(prev => [...prev, { role: "ai", text: "", headline: "", loading: true }]);
       try {
         const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: editPrompt, image_base64: lastAiImage }) });
+        if (!r.ok) throw new Error("API error " + r.status);
         const b = await r.blob();
+        if (b.type.includes("json")) throw new Error("Image generation failed");
         const u = URL.createObjectURL(b);
         const reader = new FileReader();
         reader.onload = () => { setLastAiImage(reader.result.split(",")[1]); };
