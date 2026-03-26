@@ -697,24 +697,33 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
   const [videoLoading, setVideoLoading] = useState(false);
   const [videoUrl, setVideoUrl] = useState(null);
   const [videoProgress, setVideoProgress] = useState("");
-  const [reelImage, setReelImage] = useState(null);
-  const [reelImagePreview, setReelImagePreview] = useState(null);
-  const handleReelImage = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setReelImagePreview(URL.createObjectURL(file));
-    const img = new Image();
-    img.onload = () => {
-      const maxW = 720;
-      const scale = img.width > maxW ? maxW / img.width : 1;
-      const c = document.createElement("canvas");
-      c.width = img.width * scale;
-      c.height = img.height * scale;
-      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-      const b64 = c.toDataURL("image/jpeg", 0.85).split(",")[1];
-      setReelImage(b64);
-    };
-    img.src = URL.createObjectURL(file);
+  const [uploadedImages, setUploadedImages] = useState([]);
+  const [uploadedPreviews, setUploadedPreviews] = useState([]);
+  const [chatHistory, setChatHistory] = useState([]);
+  const [lastAiImage, setLastAiImage] = useState(null);
+  const handleUploadImages = (e) => {
+    const files = Array.from(e.target.files || []);
+    files.forEach(file => {
+      const preview = URL.createObjectURL(file);
+      setUploadedPreviews(prev => [...prev, preview]);
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 720;
+        const scale = img.width > maxW ? maxW / img.width : 1;
+        const c = document.createElement("canvas");
+        c.width = img.width * scale;
+        c.height = img.height * scale;
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        const b64 = c.toDataURL("image/jpeg", 0.85).split(",")[1];
+        setUploadedImages(prev => [...prev, b64]);
+      };
+      img.src = preview;
+    });
+    e.target.value = "";
+  };
+  const removeUploadedImage = (idx) => {
+    setUploadedImages(prev => prev.filter((_, i) => i !== idx));
+    setUploadedPreviews(prev => prev.filter((_, i) => i !== idx));
   };
   const pollVideo = async (opName) => {
     setVideoLoading(true); setVideoProgress("Generando video con IA... (3-10 min)");
@@ -745,6 +754,15 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
   };
   const go = async () => {
     if (!topic.trim() || !brand) return;
+    const currentTopic = topic;
+    const currentImages = [...uploadedImages];
+    // For visual, add to chat and clear input immediately
+    if (ct.fmt === "visual") {
+      setChatHistory(prev => [...prev, { role: "user", text: currentTopic, images: uploadedPreviews.length > 0 ? [...uploadedPreviews] : null }]);
+      setTopic("");
+      setUploadedImages([]);
+      setUploadedPreviews([]);
+    }
     if (!isAdmin && ct.fmt === "reel" && videosLeft <= 0) { setTxt("Has alcanzado el limite de videos de tu plan. Actualiza a Pro o Agency para generar mas videos."); setResult({t:"text"}); return; }
     if (!isAdmin && ct.fmt !== "reel" && postsLeft <= 0) { setTxt("Has alcanzado el limite de posts de tu plan. Actualiza a Pro o Agency para generar mas contenido."); setResult({t:"text"}); return; }
     setLoading(true); setResult(null); setTxt(""); setVideoUrl(null); setVideoLoading(false); setVideoProgress("");
@@ -768,7 +786,7 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
     if (fmt === "reel") {
       const directVideoPrompt = "Create a vertical 9:16 promotional video for " + brand.name + " (" + brand.industry + "). IMPORTANT: ALL voiceover and narration MUST be in SPANISH (Latin American Spanish). Topic: " + topic + ". Brand colors: " + brandColors + ". Style: " + brandStyle + ". Make it professional, eye-catching and designed to attract customers on social media. Include any discounts or promotions mentioned. Do NOT include any logo. Make it realistic and high quality.";
       const videoBody = { prompt: directVideoPrompt.substring(0, 500), aspect_ratio: "9:16" };
-      if (reelImage) { videoBody.image_base64 = reelImage; }
+      if (currentImages[0]) { videoBody.image_base64 = currentImages[0]; }
       fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(videoBody) })
         .then(r => r.json()).then(d => { if (d.operation) { pollVideo(d.operation); } else { setVideoProgress("Error: " + (d.error || "no se pudo iniciar")); } })
         .catch(() => setVideoProgress("Error al conectar con API de video"));
@@ -780,17 +798,36 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
     const imgInst = "image_prompt: MUST be in english BUT any visible text inside the image MUST be in Spanish. Translate the user request LITERALLY into an image description. If user asks for animated/cartoon style, specify 3D Pixar-style animated. If user mentions discounts or text, include that text visually in the image. Brand name: " + brand.name + ". Brand colors: " + brandColors + ". Brand visual style: " + brandStyle + ". Industry: " + brand.industry + ". Be EXTREMELY specific and literal. Copy the user instructions as closely as possible into the image description. NEVER include any logo or brand logo in the image because the AI will generate a fake incorrect logo. The real logo will be added manually later.";
     let msg = "";
     if (fmt === "visual") {
-      msg = 'Post sobre: "' + topic + '". Responde SOLO con JSON asi: {"headline":"max 8 palabras","subtext":"subtitulo","caption":"3-5 lineas con emojis","hashtags":"8 hashtags","image_prompt":"(en ingles) traduce LITERALMENTE lo que el usuario pidio a una descripcion de imagen. Incluye el nombre de marca ' + brand.name + ' si es relevante. ' + imgInst + '"}';
+      msg = 'Post sobre: "' + currentTopic + '". Responde SOLO con JSON asi: {"headline":"max 8 palabras","subtext":"subtitulo","caption":"3-5 lineas con emojis","hashtags":"8 hashtags","image_prompt":"(en ingles) traduce LITERALMENTE lo que el usuario pidio a una descripcion de imagen. Incluye el nombre de marca ' + brand.name + ' si es relevante. ' + imgInst + '"}';
     } else if (fmt === "carousel") {
-      msg = 'Carrusel 5 slides: "' + topic + '". JSON:{"slides":[{"title":"..","body":"emojis","emoji":".."}],"caption":"CTA","hashtags":"8"}';
+      msg = 'Carrusel 5 slides: "' + currentTopic + '". JSON:{"slides":[{"title":"..","body":"emojis","emoji":".."}],"caption":"CTA","hashtags":"8"}';
     } else if (fmt === "reel") {
-      msg = 'Reel 5 escenas: "' + topic + '". Responde SOLO JSON:{"scenes":[{"title":"..","duration":"3s","emoji":"..","visual":"camara","text_overlay":"texto+emoji","audio":"musica","transition":"tipo"}],"caption":"CTA","hashtags":"8","video_prompt":"Create a vertical 9:16 promotional video in SPANISH language. ALL voiceover, narration and spoken words MUST be in SPANISH (Latin American). The video is about: ' + topic + '. Brand: ' + brand.name + ' (' + brand.industry + '). Use brand colors: ' + brandColors + '. Visual style: ' + brandStyle + '. Make it eye-catching, professional, and designed to attract customers on social media. Include any discounts, promotions or text mentioned by the user VISUALLY in the video. Do NOT include any logo."}';
+      msg = 'Reel 5 escenas: "' + topic + '". Responde SOLO JSON:{"scenes":[{"title":"..","duration":"3s","emoji":"..","visual":"camara","text_overlay":"texto+emoji","audio":"musica","transition":"tipo"}],"caption":"CTA","hashtags":"8","video_prompt":"Create a vertical 9:16 promotional video in SPANISH language. ALL voiceover, narration and spoken words MUST be in SPANISH (Latin American). The video is about: ' + currentTopic + '. Brand: ' + brand.name + ' (' + brand.industry + '). Use brand colors: ' + brandColors + '. Visual style: ' + brandStyle + '. Make it eye-catching, professional, and designed to attract customers on social media. Include any discounts, promotions or text mentioned by the user VISUALLY in the video. Do NOT include any logo."}';
     } else if (fmt === "text" && ct.id === "email") {
-      msg = 'Escribe un email marketing completo para ' + brand.name + ' sobre: "' + topic + '". Escribe el email de corrido, natural, como si fueras el equipo de ' + brand.name + ' escribiendole al cliente. Incluye saludo, cuerpo persuasivo con emojis, CTA claro, y despedida. NO pongas etiquetas como "asunto:" o "cuerpo:" ni JSON. Solo el email completo listo para copiar y enviar. Al final agrega una linea con 8 hashtags relevantes.';
+      msg = 'Escribe un email marketing completo para ' + brand.name + ' sobre: "' + currentTopic + '". Escribe el email de corrido, natural, como si fueras el equipo de ' + brand.name + ' escribiendole al cliente. Incluye saludo, cuerpo persuasivo con emojis, CTA claro, y despedida. NO pongas etiquetas como "asunto:" o "cuerpo:" ni JSON. Solo el email completo listo para copiar y enviar. Al final agrega una linea con 8 hashtags relevantes.';
     } else {
-      msg = 'Escribe un copy para redes sociales de ' + brand.name + ' sobre: "' + topic + '". Escribe el caption de corrido con emojis, gancho al inicio, valor en el medio, CTA al final. NO uses JSON. Solo el texto listo para copiar y pegar en Instagram. Agrega saltos de linea para que se vea bien. Al final agrega 8 hashtags relevantes.';
+      msg = 'Escribe un copy para redes sociales de ' + brand.name + ' sobre: "' + currentTopic + '". Escribe el caption de corrido con emojis, gancho al inicio, valor en el medio, CTA al final. NO uses JSON. Solo el texto listo para copiar y pegar en Instagram. Agrega saltos de linea para que se vea bien. Al final agrega 8 hashtags relevantes.';
     }
-    try { const gc = new AbortController(); const gt = setTimeout(() => gc.abort(), 30000); const r = await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"gemini-2.5-flash",max_tokens:2500,system:sys,messages:[{role:"user",content:msg}]}),signal:gc.signal}); clearTimeout(gt); const d = await r.json(); const raw = d.content?.map(c=>c.text||"").join("")||""; if(fmt==="text"){setTxt(raw);setResult({t:"text"});}else{try{let clean=raw;if(clean.indexOf("{")>-1)clean=clean.substring(clean.indexOf("{"),clean.lastIndexOf("}")+1);const pd=JSON.parse(clean);const imgUrl=pd.image_prompt?"/api/image?prompt="+encodeURIComponent(pd.image_prompt.substring(0,500))+(reelImage?"&ref=1":""):null;if(reelImage&&pd.image_prompt){setResult({t:fmt,d:pd,img:null,imgLoading:true});fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:pd.image_prompt.substring(0,500),image_base64:reelImage})}).then(r=>r.blob()).then(b=>{const u=URL.createObjectURL(b);setResult(prev=>({...prev,img:u,imgLoading:false}));}).catch(()=>{setResult(prev=>({...prev,imgLoading:false}));});}else{setResult({t:fmt,d:pd,img:imgUrl,imgLoading:!!imgUrl});if(imgUrl){const testImg=new Image();testImg.onload=()=>setResult(prev=>({...prev,imgLoading:false}));testImg.onerror=()=>setResult(prev=>({...prev,imgLoading:false}));testImg.src=imgUrl;}}if(fmt==="reel"){/* video already started in parallel above */}}catch{setTxt(raw);setResult({t:"text"});}} } catch(err){setTxt(err.name==="AbortError"?"La generacion tardo demasiado. Intenta con una instruccion mas corta.":"Error al generar. Intenta de nuevo.");setResult({t:"text"});} if(!isAdmin){if(ct.fmt==="reel"){const nv=videoCount+1;setVideoCount(nv);try{localStorage.setItem("dg_videos",String(nv));}catch{}}else{const np=postCount+1;setPostCount(np);try{localStorage.setItem("dg_posts",String(np));}catch{}}} setLoading(false);
+    try { const gc = new AbortController(); const gt = setTimeout(() => gc.abort(), 30000); const r = await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"gemini-2.5-flash",max_tokens:2500,system:sys,messages:[{role:"user",content:msg}]}),signal:gc.signal}); clearTimeout(gt); const d = await r.json(); const raw = d.content?.map(c=>c.text||"").join("")||""; if(fmt==="text"){setTxt(raw);setResult({t:"text"});}else{try{let clean=raw;if(clean.indexOf("{")>-1)clean=clean.substring(clean.indexOf("{"),clean.lastIndexOf("}")+1);const pd=JSON.parse(clean);
+      // Image generation
+      const hasUserImg = currentImages.length > 0;
+      const imgToSend = hasUserImg ? currentImages[0] : (lastAiImage || null);
+      if(fmt==="visual"&&pd.image_prompt){
+        setChatHistory(prev=>[...prev,{role:"ai",text:pd.caption,hashtags:pd.hashtags,headline:pd.headline,loading:true}]);
+        const imgPrompt=pd.image_prompt.substring(0,500);
+        if(imgToSend){
+          fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:imgPrompt,image_base64:imgToSend})}).then(r=>r.blob()).then(b=>{const u=URL.createObjectURL(b);setLastAiImage(null);setChatHistory(prev=>{const n=[...prev];const last=n.findLastIndex(m=>m.role==="ai"&&m.loading);if(last>-1){n[last]={...n[last],img:u,loading:false};}return n;});}).catch(()=>{setChatHistory(prev=>{const n=[...prev];const last=n.findLastIndex(m=>m.role==="ai"&&m.loading);if(last>-1){n[last]={...n[last],loading:false};}return n;});});
+        }else{
+          const imgUrl="/api/image?prompt="+encodeURIComponent(imgPrompt);
+          const testImg=new Image();testImg.onload=()=>{setLastAiImage(null);setChatHistory(prev=>{const n=[...prev];const last=n.findLastIndex(m=>m.role==="ai"&&m.loading);if(last>-1){n[last]={...n[last],img:imgUrl,loading:false};}return n;});};testImg.onerror=()=>{setChatHistory(prev=>{const n=[...prev];const last=n.findLastIndex(m=>m.role==="ai"&&m.loading);if(last>-1){n[last]={...n[last],loading:false};}return n;});};testImg.src=imgUrl;
+        }
+        setResult(null);
+      }else{
+        const imgUrl=pd.image_prompt?"/api/image?prompt="+encodeURIComponent(pd.image_prompt.substring(0,500)):null;
+        setResult({t:fmt,d:pd,img:imgUrl,imgLoading:!!imgUrl});
+        if(imgUrl){const testImg=new Image();testImg.onload=()=>setResult(prev=>({...prev,imgLoading:false}));testImg.onerror=()=>setResult(prev=>({...prev,imgLoading:false}));testImg.src=imgUrl;}
+      }
+      if(fmt==="reel"){/* video already started in parallel above */}}catch{if(fmt==="visual"){setChatHistory(prev=>[...prev,{role:"ai",text:raw}]);}else{setTxt(raw);setResult({t:"text"});}}} } catch(err){const errMsg=err.name==="AbortError"?"La generacion tardo demasiado. Intenta con una instruccion mas corta.":"Error al generar. Intenta de nuevo.";if(fmt==="visual"){setChatHistory(prev=>[...prev,{role:"ai",text:errMsg}]);}else{setTxt(errMsg);setResult({t:"text"});}} if(!isAdmin){if(ct.fmt==="reel"){const nv=videoCount+1;setVideoCount(nv);try{localStorage.setItem("dg_videos",String(nv));}catch{}}else{const np=postCount+1;setPostCount(np);try{localStorage.setItem("dg_posts",String(np));}catch{}}} setLoading(false);
   };
   const [showGuide, setShowGuide] = useState(false);
   if(!brands.length) return <Section title="Crear Contenido"><Card style={{textAlign:"center",padding:48}}><div style={{fontSize:48,marginBottom:12}}>🏢</div><div style={{fontSize:16,fontWeight:600,color:t.tx}}>Primero crea una marca en "Mis Marcas"</div></Card></Section>;
@@ -842,13 +879,32 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
         </div>
       </Card>}
       <div style={{marginBottom:14}}><Label>Marca</Label><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{brands.map(b=><button key={b.id} onClick={()=>setBrand(b)} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 12px",borderRadius:10,border:brand?.id===b.id?`2px solid ${b.color}`:`1px solid ${t.brd}`,background:brand?.id===b.id?b.color+"12":t.bgC,color:brand?.id===b.id?t.tx:t.txS,fontSize:12,fontWeight:600,cursor:"pointer"}}><span>{b.emoji}</span>{b.short||b.name.slice(0,3)}</button>)}</div></div>
-      <div style={{marginBottom:14}}><Label>Tipo</Label><div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>{CTYPES.map(c=><button key={c.id} onClick={()=>{setCt(c);if(c.fmt!=="reel"&&c.fmt!=="visual"){setReelImage(null);setReelImagePreview(null);}}} style={{padding:"12px 10px",borderRadius:12,border:ct.id===c.id?`2px solid ${t.ac}`:`1px solid ${t.brd}`,background:ct.id===c.id?t.acS:t.bgC,cursor:"pointer",textAlign:"center"}}><div style={{fontSize:22,marginBottom:4}}>{c.icon}</div><div style={{fontSize:12,fontWeight:600,color:ct.id===c.id?t.tx:t.txS}}>{c.label}</div></button>)}</div></div>
-      {(ct.fmt==="reel"||ct.fmt==="visual")&&<div style={{marginBottom:14,padding:14,background:t.bgI,borderRadius:12,border:"1px solid "+t.brd}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}><span style={{fontSize:14}}>📷</span><span style={{fontSize:12,fontWeight:600,color:t.tx}}>{ct.fmt==="reel"?"Primer frame del video":"Foto base para la imagen"}</span><span style={{fontSize:11,color:t.txM,fontStyle:"italic"}}>(opcional)</span></div><div style={{fontSize:11,color:t.txS,marginBottom:10,lineHeight:1.5}}>{ct.fmt==="reel"?"Si subes una foto, el video EMPIEZA desde esa foto y le da movimiento/animacion. La foto sera literalmente el primer frame del video. Si no subes foto, la IA crea todo desde cero.":"Si subes una foto real, la IA la modifica segun tus instrucciones: le agrega texto, cambia el estilo, la mejora. Si no subes foto, la IA crea la imagen desde cero."}</div><div style={{display:"flex",gap:12,alignItems:"center"}}><label style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",border:"2px dashed "+(reelImage?t.ac:t.brd),borderRadius:10,cursor:"pointer",color:reelImage?t.ac:t.txM,fontSize:12,fontWeight:500,background:reelImage?t.acS:"transparent"}}><span style={{fontSize:16}}>📷</span>{reelImage?"Cambiar foto":"Subir foto"}<input type="file" accept="image/*" onChange={handleReelImage} style={{display:"none"}}/></label>{reelImagePreview&&<div style={{position:"relative"}}><img src={reelImagePreview} style={{width:50,height:50,borderRadius:8,objectFit:"cover",border:"2px solid "+t.ac}}/><div onClick={()=>{setReelImage(null);setReelImagePreview(null);}} style={{position:"absolute",top:-6,right:-6,width:16,height:16,borderRadius:"50%",background:"#ef4444",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,cursor:"pointer",fontWeight:700}}>x</div></div>}{reelImage&&<span style={{fontSize:11,color:t.ac,fontWeight:600}}>{ct.fmt==="reel"?"✅ El video empezara desde esta foto":"✅ La imagen se generara a partir de esta foto"}</span>}</div></div>}
-      <div style={{display:"flex",gap:10,marginBottom:22}}><Input value={topic} onChange={e=>setTopic(e.target.value)} placeholder="Describe que contenido necesitas..." onKeyDown={e=>e.key==="Enter"&&go()}/><Btn onClick={go} disabled={loading||!topic.trim()} primary style={{whiteSpace:"nowrap",padding:"14px 28px"}}>{loading?<><Spin/> Creando...</>:<><Ic name="sparkle" size={16}/> Generar</>}</Btn></div>
+      <div style={{marginBottom:14}}><Label>Tipo</Label><div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>{CTYPES.map(c=><button key={c.id} onClick={()=>{setCt(c);setUploadedImages([]);setUploadedPreviews([]);if(c.fmt!=="visual"){setChatHistory([]);setLastAiImage(null);}setResult(null);setTxt("");}} style={{padding:"12px 10px",borderRadius:12,border:ct.id===c.id?`2px solid ${t.ac}`:`1px solid ${t.brd}`,background:ct.id===c.id?t.acS:t.bgC,cursor:"pointer",textAlign:"center"}}><div style={{fontSize:22,marginBottom:4}}>{c.icon}</div><div style={{fontSize:12,fontWeight:600,color:ct.id===c.id?t.tx:t.txS}}>{c.label}</div></button>)}</div></div>
+      {(ct.fmt==="reel"||ct.fmt==="visual")&&<div style={{marginBottom:14,padding:14,background:t.bgI,borderRadius:12,border:"1px solid "+t.brd}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}><span style={{fontSize:14}}>📷</span><span style={{fontSize:12,fontWeight:600,color:t.tx}}>{ct.fmt==="reel"?"Primer frame del video":"Fotos de referencia"}</span><span style={{fontSize:11,color:t.txM,fontStyle:"italic"}}>(opcional)</span></div><div style={{fontSize:11,color:t.txS,marginBottom:10,lineHeight:1.5}}>{ct.fmt==="reel"?"Si subes una foto, el video EMPIEZA desde esa foto y le da movimiento. Si no subes foto, la IA crea todo desde cero.":"Sube fotos reales de tu producto o servicio. La IA las usa como referencia para generar la imagen. Puedes subir varias."}</div><div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}><label style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",border:"2px dashed "+(uploadedImages.length?t.ac:t.brd),borderRadius:10,cursor:"pointer",color:uploadedImages.length?t.ac:t.txM,fontSize:12,fontWeight:500,background:uploadedImages.length?t.acS:"transparent"}}><span style={{fontSize:16}}>📷</span>Subir fotos<input type="file" accept="image/*" multiple onChange={handleUploadImages} style={{display:"none"}}/></label>{uploadedPreviews.map((p,i)=><div key={i} style={{position:"relative"}}><img src={p} style={{width:44,height:44,borderRadius:8,objectFit:"cover",border:"2px solid "+t.ac}}/><div onClick={()=>removeUploadedImage(i)} style={{position:"absolute",top:-5,right:-5,width:15,height:15,borderRadius:"50%",background:"#ef4444",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,cursor:"pointer",fontWeight:700}}>x</div></div>)}{uploadedImages.length>0&&<span style={{fontSize:11,color:t.ac,fontWeight:600}}>{uploadedImages.length} foto{uploadedImages.length>1?"s":""}</span>}</div></div>}
+      <div style={{display:"flex",gap:10,marginBottom:22}}><Input value={topic} onChange={e=>setTopic(e.target.value)} placeholder={chatHistory.length>0&&ct.fmt==="visual"?"Escribe como mejorar la imagen...":"Describe que contenido necesitas..."} onKeyDown={e=>e.key==="Enter"&&go()}/><Btn onClick={go} disabled={loading||!topic.trim()} primary style={{whiteSpace:"nowrap",padding:"14px 28px"}}>{loading?<><Spin/> Creando...</>:<><Ic name="sparkle" size={16}/> {chatHistory.length>0&&ct.fmt==="visual"?"Mejorar":"Generar"}</>}</Btn>{chatHistory.length>0&&ct.fmt==="visual"&&!loading&&<Btn onClick={()=>{setChatHistory([]);setLastAiImage(null);setResult(null);}} style={{whiteSpace:"nowrap",padding:"14px 16px",fontSize:12}}>Nuevo</Btn>}</div>
       {!isAdmin&&<div style={{display:"flex",gap:12,marginBottom:14,fontSize:11,color:t.txM}}><span>📊 Posts: {postCount}/{userPlan.postsLimit}</span><span>🎬 Videos: {videoCount}/{userPlan.videosLimit}</span><span style={{marginLeft:"auto",color:t.ac,cursor:"pointer"}}>⬆️ Actualizar plan</span></div>}
       {loading&&<Card style={{padding:48,textAlign:"center"}}><div style={{width:48,height:48,border:`3px solid ${t.brd}`,borderTop:`3px solid ${brand?.color||t.ac}`,borderRadius:"50%",animation:"spin .8s linear infinite",margin:"0 auto 16px"}}/><div style={{color:t.tx,fontSize:16,fontWeight:600}}>Generando para {brand?.name}...</div></Card>}
       {result&&!loading&&result.t==="text"&&<Card><div style={{display:"flex",justifyContent:"space-between",marginBottom:14}}><span style={{fontSize:13,fontWeight:600,color:t.txS}}>{brand?.emoji} {brand?.name}</span><CopyBtn text={txt}/></div><div style={{fontSize:14,color:t.tx,lineHeight:1.8,whiteSpace:"pre-wrap"}}>{txt}</div></Card>}
-      {result&&!loading&&result.t==="visual"&&result.d&&<Card>{(result.img||result.imgLoading)&&<div style={{marginBottom:16,borderRadius:14,overflow:"hidden"}}>{result.img?<img id="ai-generated-img" crossOrigin="anonymous" src={result.img} alt="AI Generated" style={{width:"100%",maxHeight:500,objectFit:"contain",display:"block",borderRadius:14}}/>:<div style={{width:"100%",height:280,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:t.bgI,borderRadius:14,border:"1px solid "+t.brd}}><div style={{width:40,height:40,border:"3px solid "+t.brd,borderTop:"3px solid "+(brand?.color||t.ac),borderRadius:"50%",animation:"spin .8s linear infinite",marginBottom:12}}/><div style={{color:t.txS,fontSize:13,fontWeight:500}}>Generando imagen con IA...</div></div>}</div>}<div style={{fontSize:22,fontWeight:800,color:t.tx,marginBottom:6}}>{result.d.headline}</div>{result.d.subtext&&<div style={{color:t.txS,marginBottom:12}}>{result.d.subtext}</div>}<div style={{fontSize:14,color:t.tx,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{result.d.caption}</div>{result.d.hashtags&&<div style={{fontSize:12,color:brand?.color,marginTop:10}}>{result.d.hashtags}</div>}<div style={{marginTop:12,display:"flex",gap:8}}><CopyBtn text={`${result.d.caption}\n\n${result.d.hashtags||""}`} label="📱 Copiar"/>{result.img&&<button onClick={()=>{const img=document.getElementById("ai-generated-img");if(!img)return;const c=document.createElement("canvas");c.width=img.naturalWidth;c.height=img.naturalHeight;c.getContext("2d").drawImage(img,0,0);c.toBlob(b=>{const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=(brand?.short||"img")+"_"+Date.now()+".png";a.click();URL.revokeObjectURL(u);},"image/png");}} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",background:"rgba(55,194,235,.08)",border:"1px solid rgba(55,194,235,.2)",borderRadius:10,color:"#37c2eb",fontSize:12,fontWeight:600,cursor:"pointer"}}>⬇️ Descargar imagen</button>}</div></Card>}
+      {/* VISUAL RESULTS FEED */}
+      {ct.fmt==="visual"&&chatHistory.length>0&&<div style={{marginBottom:14}}>
+        {chatHistory.map((m,i)=>m.role==="user"?
+          <div key={i} style={{fontSize:13,color:t.txM,marginBottom:8,paddingLeft:4}}>{m.images&&m.images.length>0&&<span style={{marginRight:6}}>📷 {m.images.length} foto{m.images.length>1?"s":""} adjunta{m.images.length>1?"s":""} ·</span>}{m.text}</div>
+        :
+          <Card key={i} style={{marginBottom:16}}>
+            {m.loading&&<div style={{width:"100%",height:250,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:t.bgI,borderRadius:14,border:"1px solid "+t.brd}}><div style={{width:40,height:40,border:"3px solid "+t.brd,borderTop:"3px solid "+(brand?.color||t.ac),borderRadius:"50%",animation:"spin .8s linear infinite",marginBottom:12}}/><div style={{color:t.txS,fontSize:13,fontWeight:500}}>Generando imagen con IA...</div></div>}
+            {m.img&&<div style={{marginBottom:14,borderRadius:14,overflow:"hidden"}}><img id={"ai-img-"+i} crossOrigin="anonymous" src={m.img} alt="AI" style={{width:"100%",maxHeight:500,objectFit:"contain",display:"block",borderRadius:14}}/></div>}
+            {m.headline&&<div style={{fontSize:20,fontWeight:800,color:t.tx,marginBottom:6}}>{m.headline}</div>}
+            {m.text&&<div style={{fontSize:14,color:t.tx,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{m.text}</div>}
+            {m.hashtags&&<div style={{fontSize:12,color:brand?.color,marginTop:8}}>{m.hashtags}</div>}
+            {(m.img||m.text)&&!m.loading&&<div style={{marginTop:12,display:"flex",gap:8,flexWrap:"wrap"}}>
+              <CopyBtn text={(m.text||"")+(m.hashtags?"\n\n"+m.hashtags:"")}/>
+              {m.img&&<button onClick={()=>{const img=document.getElementById("ai-img-"+i);if(!img)return;const c=document.createElement("canvas");c.width=img.naturalWidth;c.height=img.naturalHeight;c.getContext("2d").drawImage(img,0,0);c.toBlob(b=>{const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=(brand?.short||"img")+"_"+Date.now()+".png";a.click();URL.revokeObjectURL(u);},"image/png");}} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",background:"rgba(55,194,235,.08)",border:"1px solid rgba(55,194,235,.2)",borderRadius:10,color:"#37c2eb",fontSize:12,fontWeight:600,cursor:"pointer"}}>⬇️ Descargar</button>}
+            </div>}
+          </Card>
+        )}
+        {loading&&<Card style={{padding:32,textAlign:"center"}}><div style={{width:40,height:40,border:"3px solid "+t.brd,borderTop:"3px solid "+(brand?.color||t.ac),borderRadius:"50%",animation:"spin .8s linear infinite",margin:"0 auto 12px"}}/><div style={{color:t.txS,fontSize:13}}>Mejorando imagen...</div></Card>}
+      </div>}
+      {result&&!loading&&result.t==="visual"&&result.d&&chatHistory.length===0&&<Card>{(result.img||result.imgLoading)&&<div style={{marginBottom:16,borderRadius:14,overflow:"hidden"}}>{result.img?<img id="ai-generated-img" crossOrigin="anonymous" src={result.img} alt="AI Generated" style={{width:"100%",maxHeight:500,objectFit:"contain",display:"block",borderRadius:14}}/>:<div style={{width:"100%",height:280,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:t.bgI,borderRadius:14,border:"1px solid "+t.brd}}><div style={{width:40,height:40,border:"3px solid "+t.brd,borderTop:"3px solid "+(brand?.color||t.ac),borderRadius:"50%",animation:"spin .8s linear infinite",marginBottom:12}}/><div style={{color:t.txS,fontSize:13,fontWeight:500}}>Generando imagen con IA...</div></div>}</div>}<div style={{fontSize:22,fontWeight:800,color:t.tx,marginBottom:6}}>{result.d.headline}</div>{result.d.subtext&&<div style={{color:t.txS,marginBottom:12}}>{result.d.subtext}</div>}<div style={{fontSize:14,color:t.tx,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{result.d.caption}</div>{result.d.hashtags&&<div style={{fontSize:12,color:brand?.color,marginTop:10}}>{result.d.hashtags}</div>}<div style={{marginTop:12,display:"flex",gap:8}}><CopyBtn text={`${result.d.caption}\n\n${result.d.hashtags||""}`} label="📱 Copiar"/>{result.img&&<button onClick={()=>{const img=document.getElementById("ai-generated-img");if(!img)return;const c=document.createElement("canvas");c.width=img.naturalWidth;c.height=img.naturalHeight;c.getContext("2d").drawImage(img,0,0);c.toBlob(b=>{const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=(brand?.short||"img")+"_"+Date.now()+".png";a.click();URL.revokeObjectURL(u);},"image/png");}} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",background:"rgba(55,194,235,.08)",border:"1px solid rgba(55,194,235,.2)",borderRadius:10,color:"#37c2eb",fontSize:12,fontWeight:600,cursor:"pointer"}}>⬇️ Descargar imagen</button>}</div></Card>}
       {result&&!loading&&result.t==="carousel"&&result.d?.slides&&<Card>{result.d.slides.map((sl,i)=><div key={i} style={{padding:"12px 0",borderBottom:i<result.d.slides.length-1?`1px solid ${t.brd}`:"none"}}><div style={{fontSize:14,fontWeight:600,color:t.tx}}>{sl.emoji} Slide {i+1}: {sl.title}</div><div style={{fontSize:13,color:t.txS,marginTop:3}}>{sl.body}</div></div>)}{result.d.caption&&<div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${t.brd}`,fontSize:14,color:t.tx,whiteSpace:"pre-wrap"}}>{result.d.caption}</div>}<div style={{marginTop:12}}><CopyBtn text={result.d.slides.map((s,i)=>`${s.emoji} Slide ${i+1}: ${s.title}\n${s.body}`).join("\n\n")+`\n\n${result.d.caption||""}\n${result.d.hashtags||""}`} label="📋 Todo"/></div></Card>}
       {result&&!loading&&result.t==="reel"&&result.d?.scenes&&<Card>
         {videoUrl&&<div style={{marginBottom:16,borderRadius:14,overflow:"hidden"}}><video src={videoUrl} controls style={{width:"100%",maxHeight:400,borderRadius:14,display:"block"}}/></div>}
