@@ -28,9 +28,9 @@ const CTYPES = [
   { id: "email", label: "Email", icon: "✉️", fmt: "text" },
 ];
 const PLANS = [
-  { id: "free", name: "Starter", price: "$0", desc: "Para empezar", color: "#8892a8", brands: 1, postsLimit: 25, videosLimit: 0, features: ["1 marca","5 posts de imagen","5 copys","5 carruseles","5 anuncios","5 emails","Sin videos","Soporte email"] },
-  { id: "pro", name: "Pro", price: "$29", desc: "Para marcas en crecimiento", color: "#37c2eb", brands: 3, postsLimit: 100, videosLimit: 20, pop: true, features: ["3 marcas","100 posts/mes","20 videos/mes","Todos los formatos","Branding Kit completo","Fotos reales","Soporte prioritario"] },
-  { id: "agency", name: "Agency", price: "$79", desc: "Para agencias digitales", color: "#8b5cf6", brands: 99, postsLimit: 9999, videosLimit: 9999, features: ["Marcas ilimitadas","Posts ilimitados","Videos ilimitados","Todos los formatos","Base de Conocimiento","Info real de la web","Multi-usuario (5 seats)","API access","Soporte dedicado 24/7"] },
+  { id: "free", name: "Starter", price: "$0", desc: "Para empezar", color: "#8892a8", brands: 1, postsLimit: 10, videosLimit: 0, features: ["1 marca","10 posts/mes","Sin videos","Copy + Hashtags","Soporte email"] },
+  { id: "pro", name: "Pro", price: "$59", desc: "Para marcas en crecimiento", color: "#37c2eb", brands: 3, postsLimit: 100, videosLimit: 15, pop: true, features: ["3 marcas","100 posts/mes","15 videos/mes","Todos los formatos","Branding Kit completo","Fotos reales","Info real de la web","Soporte prioritario"] },
+  { id: "agency", name: "Agency", price: "$149", desc: "Para agencias digitales", color: "#8b5cf6", brands: 99, postsLimit: 9999, videosLimit: 20, features: ["Marcas ilimitadas","300 posts/mes","20 videos/mes","Todos los formatos","Base de Conocimiento","Info real de la web","Multi-usuario (5 seats)","API access","Soporte dedicado 24/7"] },
 ];
 
 const Ic = ({ name, size = 18 }) => {
@@ -51,6 +51,8 @@ const Logo = ({ size = 32 }) => <img src="/logo.jpg" alt="DataGrowth" style={{ w
 // ══════ LANDING PAGE (Supabase-inspired) ══════
 const Landing = ({ onLogin, onRegister, dark, setDark }) => {
   const t = useT();
+  const [showPlans, setShowPlans] = useState(false);
+  const [customAmount, setCustomAmount] = useState(150);
   const features = [
     { icon: "🖼️", title: "Imagenes AI", desc: "Genera imagenes profesionales con Nano Banana de Google. Sube fotos reales de tu producto y la IA las transforma." },
     { icon: "🎬", title: "Videos AI", desc: "Crea reels de 8 segundos con Veo 3.1. Videos realistas con audio, desde texto o animando tus propias fotos." },
@@ -72,11 +74,10 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
             <div style={{ width: 32, height: 32, borderRadius: 8, overflow: "hidden" }}><Logo size={32}/></div>
             <span style={{ fontSize: 16, fontWeight: 700 }}>DataGrowth</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div onClick={() => setDark(!dark)} style={{ cursor: "pointer", color: t.txM, padding: 6 }}><Ic name={dark ? "sun" : "moon"} size={16}/></div>
-            <Btn ghost onClick={onLogin} style={{ fontSize: 13 }}>Iniciar sesion</Btn>
-            <Btn secondary onClick={() => onRegister()} style={{ fontSize: 13, padding: "8px 18px" }}>Crear cuenta gratis</Btn>
-            <Btn primary onClick={() => { document.getElementById("pricing-section")?.scrollIntoView({ behavior: "smooth" }); }} style={{ fontSize: 13, padding: "8px 18px" }}>Ver planes</Btn>
+            <Btn secondary onClick={onLogin} style={{ fontSize: 13, padding: "8px 18px" }}>Iniciar sesion</Btn>
+            <Btn primary onClick={() => onRegister()} style={{ fontSize: 13, padding: "8px 18px" }}>Crear cuenta gratis</Btn>
           </div>
         </div>
       </nav>
@@ -89,14 +90,8 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
         </div>
         <h1 style={{ fontSize: "clamp(36px,5.5vw,64px)", fontWeight: 800, lineHeight: 1.08, letterSpacing: -2, marginBottom: 20 }}>Crea contenido en minutos{" "}<span style={{ background: t.gr, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Escala a miles</span></h1>
         <p style={{ fontSize: 18, color: t.txS, maxWidth: 640, margin: "0 auto 36px", lineHeight: 1.6 }}>DataGrowth es la plataforma de inteligencia artificial que genera posts, imagenes, videos, carruseles, reels, copys y emails profesionales para tu marca o la de tus clientes. Configura tu identidad de marca una sola vez y genera contenido ilimitado con un clic.</p>
-        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <Btn primary onClick={() => onRegister()} style={{ fontSize: 16, padding: "14px 32px" }}>Crear cuenta gratis</Btn>
-          <Btn secondary onClick={() => { document.getElementById("pricing-section")?.scrollIntoView({ behavior: "smooth" }); }} style={{ fontSize: 16, padding: "14px 32px" }}>Ver planes <Ic name="ar" size={16}/></Btn>
-          <Btn ghost onClick={onLogin} style={{ fontSize: 14, padding: "14px 20px" }}>Ya tengo cuenta</Btn>
-        </div>
-        {/* Stats bar */}
-        <div style={{ display: "flex", justifyContent: "center", gap: 40, marginTop: 48, flexWrap: "wrap" }}>
-          {[{ n: "6+", l: "Tipos de contenido" }, { n: "5", l: "Marcas gestionadas" }, { n: "IA", l: "Imagenes + Videos + Texto" }, { n: "24/7", l: "Disponibilidad" }].map((s, i) => <div key={i} style={{ textAlign: "center" }}><div style={{ fontSize: 28, fontWeight: 800, color: t.ac }}>{s.n}</div><div style={{ fontSize: 12, color: t.txM, marginTop: 2 }}>{s.l}</div></div>)}
+        <div style={{ display: "flex", gap: 14, justifyContent: "center" }}>
+          <Btn primary onClick={() => setShowPlans(true)} style={{ fontSize: 18, padding: "18px 48px", borderRadius: 50 }}>Ver planes</Btn>
         </div>
       </div>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px" }}>
@@ -149,29 +144,6 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
         </div>
       </div>
 
-      {/* PRICING */}
-      <div id="pricing-section" style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px 80px" }}>
-        <div style={{ textAlign: "center", marginBottom: 56 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Precios</div>
-          <h2 style={{ fontSize: 36, fontWeight: 700, letterSpacing: -1 }}>Planes simples y transparentes</h2>
-          <p style={{ fontSize: 15, color: t.txS, marginTop: 10 }}>Empieza gratis. Escala cuando lo necesites. Sin permanencia.</p>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20, alignItems: "start" }}>
-          {PLANS.map(p => (
-            <div key={p.id} style={{ position: "relative", background: t.bgC, border: p.pop ? "2px solid " + p.color : "1px solid " + t.brd, borderRadius: 18, textAlign: "center", padding: 36, overflow: "visible", transition: "all .3s", transform: p.pop ? "scale(1.04)" : "none" }} onMouseEnter={e => { e.currentTarget.style.transform = p.pop ? "scale(1.06)" : "translateY(-6px)"; e.currentTarget.style.boxShadow = "0 16px 50px " + t.sh; }} onMouseLeave={e => { e.currentTarget.style.transform = p.pop ? "scale(1.04)" : "none"; e.currentTarget.style.boxShadow = "none"; }}>
-              {p.pop && <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: t.gr, color: "#fff", padding: "6px 24px", borderRadius: 20, fontSize: 12, fontWeight: 700, boxShadow: "0 4px 15px rgba(55,194,235,.3)" }}>Mas popular</div>}
-              <div style={{ fontSize: 20, fontWeight: 700, color: t.tx, marginBottom: 4, paddingTop: p.pop ? 8 : 0 }}>{p.name}</div>
-              <div style={{ fontSize: 13, color: t.txS, marginBottom: 20 }}>{p.desc}</div>
-              <div style={{ fontSize: 48, fontWeight: 800, color: p.color, marginBottom: 4 }}>{p.price}<span style={{ fontSize: 16, fontWeight: 400, color: t.txM }}>/mes</span></div>
-              <div style={{ borderTop: "1px solid " + t.brd, margin: "24px 0", paddingTop: 20 }}>
-                {p.features.map((f, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", fontSize: 14, color: t.tx, textAlign: "left" }}><span style={{ color: t.ac, fontSize: 16, flexShrink: 0 }}>✓</span>{f}</div>)}
-              </div>
-              <Btn primary={p.pop} secondary={!p.pop} onClick={() => onRegister(p)} style={{ width: "100%", justifyContent: "center", padding: "14px 24px", borderRadius: 12, fontSize: 15 }}>{p.id === "free" ? "Crear cuenta gratis" : "Empezar con " + p.name}</Btn>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* CTA */}
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px 80px" }}>
         <div style={{ textAlign: "center", padding: "70px 40px", position: "relative", overflow: "hidden", background: t.bgC, border: "1px solid " + t.brd, borderRadius: 20 }}>
@@ -180,9 +152,8 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
             <div style={{ fontSize: 40, marginBottom: 16 }}>🚀</div>
             <h2 style={{ fontSize: 34, fontWeight: 700, marginBottom: 14 }}>Empieza a crear contenido <span style={{ color: t.ac }}>hoy</span></h2>
             <p style={{ fontSize: 16, color: t.txS, marginBottom: 32, maxWidth: 500, margin: "0 auto 32px" }}>Unete a las agencias y emprendedores que ya generan contenido profesional con IA. Sin tarjeta de credito.</p>
-            <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-              <Btn primary onClick={() => onRegister()} style={{ fontSize: 16, padding: "16px 40px", borderRadius: 50 }}>Crear cuenta gratis</Btn>
-              <Btn secondary onClick={() => { document.getElementById("pricing-section")?.scrollIntoView({ behavior: "smooth" }); }} style={{ fontSize: 16, padding: "16px 32px", borderRadius: 50 }}>Ver planes</Btn>
+            <div style={{ display: "flex", gap: 14, justifyContent: "center" }}>
+              <Btn primary onClick={() => setShowPlans(true)} style={{ fontSize: 16, padding: "16px 40px", borderRadius: 50 }}>Ver planes</Btn>
             </div>
           </div>
         </div>
@@ -215,6 +186,84 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
       </div>
 
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}} @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}} nav,section,h1,h2,p{animation:fadeUp .6s ease-out}`}</style>
+
+      {/* PLANS PAGE OVERLAY */}
+      {showPlans && <div style={{ position: "fixed", inset: 0, background: t.bg, zIndex: 200, overflow: "auto" }}>
+        <nav style={{ padding: "16px 0", borderBottom: "1px solid " + t.brd, background: t.bg + "ee", backdropFilter: "blur(12px)" }}>
+          <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => setShowPlans(false)}>
+              <Ic name="back" size={20}/>
+              <div style={{ width: 32, height: 32, borderRadius: 8, overflow: "hidden" }}><Logo size={32}/></div>
+              <span style={{ fontSize: 16, fontWeight: 700 }}>DataGrowth</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Btn secondary onClick={onLogin} style={{ fontSize: 13, padding: "8px 18px" }}>Iniciar sesion</Btn>
+              <Btn primary onClick={() => onRegister()} style={{ fontSize: 13, padding: "8px 18px" }}>Crear cuenta gratis</Btn>
+            </div>
+          </div>
+        </nav>
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px 80px" }}>
+          <div style={{ textAlign: "center", marginBottom: 56 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Precios</div>
+            <h2 style={{ fontSize: 40, fontWeight: 800, letterSpacing: -1 }}>Elige el plan perfecto para ti</h2>
+            <p style={{ fontSize: 16, color: t.txS, marginTop: 12 }}>Empieza gratis. Escala cuando lo necesites. Cancela cuando quieras.</p>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24, alignItems: "start" }}>
+            {PLANS.map(p => (
+              <div key={p.id} style={{ position: "relative", background: t.bgC, border: p.pop ? "2px solid " + p.color : "1px solid " + t.brd, borderRadius: 20, textAlign: "center", padding: 40, overflow: "visible", transition: "all .3s", transform: p.pop ? "scale(1.05)" : "none" }} onMouseEnter={e => { e.currentTarget.style.transform = p.pop ? "scale(1.07)" : "translateY(-6px)"; e.currentTarget.style.boxShadow = "0 20px 60px " + t.sh; }} onMouseLeave={e => { e.currentTarget.style.transform = p.pop ? "scale(1.05)" : "none"; e.currentTarget.style.boxShadow = "none"; }}>
+                {p.pop && <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: t.gr, color: "#fff", padding: "6px 28px", borderRadius: 20, fontSize: 12, fontWeight: 700, boxShadow: "0 4px 15px rgba(55,194,235,.3)" }}>Mas popular</div>}
+                <div style={{ fontSize: 22, fontWeight: 700, color: t.tx, marginBottom: 6, paddingTop: p.pop ? 10 : 0 }}>{p.name}</div>
+                <div style={{ fontSize: 14, color: t.txS, marginBottom: 20 }}>{p.desc}</div>
+                <div style={{ fontSize: 52, fontWeight: 800, color: p.color, marginBottom: 6 }}>{p.price}<span style={{ fontSize: 16, fontWeight: 400, color: t.txM }}>/mes</span></div>
+                <div style={{ borderTop: "1px solid " + t.brd, margin: "24px 0", paddingTop: 20 }}>
+                  {p.features.map((f, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", fontSize: 15, color: t.tx, textAlign: "left" }}><span style={{ color: t.ac, fontSize: 18, flexShrink: 0 }}>✓</span>{f}</div>)}
+                </div>
+                <Btn primary={p.pop} secondary={!p.pop} onClick={() => onRegister(p)} style={{ width: "100%", justifyContent: "center", padding: "16px 24px", borderRadius: 14, fontSize: 16 }}>{p.id === "free" ? "Crear cuenta gratis" : "Empezar con " + p.name}</Btn>
+              </div>
+            ))}
+          </div>
+          {/* CUSTOM PLAN */}
+          <div style={{ marginTop: 40, background: t.bgC, border: "1px solid " + t.brd, borderRadius: 20, padding: 40, overflow: "hidden", position: "relative" }}>
+            <div style={{ position: "absolute", top: -80, right: -80, width: 300, height: 300, background: t.ac, borderRadius: "50%", filter: "blur(120px)", opacity: .06, pointerEvents: "none" }}/>
+            <div style={{ position: "relative" }}>
+              <div style={{ textAlign: "center", marginBottom: 28 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 8 }}>Plan personalizado</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: t.tx }}>Tu defines cuanto invertir</div>
+                <div style={{ fontSize: 14, color: t.txS, marginTop: 6 }}>Mueve el slider o escribe el monto. Calculamos automaticamente lo que recibes.</div>
+              </div>
+              <div style={{ maxWidth: 500, margin: "0 auto" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
+                  <input type="range" min="150" max="500" value={customAmount} onChange={e => setCustomAmount(Number(e.target.value))} style={{ flex: 1, height: 6, borderRadius: 3, background: t.brd, cursor: "pointer", accentColor: "#37c2eb" }}/>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, background: t.bgI, border: "1px solid " + t.brd, borderRadius: 12, padding: "8px 14px" }}>
+                    <span style={{ fontSize: 18, fontWeight: 700, color: t.ac }}>$</span>
+                    <input type="number" min="150" max="500" value={customAmount} onChange={e => setCustomAmount(Math.max(150, Math.min(500, Number(e.target.value))))} style={{ width: 60, fontSize: 22, fontWeight: 800, color: t.tx, background: "transparent", border: "none", outline: "none", textAlign: "center" }}/>
+                    <span style={{ fontSize: 13, color: t.txM }}>/mes</span>
+                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
+                  {[
+                    { label: "Posts/mes", value: 300 + Math.round((customAmount - 149) * 3), icon: "🖼️" },
+                    { label: "Videos/mes", value: 20 + Math.round(customAmount - 149), icon: "🎬" },
+                    { label: "Marcas", value: "Ilimitadas", icon: "🏢" },
+                    { label: "Formatos", value: "Todos", icon: "✨" }
+                  ].map((item, i) => <div key={i} style={{ textAlign: "center", padding: 16, background: t.bgI, borderRadius: 14, border: "1px solid " + t.brd }}>
+                    <div style={{ fontSize: 20, marginBottom: 6 }}>{item.icon}</div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: t.ac }}>{item.value}</div>
+                    <div style={{ fontSize: 11, color: t.txM, marginTop: 2 }}>{item.label}</div>
+                  </div>)}
+                </div>
+                <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+                  <Btn primary onClick={() => onRegister({ id: "custom", name: "Custom", price: "$" + customAmount, desc: "Plan personalizado", color: "#37c2eb", brands: 99, postsLimit: 300 + Math.round((customAmount - 149) * 3), videosLimit: 20 + Math.round(customAmount - 149), features: [(300 + Math.round((customAmount - 149) * 3)) + " posts/mes", (20 + Math.round(customAmount - 149)) + " videos/mes", "Marcas ilimitadas", "Todos los formatos", "Info real de la web", "Soporte dedicado"] })} style={{ padding: "16px 40px", borderRadius: 14, fontSize: 16 }}>Empezar con plan de ${customAmount}/mes</Btn>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style={{ textAlign: "center", marginTop: 40 }}>
+            <p style={{ fontSize: 13, color: t.txM }}>Todos los planes incluyen acceso a la plataforma completa. Sin permanencia. Cancela cuando quieras.</p>
+            <Btn ghost onClick={() => setShowPlans(false)} style={{ marginTop: 16, fontSize: 14 }}><Ic name="back" size={16}/> Volver al inicio</Btn>
+          </div>
+        </div>
+      </div>}
     </div>
   );
 };
