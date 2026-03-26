@@ -1,4 +1,6 @@
-// v5 - Nano Banana with image editing support
+// v6 - Nano Banana with image editing + increased body size
+export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -12,7 +14,7 @@ export default async function handler(req, res) {
     const { prompt, test } = req.query;
 
     if (test) {
-      const results = { key: K ? "SI (" + K.slice(0, 8) + "...)" : "NO" };
+      const results = { key: K ? "SI" : "NO" };
       try {
         const r = await fetch(
           "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=" + K,
@@ -26,14 +28,9 @@ export default async function handler(req, res) {
           }
         );
         const d = await r.json();
-        results.nano_banana_status = r.status;
-        if (r.ok && d.candidates?.[0]?.content?.parts?.some(p => p.inlineData)) {
-          results.nano_banana = "FUNCIONA";
-        } else {
-          results.nano_banana = "FALLO";
-          results.nano_banana_error = JSON.stringify(d).substring(0, 500);
-        }
-      } catch (e) { results.nano_banana = "ERROR: " + e.message; }
+        results.status = r.status;
+        results.works = r.ok && d.candidates?.[0]?.content?.parts?.some(p => p.inlineData) ? "YES" : "NO";
+      } catch (e) { results.error = e.message; }
       return res.status(200).json(results);
     }
 
@@ -111,8 +108,10 @@ export default async function handler(req, res) {
             return res.send(buf);
           }
         }
+        return res.status(500).json({ error: "No image in response", raw: JSON.stringify(d).substring(0, 300) });
       }
-      return res.status(500).json({ error: "No image generated" });
+      const errData = await r.text();
+      return res.status(500).json({ error: "API error " + r.status, detail: errData.substring(0, 300) });
     } catch (e) {
       return res.status(500).json({ error: e.message });
     }
