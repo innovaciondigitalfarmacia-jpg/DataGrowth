@@ -1061,7 +1061,15 @@ export default function App() {
     container.appendChild(el);
     document.body.appendChild(container);
     window.googleTranslateElementInit = () => {
-      new window.google.translate.TranslateElement({ pageLanguage: "es", autoDisplay: false, layout: window.google.translate.TranslateElement.InlineLayout.HORIZONTAL }, "google_translate_element");
+      new window.google.translate.TranslateElement({ pageLanguage: "es", autoDisplay: true, includedLanguages: "", layout: window.google.translate.TranslateElement.InlineLayout.HORIZONTAL }, "google_translate_element");
+      // Auto-translate based on browser language
+      const browserLang = (navigator.language || navigator.userLanguage || "es").split("-")[0];
+      if (browserLang !== "es") {
+        setTimeout(() => {
+          const select = document.querySelector(".goog-te-combo");
+          if (select) { select.value = browserLang; select.dispatchEvent(new Event("change")); }
+        }, 1500);
+      }
     };
     const s = document.createElement("script");
     s.id = "gt-script";
