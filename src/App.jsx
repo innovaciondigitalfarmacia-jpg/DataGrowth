@@ -778,15 +778,19 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
       try {
         const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: editPrompt, image_base64: currentImages[0] }) });
         if (!r.ok) throw new Error("API error " + r.status);
-        const b = await r.blob();
-        if (b.type.includes("json")) throw new Error("Image generation failed");
-        const u = URL.createObjectURL(b);
-        const reader = new FileReader();
-        reader.onload = () => { setLastAiImage(reader.result.split(",")[1]); };
-        reader.readAsDataURL(b);
+        const ab = await r.arrayBuffer();
+        const contentType = r.headers.get("content-type") || "";
+        if (!contentType.includes("image")) throw new Error("No image returned");
+        const bytes = new Uint8Array(ab);
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+        const newB64 = btoa(binary);
+        setLastAiImage(newB64);
+        const blob = new Blob([ab], { type: contentType });
+        const u = URL.createObjectURL(blob);
         setChatHistory(prev => { const n = [...prev]; const last = n.findLastIndex(m => m.role === "ai" && m.loading); if (last > -1) { n[last] = { ...n[last], img: u, loading: false }; } return n; });
       } catch (e) {
-        setChatHistory(prev => { const n = [...prev]; const last = n.findLastIndex(m => m.role === "ai" && m.loading); if (last > -1) { n[last] = { ...n[last], text: "Error al generar. Intenta de nuevo.", loading: false }; } return n; });
+        setChatHistory(prev => { const n = [...prev]; const last = n.findLastIndex(m => m.role === "ai" && m.loading); if (last > -1) { n[last] = { ...n[last], text: "Error al generar: " + e.message, loading: false }; } return n; });
       }
       if (!isAdmin) { const np = postCount + 1; setPostCount(np); try { localStorage.setItem("dg_posts", String(np)); } catch {} }
       setLoading(false);
@@ -795,20 +799,24 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
 
     // ── DIRECT REFINEMENT: skip text gen, send instruction directly to image API ──
     if (isRefining) {
-      const editPrompt = "Modify this existing image. ONLY make this specific change: " + currentTopic + ". Keep EVERYTHING else in the image exactly the same. Do NOT recreate the image from scratch. Only apply the requested modification.";
+      const editPrompt = "Edit this image following this EXACT instruction: " + currentTopic + ". CRITICAL: Keep the same scene, same composition, same background. ONLY change what the user asked. Do NOT generate a new image from scratch.";
       setChatHistory(prev => [...prev, { role: "ai", text: "", headline: "", loading: true }]);
       try {
         const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: editPrompt, image_base64: lastAiImage }) });
         if (!r.ok) throw new Error("API error " + r.status);
-        const b = await r.blob();
-        if (b.type.includes("json")) throw new Error("Image generation failed");
-        const u = URL.createObjectURL(b);
-        const reader = new FileReader();
-        reader.onload = () => { setLastAiImage(reader.result.split(",")[1]); };
-        reader.readAsDataURL(b);
+        const ab = await r.arrayBuffer();
+        const contentType = r.headers.get("content-type") || "";
+        if (!contentType.includes("image")) throw new Error("No image returned");
+        const bytes = new Uint8Array(ab);
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+        const newB64 = btoa(binary);
+        setLastAiImage(newB64);
+        const blob = new Blob([ab], { type: contentType });
+        const u = URL.createObjectURL(blob);
         setChatHistory(prev => { const n = [...prev]; const last = n.findLastIndex(m => m.role === "ai" && m.loading); if (last > -1) { n[last] = { ...n[last], img: u, loading: false }; } return n; });
       } catch (e) {
-        setChatHistory(prev => { const n = [...prev]; const last = n.findLastIndex(m => m.role === "ai" && m.loading); if (last > -1) { n[last] = { ...n[last], text: "Error al modificar la imagen. Intenta de nuevo.", loading: false }; } return n; });
+        setChatHistory(prev => { const n = [...prev]; const last = n.findLastIndex(m => m.role === "ai" && m.loading); if (last > -1) { n[last] = { ...n[last], text: "Error al modificar: " + e.message + ". Intenta de nuevo.", loading: false }; } return n; });
       }
       if (!isAdmin) { const np = postCount + 1; setPostCount(np); try { localStorage.setItem("dg_posts", String(np)); } catch {} }
       setLoading(false);
@@ -863,11 +871,28 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
       if(fmt==="visual"&&pd.image_prompt){
         setChatHistory(prev=>[...prev,{role:"ai",text:pd.caption,hashtags:pd.hashtags,headline:pd.headline,loading:true}]);
         const imgPrompt=pd.image_prompt.substring(0,500);
+        const saveAndShow = async (fetchUrl, fetchOpts) => {
+          try {
+            const r = await fetch(fetchUrl, fetchOpts);
+            if (!r.ok) throw new Error("error");
+            const ab = await r.arrayBuffer();
+            const ct2 = r.headers.get("content-type") || "image/png";
+            if (!ct2.includes("image")) throw new Error("no image");
+            const bytes = new Uint8Array(ab);
+            let bin = "";
+            for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+            setLastAiImage(btoa(bin));
+            const blob = new Blob([ab], { type: ct2 });
+            const u = URL.createObjectURL(blob);
+            setChatHistory(prev => { const n = [...prev]; const last = n.findLastIndex(m => m.role === "ai" && m.loading); if (last > -1) { n[last] = { ...n[last], img: u, loading: false }; } return n; });
+          } catch (e) {
+            setChatHistory(prev => { const n = [...prev]; const last = n.findLastIndex(m => m.role === "ai" && m.loading); if (last > -1) { n[last] = { ...n[last], loading: false }; } return n; });
+          }
+        };
         if(imgToSend){
-          fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:imgPrompt,image_base64:imgToSend})}).then(async r=>{const b=await r.blob();const u=URL.createObjectURL(b);const reader=new FileReader();reader.onload=()=>{setLastAiImage(reader.result.split(",")[1]);};reader.readAsDataURL(b);setChatHistory(prev=>{const n=[...prev];const last=n.findLastIndex(m=>m.role==="ai"&&m.loading);if(last>-1){n[last]={...n[last],img:u,loading:false};}return n;});}).catch(()=>{setChatHistory(prev=>{const n=[...prev];const last=n.findLastIndex(m=>m.role==="ai"&&m.loading);if(last>-1){n[last]={...n[last],loading:false};}return n;});});
+          saveAndShow("/api/image", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:imgPrompt,image_base64:imgToSend})});
         }else{
-          const imgUrl="/api/image?prompt="+encodeURIComponent(imgPrompt);
-          fetch(imgUrl).then(async r=>{const b=await r.blob();const u=URL.createObjectURL(b);const reader=new FileReader();reader.onload=()=>{setLastAiImage(reader.result.split(",")[1]);};reader.readAsDataURL(b);setChatHistory(prev=>{const n=[...prev];const last=n.findLastIndex(m=>m.role==="ai"&&m.loading);if(last>-1){n[last]={...n[last],img:u,loading:false};}return n;});}).catch(()=>{setChatHistory(prev=>{const n=[...prev];const last=n.findLastIndex(m=>m.role==="ai"&&m.loading);if(last>-1){n[last]={...n[last],loading:false};}return n;});});
+          saveAndShow("/api/image?prompt="+encodeURIComponent(imgPrompt));
         }
         setResult(null);
       }else{
