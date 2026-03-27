@@ -88,7 +88,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: t.bgC, border: `1px solid ${t.brd}`, borderRadius: 50, padding: "6px 18px 6px 8px", fontSize: 13, color: t.txS, marginBottom: 28 }}>
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: t.ac, animation: "pulse 2s infinite" }}/> Plataforma AI para agencias digitales
         </div>
-        <h1 style={{ fontSize: "clamp(36px,5.5vw,64px)", fontWeight: 800, lineHeight: 1.08, letterSpacing: -2, marginBottom: 20 }}>Crea contenido en minutos{" "}<span style={{ background: t.gr, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Escala a miles</span></h1>
+        <h1 style={{ fontSize: "clamp(36px,5.5vw,64px)", fontWeight: 800, lineHeight: 1.08, letterSpacing: -2, marginBottom: 20 }}>Crea contenido en minutos{" "}<span style={{ color: t.ac }}>Escala a miles</span></h1>
         <p style={{ fontSize: 18, color: t.txS, maxWidth: 640, margin: "0 auto 36px", lineHeight: 1.6 }}>DataGrowth es la plataforma de inteligencia artificial que genera posts, imagenes, videos, carruseles, reels, copys y emails profesionales para tu marca o la de tus clientes. Configura tu identidad de marca una sola vez y genera contenido ilimitado con un clic.</p>
         <div style={{ display: "flex", gap: 14, justifyContent: "center" }}>
           <Btn primary onClick={() => setShowPlans(true)} style={{ fontSize: 18, padding: "18px 48px", borderRadius: 50 }}>Ver planes</Btn>
@@ -1076,7 +1076,7 @@ export default function App() {
     s.src = "//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
     document.head.appendChild(s);
     const style = document.createElement("style");
-    style.textContent = ".goog-te-banner-frame{display:none!important} body{top:0!important} .goog-te-gadget{font-size:0!important} .goog-te-gadget .goog-te-combo{font-size:12px;padding:5px 10px;border-radius:8px;border:1px solid rgba(55,194,235,0.3);background:rgba(17,19,32,0.95);color:#f0f0f5;outline:none;cursor:pointer;backdrop-filter:blur(8px)} .skiptranslate{display:none!important} .goog-te-gadget>span{display:none!important} #gt-container{transition:opacity .3s}";
+    style.textContent = ".goog-te-banner-frame{display:none!important} body{top:0!important} .goog-te-gadget{font-size:0!important} .goog-te-gadget .goog-te-combo{font-size:12px;padding:5px 10px;border-radius:8px;border:1px solid rgba(55,194,235,0.3);background:rgba(17,19,32,0.95);color:#f0f0f5;outline:none;cursor:pointer;backdrop-filter:blur(8px)} .skiptranslate{display:none!important} .goog-te-gadget>span{display:none!important} #gt-container{transition:opacity .3s} .goog-text-highlight{background:none!important;box-shadow:none!important} font[style]{background:none!important} .translated-ltr font,.translated-rtl font{background:none!important}";
     document.head.appendChild(style);
   }, []);
 
