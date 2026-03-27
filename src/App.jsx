@@ -1060,9 +1060,12 @@ export default function App() {
     el.id = "google_translate_element";
     container.appendChild(el);
     document.body.appendChild(container);
+    // Clear any old Google Translate cookies first
+    document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=." + window.location.hostname;
     window.googleTranslateElementInit = () => {
-      new window.google.translate.TranslateElement({ pageLanguage: "es", autoDisplay: true, includedLanguages: "", layout: window.google.translate.TranslateElement.InlineLayout.HORIZONTAL }, "google_translate_element");
-      // Auto-translate based on browser language
+      new window.google.translate.TranslateElement({ pageLanguage: "es", autoDisplay: false, layout: window.google.translate.TranslateElement.InlineLayout.HORIZONTAL }, "google_translate_element");
+      // Auto-translate ONLY if browser is NOT in Spanish
       const browserLang = (navigator.language || navigator.userLanguage || "es").split("-")[0];
       if (browserLang !== "es") {
         setTimeout(() => {
