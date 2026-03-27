@@ -792,7 +792,7 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
 
     // ── DIRECT EDIT: user uploaded a photo, send instruction directly to image API ──
     if (isDirectEdit) {
-      const editPrompt = currentTopic + ". Brand: " + brand.name + ". Use brand colors: " + brandColors + ". Style: " + brandStyle + ". Make it professional for social media. Any visible text must be in Spanish.";
+      const editPrompt = "You are an IMAGE EDITOR, not an image generator. You have been given reference images. Follow these instructions EXACTLY: " + currentTopic + ". RULES: 1) Do NOT regenerate or recreate the image. EDIT the existing image. 2) Keep the EXACT same scene, background, people, objects, lighting, colors, and composition. 3) ONLY add or modify what the user explicitly asked for. 4) If the user says 'add logo', place the provided logo image on the photo without changing anything else. 5) If the user asks to improve faces, improve ONLY the faces. 6) Any text must be in Spanish. 7) Do NOT add any brand name, watermark or text that was not asked for.";
       setChatHistory(prev => [...prev, { role: "ai", text: "", headline: "", loading: true }]);
       try {
         const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: editPrompt, images: currentImages }) });
@@ -812,7 +812,7 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
 
     // ── DIRECT REFINEMENT: skip text gen, send instruction directly to image API ──
     if (isRefining) {
-      const editPrompt = "Edit this image following this EXACT instruction: " + currentTopic + ". CRITICAL: Keep the same scene, same composition, same background. ONLY change what the user asked. Do NOT generate a new image from scratch.";
+      const editPrompt = "You are an IMAGE EDITOR. This is the SAME image from before. The user wants these SPECIFIC changes: " + currentTopic + ". RULES: 1) This is NOT a new image. EDIT the existing one. 2) Keep the EXACT same scene, people, objects, background, lighting. 3) ONLY modify what the user asked. Everything else stays IDENTICAL. 4) Do NOT regenerate the image from scratch. 5) Do NOT add any text, brand name or watermark unless specifically asked. 6) If asked to remove something, remove ONLY that thing.";
       setChatHistory(prev => [...prev, { role: "ai", text: "", headline: "", loading: true }]);
       try {
         const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: editPrompt, image_base64: lastAiImage }) });
@@ -923,6 +923,7 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
               <div style={{marginBottom:6}}><span style={{fontWeight:600,color:t.tx}}>Colores:</span> La IA usa automaticamente los colores de tu marca, pero puedes especificar colores adicionales.</div>
               <div><span style={{fontWeight:600,color:t.tx}}>Logos:</span> La IA no puede poner tu logo real. Agrega el logo manualmente despues de descargar la imagen.</div>
               <div style={{marginTop:6}}><span style={{fontWeight:600,color:t.tx}}>📷 Foto real (opcional):</span> Sube una foto de tu producto, local o servicio. La IA la modifica segun tus instrucciones: le agrega texto, cambia el estilo, la mejora. Ideal para contenido que se vea autentico.</div>
+              <div style={{marginTop:6}}><span style={{fontWeight:600,color:t.tx}}>💡 Tip importante:</span> Da UNA instruccion a la vez para mejores resultados. En vez de "agrega logo + aclara caras + cambia texto" hazlo paso a paso: primero "agrega el logo arriba", despues "aclara las caras", etc. Para texto en la imagen, recomendamos generarla sin texto y agregarlo despues en Canva.</div>
             </div>
           </div>
           <div>
