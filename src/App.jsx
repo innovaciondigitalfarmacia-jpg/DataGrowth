@@ -725,6 +725,25 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
     setUploadedImages(prev => prev.filter((_, i) => i !== idx));
     setUploadedPreviews(prev => prev.filter((_, i) => i !== idx));
   };
+  const saveImageForRefinement = (imgUrl) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const maxW = 512;
+        const scale = img.width > maxW ? maxW / img.width : 1;
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * scale);
+        c.height = Math.round(img.height * scale);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        const b64 = c.toDataURL("image/jpeg", 0.7).split(",")[1];
+        setLastAiImage(b64);
+        resolve(b64);
+      };
+      img.onerror = () => { resolve(null); };
+      img.src = imgUrl;
+    });
+  };
   const pollVideo = async (opName) => {
     setVideoLoading(true); setVideoProgress("Generando video con IA... (3-10 min)");
     let attempts = 0;
@@ -776,21 +795,15 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
       const editPrompt = currentTopic + ". Brand: " + brand.name + ". Use brand colors: " + brandColors + ". Style: " + brandStyle + ". Make it professional for social media. Any visible text must be in Spanish.";
       setChatHistory(prev => [...prev, { role: "ai", text: "", headline: "", loading: true }]);
       try {
-        const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: editPrompt, image_base64: currentImages[0] }) });
+        const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: editPrompt, images: currentImages }) });
         if (!r.ok) throw new Error("API error " + r.status);
-        const ab = await r.arrayBuffer();
-        const contentType = r.headers.get("content-type") || "";
-        if (!contentType.includes("image")) throw new Error("No image returned");
-        const bytes = new Uint8Array(ab);
-        let binary = "";
-        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-        const newB64 = btoa(binary);
-        setLastAiImage(newB64);
-        const blob = new Blob([ab], { type: contentType });
-        const u = URL.createObjectURL(blob);
+        const b = await r.blob();
+        if (!r.headers.get("content-type")?.includes("image")) throw new Error("No image");
+        const u = URL.createObjectURL(b);
+        await saveImageForRefinement(u);
         setChatHistory(prev => { const n = [...prev]; const last = n.findLastIndex(m => m.role === "ai" && m.loading); if (last > -1) { n[last] = { ...n[last], img: u, loading: false }; } return n; });
       } catch (e) {
-        setChatHistory(prev => { const n = [...prev]; const last = n.findLastIndex(m => m.role === "ai" && m.loading); if (last > -1) { n[last] = { ...n[last], text: "Error al generar: " + e.message, loading: false }; } return n; });
+        setChatHistory(prev => { const n = [...prev]; const last = n.findLastIndex(m => m.role === "ai" && m.loading); if (last > -1) { n[last] = { ...n[last], text: "Error: " + e.message, loading: false }; } return n; });
       }
       if (!isAdmin) { const np = postCount + 1; setPostCount(np); try { localStorage.setItem("dg_posts", String(np)); } catch {} }
       setLoading(false);
@@ -804,19 +817,13 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
       try {
         const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: editPrompt, image_base64: lastAiImage }) });
         if (!r.ok) throw new Error("API error " + r.status);
-        const ab = await r.arrayBuffer();
-        const contentType = r.headers.get("content-type") || "";
-        if (!contentType.includes("image")) throw new Error("No image returned");
-        const bytes = new Uint8Array(ab);
-        let binary = "";
-        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-        const newB64 = btoa(binary);
-        setLastAiImage(newB64);
-        const blob = new Blob([ab], { type: contentType });
-        const u = URL.createObjectURL(blob);
+        const b = await r.blob();
+        if (!r.headers.get("content-type")?.includes("image")) throw new Error("No image");
+        const u = URL.createObjectURL(b);
+        await saveImageForRefinement(u);
         setChatHistory(prev => { const n = [...prev]; const last = n.findLastIndex(m => m.role === "ai" && m.loading); if (last > -1) { n[last] = { ...n[last], img: u, loading: false }; } return n; });
       } catch (e) {
-        setChatHistory(prev => { const n = [...prev]; const last = n.findLastIndex(m => m.role === "ai" && m.loading); if (last > -1) { n[last] = { ...n[last], text: "Error al modificar: " + e.message + ". Intenta de nuevo.", loading: false }; } return n; });
+        setChatHistory(prev => { const n = [...prev]; const last = n.findLastIndex(m => m.role === "ai" && m.loading); if (last > -1) { n[last] = { ...n[last], text: "Error: " + e.message, loading: false }; } return n; });
       }
       if (!isAdmin) { const np = postCount + 1; setPostCount(np); try { localStorage.setItem("dg_posts", String(np)); } catch {} }
       setLoading(false);
@@ -875,15 +882,9 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
           try {
             const r = await fetch(fetchUrl, fetchOpts);
             if (!r.ok) throw new Error("error");
-            const ab = await r.arrayBuffer();
-            const ct2 = r.headers.get("content-type") || "image/png";
-            if (!ct2.includes("image")) throw new Error("no image");
-            const bytes = new Uint8Array(ab);
-            let bin = "";
-            for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-            setLastAiImage(btoa(bin));
-            const blob = new Blob([ab], { type: ct2 });
-            const u = URL.createObjectURL(blob);
+            const b = await r.blob();
+            const u = URL.createObjectURL(b);
+            await saveImageForRefinement(u);
             setChatHistory(prev => { const n = [...prev]; const last = n.findLastIndex(m => m.role === "ai" && m.loading); if (last > -1) { n[last] = { ...n[last], img: u, loading: false }; } return n; });
           } catch (e) {
             setChatHistory(prev => { const n = [...prev]; const last = n.findLastIndex(m => m.role === "ai" && m.loading); if (last > -1) { n[last] = { ...n[last], loading: false }; } return n; });
