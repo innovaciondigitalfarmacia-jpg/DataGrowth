@@ -1,4 +1,4 @@
-import { useState, createContext, useContext } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
 
 const ThemeCtx = createContext();
 const useT = () => useContext(ThemeCtx);
@@ -1049,6 +1049,28 @@ export default function App() {
   const [gemKey, setGemKey] = useState(() => { try { return localStorage.getItem("dg_gemkey") || ""; } catch { return ""; } });
   const [agBrands, setAgBrands] = useState(AGENCY_BRANDS);
   const [clBrands, setClBrands] = useState([]);
+
+  // Google Translate - injected into body so it works on ALL views
+  useEffect(() => {
+    if (document.getElementById("gt-container")) return;
+    const container = document.createElement("div");
+    container.id = "gt-container";
+    container.style.cssText = "position:fixed;top:12px;right:60px;z-index:9999;";
+    const el = document.createElement("div");
+    el.id = "google_translate_element";
+    container.appendChild(el);
+    document.body.appendChild(container);
+    window.googleTranslateElementInit = () => {
+      new window.google.translate.TranslateElement({ pageLanguage: "es", autoDisplay: false, layout: window.google.translate.TranslateElement.InlineLayout.HORIZONTAL }, "google_translate_element");
+    };
+    const s = document.createElement("script");
+    s.id = "gt-script";
+    s.src = "//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+    document.head.appendChild(s);
+    const style = document.createElement("style");
+    style.textContent = ".goog-te-banner-frame{display:none!important} body{top:0!important} .goog-te-gadget{font-size:0!important} .goog-te-gadget .goog-te-combo{font-size:12px;padding:5px 10px;border-radius:8px;border:1px solid rgba(55,194,235,0.3);background:rgba(17,19,32,0.95);color:#f0f0f5;outline:none;cursor:pointer;backdrop-filter:blur(8px)} .skiptranslate{display:none!important} .goog-te-gadget>span{display:none!important} #gt-container{transition:opacity .3s}";
+    document.head.appendChild(style);
+  }, []);
 
   const th = dark ? TH.dark : TH.light;
   const isAdmin = user?.role === "agency";
