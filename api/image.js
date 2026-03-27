@@ -77,11 +77,16 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Invalid JSON" });
     }
 
-    const { prompt, image_base64 } = body || {};
+    const { prompt, image_base64, images } = body || {};
     if (!prompt) return res.status(400).json({ error: "No prompt" });
 
     const parts = [];
-    if (image_base64) {
+    // Support multiple images (array) or single image (string)
+    if (images && Array.isArray(images)) {
+      for (const img of images) {
+        parts.push({ inlineData: { mimeType: "image/jpeg", data: img } });
+      }
+    } else if (image_base64) {
       parts.push({ inlineData: { mimeType: "image/jpeg", data: image_base64 } });
     }
     parts.push({ text: prompt });
