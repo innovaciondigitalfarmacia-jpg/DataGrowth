@@ -28,9 +28,9 @@ const CTYPES = [
   { id: "email", label: "Email", icon: "✉️", fmt: "text" },
 ];
 const PLANS = [
-  { id: "free", name: "Starter", price: "$0", desc: "Para empezar", color: "#8892a8", brands: 1, postsLimit: 10, videosLimit: 0, features: ["1 marca","10 posts/mes","Sin videos","Copy + Hashtags","Soporte email"] },
-  { id: "pro", name: "Pro", price: "$59", desc: "Para marcas en crecimiento", color: "#37c2eb", brands: 3, postsLimit: 100, videosLimit: 15, pop: true, features: ["3 marcas","100 posts/mes","15 videos/mes","Todos los formatos","Branding Kit completo","Fotos reales","Info real de la web","Soporte prioritario"] },
-  { id: "agency", name: "Agency", price: "$149", desc: "Para agencias digitales", color: "#8b5cf6", brands: 99, postsLimit: 9999, videosLimit: 20, features: ["Marcas ilimitadas","300 posts/mes","20 videos/mes","Todos los formatos","Base de Conocimiento","Info real de la web","Multi-usuario (5 seats)","API access","Soporte dedicado 24/7"] },
+  { id: "free", name: "Starter", price: "$0", desc: "Para empezar", color: "#8892a8", brands: 1, limits: { post_visual: 5, carousel: 5, post_text: 5, ad: 5, email: 5, reel: 0 }, features: ["1 marca","5 posts de imagen","5 carruseles","5 copys","5 anuncios","5 emails","Sin videos","Soporte email"] },
+  { id: "pro", name: "Pro", price: "$59", desc: "Para marcas en crecimiento", color: "#37c2eb", brands: 3, limits: { post_visual: 100, carousel: 100, post_text: 100, ad: 100, email: 100, reel: 15 }, pop: true, features: ["3 marcas","100 de cada tipo/mes","15 videos/mes","Todos los formatos","Branding Kit completo","Fotos reales","Info real de la web","Soporte prioritario"] },
+  { id: "agency", name: "Agency", price: "$149", desc: "Para agencias digitales", color: "#8b5cf6", brands: 99, limits: { post_visual: 9999, carousel: 9999, post_text: 9999, ad: 9999, email: 9999, reel: 20 }, features: ["Marcas ilimitadas","Posts ilimitados","20 videos/mes","Todos los formatos","Base de Conocimiento","Info real de la web","Multi-usuario (5 seats)","API access","Soporte dedicado 24/7"] },
 ];
 
 const Ic = ({ name, size = 18 }) => {
@@ -253,7 +253,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
                   </div>)}
                 </div>
                 <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-                  <Btn primary onClick={() => onRegister({ id: "custom", name: "Custom", price: "$" + customAmount, desc: "Plan personalizado", color: "#37c2eb", brands: 99, postsLimit: 300 + Math.round((customAmount - 149) * 3), videosLimit: 20 + Math.round(customAmount - 149), features: [(300 + Math.round((customAmount - 149) * 3)) + " posts/mes", (20 + Math.round(customAmount - 149)) + " videos/mes", "Marcas ilimitadas", "Todos los formatos", "Info real de la web", "Soporte dedicado"] })} style={{ padding: "16px 40px", borderRadius: 14, fontSize: 16 }}>Empezar con plan de ${customAmount}/mes</Btn>
+                  <Btn primary onClick={() => { const posts = 300 + Math.round((customAmount - 149) * 3); const vids = 20 + Math.round(customAmount - 149); onRegister({ id: "custom", name: "Custom", price: "$" + customAmount, desc: "Plan personalizado", color: "#37c2eb", brands: 99, limits: { post_visual: posts, carousel: posts, post_text: posts, ad: posts, email: posts, reel: vids }, features: [posts + " posts/mes", vids + " videos/mes", "Marcas ilimitadas", "Todos los formatos", "Info real de la web", "Soporte dedicado"] }); }} style={{ padding: "16px 40px", borderRadius: 14, fontSize: 16 }}>Empezar con plan de ${customAmount}/mes</Btn>
                 </div>
               </div>
             </div>
@@ -689,11 +689,12 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
   const [result, setResult] = useState(null);
   const [txt, setTxt] = useState("");
   const [loading, setLoading] = useState(false);
-  const [postCount, setPostCount] = useState(() => { try { return parseInt(localStorage.getItem("dg_posts") || "0"); } catch { return 0; } });
-  const [videoCount, setVideoCount] = useState(() => { try { return parseInt(localStorage.getItem("dg_videos") || "0"); } catch { return 0; } });
+  const [usage, setUsage] = useState(() => { try { return JSON.parse(localStorage.getItem("dg_usage") || "{}"); } catch { return {}; } });
+  const getUsage = (typeId) => usage[typeId] || 0;
+  const addUsage = (typeId) => { setUsage(prev => { const n = { ...prev, [typeId]: (prev[typeId] || 0) + 1 }; try { localStorage.setItem("dg_usage", JSON.stringify(n)); } catch {} return n; }); };
   const userPlan = isAdmin ? PLANS[2] : PLANS[0];
-  const postsLeft = userPlan.postsLimit - postCount;
-  const videosLeft = userPlan.videosLimit - videoCount;
+  const getLimit = (typeId) => userPlan.limits?.[typeId] ?? 9999;
+  const getLeft = (typeId) => getLimit(typeId) - getUsage(typeId);
   const [videoLoading, setVideoLoading] = useState(false);
   const [videoUrl, setVideoUrl] = useState(null);
   const [videoProgress, setVideoProgress] = useState("");
@@ -784,8 +785,7 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
       setUploadedImages([]);
       setUploadedPreviews([]);
     }
-    if (!isAdmin && ct.fmt === "reel" && videosLeft <= 0) { setTxt("Has alcanzado el limite de videos de tu plan. Actualiza a Pro o Agency para generar mas videos."); setResult({t:"text"}); return; }
-    if (!isAdmin && ct.fmt !== "reel" && postsLeft <= 0) { setTxt("Has alcanzado el limite de posts de tu plan. Actualiza a Pro o Agency para generar mas contenido."); setResult({t:"text"}); return; }
+    if (!isAdmin && getLeft(ct.id) <= 0) { setTxt("Has alcanzado el limite de " + ct.label + " de tu plan (" + getLimit(ct.id) + "/" + "mes). Actualiza a Pro o Agency para generar mas contenido."); setResult({t:"text"}); return; }
     setLoading(true); setResult(null); setTxt(""); setVideoUrl(null); setVideoLoading(false); setVideoProgress("");
     const brandColors = (brand.colors || [brand.color]).join(", ");
     const brandStyle = brand.imgStyle || "professional modern";
@@ -805,7 +805,7 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
       } catch (e) {
         setChatHistory(prev => { const n = [...prev]; const last = n.findLastIndex(m => m.role === "ai" && m.loading); if (last > -1) { n[last] = { ...n[last], text: "Error: " + e.message, loading: false }; } return n; });
       }
-      if (!isAdmin) { const np = postCount + 1; setPostCount(np); try { localStorage.setItem("dg_posts", String(np)); } catch {} }
+      if (!isAdmin) addUsage(ct.id);
       setLoading(false);
       return;
     }
@@ -825,7 +825,7 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
       } catch (e) {
         setChatHistory(prev => { const n = [...prev]; const last = n.findLastIndex(m => m.role === "ai" && m.loading); if (last > -1) { n[last] = { ...n[last], text: "Error: " + e.message, loading: false }; } return n; });
       }
-      if (!isAdmin) { const np = postCount + 1; setPostCount(np); try { localStorage.setItem("dg_posts", String(np)); } catch {} }
+      if (!isAdmin) addUsage(ct.id);
       setLoading(false);
       return;
     }
@@ -901,7 +901,7 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
         setResult({t:fmt,d:pd,img:imgUrl,imgLoading:!!imgUrl});
         if(imgUrl){const testImg=new Image();testImg.onload=()=>setResult(prev=>({...prev,imgLoading:false}));testImg.onerror=()=>setResult(prev=>({...prev,imgLoading:false}));testImg.src=imgUrl;}
       }
-      if(fmt==="reel"){/* video already started in parallel above */}}catch{if(fmt==="visual"){setChatHistory(prev=>[...prev,{role:"ai",text:raw}]);}else{setTxt(raw);setResult({t:"text"});}}} } catch(err){const errMsg=err.name==="AbortError"?"La generacion tardo demasiado. Intenta con una instruccion mas corta.":"Error al generar. Intenta de nuevo.";if(fmt==="visual"){setChatHistory(prev=>[...prev,{role:"ai",text:errMsg}]);}else{setTxt(errMsg);setResult({t:"text"});}} if(!isAdmin){if(ct.fmt==="reel"){const nv=videoCount+1;setVideoCount(nv);try{localStorage.setItem("dg_videos",String(nv));}catch{}}else{const np=postCount+1;setPostCount(np);try{localStorage.setItem("dg_posts",String(np));}catch{}}} setLoading(false);
+      if(fmt==="reel"){/* video already started in parallel above */}}catch{if(fmt==="visual"){setChatHistory(prev=>[...prev,{role:"ai",text:raw}]);}else{setTxt(raw);setResult({t:"text"});}}} } catch(err){const errMsg=err.name==="AbortError"?"La generacion tardo demasiado. Intenta con una instruccion mas corta.":"Error al generar. Intenta de nuevo.";if(fmt==="visual"){setChatHistory(prev=>[...prev,{role:"ai",text:errMsg}]);}else{setTxt(errMsg);setResult({t:"text"});}} if(!isAdmin){addUsage(ct.id);} setLoading(false);
   };
   const [showGuide, setShowGuide] = useState(false);
   if(!brands.length) return <Section title="Crear Contenido"><Card style={{textAlign:"center",padding:48}}><div style={{fontSize:48,marginBottom:12}}>🏢</div><div style={{fontSize:16,fontWeight:600,color:t.tx}}>Primero crea una marca en "Mis Marcas"</div></Card></Section>;
@@ -957,7 +957,7 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
       <div style={{marginBottom:14}}><Label>Tipo</Label><div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>{CTYPES.map(c=><button key={c.id} onClick={()=>{setCt(c);setUploadedImages([]);setUploadedPreviews([]);if(c.fmt!=="visual"){setChatHistory([]);setLastAiImage(null);}setResult(null);setTxt("");}} style={{padding:"12px 10px",borderRadius:12,border:ct.id===c.id?`2px solid ${t.ac}`:`1px solid ${t.brd}`,background:ct.id===c.id?t.acS:t.bgC,cursor:"pointer",textAlign:"center"}}><div style={{fontSize:22,marginBottom:4}}>{c.icon}</div><div style={{fontSize:12,fontWeight:600,color:ct.id===c.id?t.tx:t.txS}}>{c.label}</div></button>)}</div></div>
       {(ct.fmt==="reel"||ct.fmt==="visual")&&<div style={{marginBottom:14,padding:14,background:t.bgI,borderRadius:12,border:"1px solid "+t.brd}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}><span style={{fontSize:14}}>📷</span><span style={{fontSize:12,fontWeight:600,color:t.tx}}>{ct.fmt==="reel"?"Primer frame del video":"Fotos de referencia"}</span><span style={{fontSize:11,color:t.txM,fontStyle:"italic"}}>(opcional)</span></div><div style={{fontSize:11,color:t.txS,marginBottom:10,lineHeight:1.5}}>{ct.fmt==="reel"?"Si subes una foto, el video EMPIEZA desde esa foto y le da movimiento. Si no subes foto, la IA crea todo desde cero.":"Sube fotos reales de tu producto o servicio. La IA las usa como referencia para generar la imagen. Puedes subir varias."}</div><div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}><label style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",border:"2px dashed "+(uploadedImages.length?t.ac:t.brd),borderRadius:10,cursor:"pointer",color:uploadedImages.length?t.ac:t.txM,fontSize:12,fontWeight:500,background:uploadedImages.length?t.acS:"transparent"}}><span style={{fontSize:16}}>📷</span>Subir fotos<input type="file" accept="image/*" multiple onChange={handleUploadImages} style={{display:"none"}}/></label>{uploadedPreviews.map((p,i)=><div key={i} style={{position:"relative"}}><img src={p} style={{width:44,height:44,borderRadius:8,objectFit:"cover",border:"2px solid "+t.ac}}/><div onClick={()=>removeUploadedImage(i)} style={{position:"absolute",top:-5,right:-5,width:15,height:15,borderRadius:"50%",background:"#ef4444",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,cursor:"pointer",fontWeight:700}}>x</div></div>)}{uploadedImages.length>0&&<span style={{fontSize:11,color:t.ac,fontWeight:600}}>{uploadedImages.length} foto{uploadedImages.length>1?"s":""}</span>}</div></div>}
       <div style={{display:"flex",gap:10,marginBottom:22}}><Input value={topic} onChange={e=>setTopic(e.target.value)} placeholder={chatHistory.length>0&&ct.fmt==="visual"?"Escribe como mejorar la imagen...":"Describe que contenido necesitas..."} onKeyDown={e=>e.key==="Enter"&&go()}/><Btn onClick={go} disabled={loading||!topic.trim()} primary style={{whiteSpace:"nowrap",padding:"14px 28px"}}>{loading?<><Spin/> Creando...</>:<><Ic name="sparkle" size={16}/> {chatHistory.length>0&&ct.fmt==="visual"?"Mejorar":"Generar"}</>}</Btn>{chatHistory.length>0&&ct.fmt==="visual"&&!loading&&<Btn onClick={()=>{setChatHistory([]);setLastAiImage(null);setResult(null);}} style={{whiteSpace:"nowrap",padding:"14px 16px",fontSize:12}}>Nuevo</Btn>}</div>
-      {!isAdmin&&<div style={{display:"flex",gap:12,marginBottom:14,fontSize:11,color:t.txM}}><span>📊 Posts: {postCount}/{userPlan.postsLimit}</span><span>🎬 Videos: {videoCount}/{userPlan.videosLimit}</span><span style={{marginLeft:"auto",color:t.ac,cursor:"pointer"}}>⬆️ Actualizar plan</span></div>}
+      {!isAdmin&&<div style={{display:"flex",gap:10,marginBottom:14,fontSize:11,color:t.txM,flexWrap:"wrap"}}>{CTYPES.map(c=><span key={c.id} style={{padding:"3px 8px",background:getLeft(c.id)<=0?"rgba(239,68,68,.1)":t.bgI,borderRadius:6,color:getLeft(c.id)<=0?"#ef4444":t.txM}}>{c.icon} {getUsage(c.id)}/{getLimit(c.id)==9999?"∞":getLimit(c.id)}</span>)}<span style={{marginLeft:"auto",color:t.ac,cursor:"pointer"}}>⬆️ Actualizar plan</span></div>}
       {loading&&!(ct.fmt==="visual"&&chatHistory.length>0)&&<Card style={{padding:48,textAlign:"center"}}><div style={{width:48,height:48,border:`3px solid ${t.brd}`,borderTop:`3px solid ${brand?.color||t.ac}`,borderRadius:"50%",animation:"spin .8s linear infinite",margin:"0 auto 16px"}}/><div style={{color:t.tx,fontSize:16,fontWeight:600}}>Generando para {brand?.name}...</div></Card>}
       {result&&!loading&&result.t==="text"&&<Card><div style={{display:"flex",justifyContent:"space-between",marginBottom:14}}><span style={{fontSize:13,fontWeight:600,color:t.txS}}>{brand?.emoji} {brand?.name}</span><CopyBtn text={txt}/></div><div style={{fontSize:14,color:t.tx,lineHeight:1.8,whiteSpace:"pre-wrap"}}>{txt}</div></Card>}
       {/* VISUAL RESULT - shows only latest */}
@@ -992,7 +992,7 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
 };
 
 // ══════ CLIENT SETTINGS ══════
-const ClientSettings = ({ user, setUser }) => {
+const ClientSettings = ({ user, setUser, onChangePlan }) => {
   const t = useT();
   const Toggle = ({ v, set }) => <div onClick={() => set(!v)} style={{ width: 40, height: 22, borderRadius: 11, background: v ? t.ac : t.brd, position: "relative", cursor: "pointer", flexShrink: 0 }}><div style={{ width: 18, height: 18, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: v ? 20 : 2, transition: "left .3s" }}/></div>;
   const [n1, setN1] = useState(true);
@@ -1002,6 +1002,13 @@ const ClientSettings = ({ user, setUser }) => {
   const [editCompany, setEditCompany] = useState(user.company || "");
   const [editPhone, setEditPhone] = useState(user.phone || "");
   const [saved, setSaved] = useState(false);
+  const [showPlans, setShowPlans] = useState(false);
+  const [showPassForm, setShowPassForm] = useState(false);
+  const [oldPass, setOldPass] = useState("");
+  const [newPass, setNewPass] = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
+  const [passMsg, setPassMsg] = useState("");
+  const currentPlan = PLANS.find(p => p.id === "free") || PLANS[0];
 
   const saveProfile = () => {
     setUser({ ...user, name: editName, company: editCompany, phone: editPhone });
@@ -1023,8 +1030,41 @@ const ClientSettings = ({ user, setUser }) => {
         <Btn primary onClick={saveProfile}>{saved ? "✅ Guardado" : "Guardar cambios"}</Btn>
       </Card>
       <Card style={{ marginBottom: 14 }}><div style={{ fontSize: 16, fontWeight: 600, color: t.tx, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}><Ic name="bell" size={18}/> Notificaciones</div>{[{ l: "Email cuando contenido listo", v: n1, s: setN1 }, { l: "Recordatorios programados", v: n2, s: setN2 }, { l: "Novedades y ofertas", v: n3, s: setN3 }].map((n, i) => <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: i < 2 ? `1px solid ${t.brd}` : "none" }}><div style={{ fontSize: 14, color: t.tx }}>{n.l}</div><Toggle v={n.v} set={n.s}/></div>)}</Card>
-      <Card style={{ marginBottom: 14 }}><div style={{ fontSize: 16, fontWeight: 600, color: t.tx, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}><Ic name="card" size={18}/> Mi Plan</div><div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0" }}><span style={{ color: t.tx }}>Plan actual</span><Badge color="#37c2eb">Pro — $29/mes</Badge></div><div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0" }}><span style={{ color: t.tx }}>Uso</span><span style={{ color: t.txS }}>34 / 100 posts</span></div><Btn primary style={{ marginTop: 10, width: "100%", justifyContent: "center" }}>Cambiar plan</Btn></Card>
-      <Card style={{ marginBottom: 14 }}><div style={{ fontSize: 16, fontWeight: 600, color: t.tx, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}><Ic name="shield" size={18}/> Seguridad</div><Btn>Cambiar contraseña</Btn></Card>
+      <Card style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 16, fontWeight: 600, color: t.tx, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}><Ic name="card" size={18}/> Mi Plan</div>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid " + t.brd }}><span style={{ color: t.tx }}>Plan actual</span><Badge color={currentPlan.color}>{currentPlan.name} — {currentPlan.price}/mes</Badge></div>
+        <div style={{ padding: "10px 0", borderBottom: "1px solid " + t.brd }}>
+          <div style={{ fontSize: 13, color: t.txM, marginBottom: 8 }}>Limites por tipo:</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{CTYPES.map(c => <span key={c.id} style={{ fontSize: 11, padding: "3px 8px", background: t.bgI, borderRadius: 6, color: t.txS }}>{c.icon} {currentPlan.limits?.[c.id] === 9999 ? "∞" : (currentPlan.limits?.[c.id] || 0)}</span>)}</div>
+        </div>
+        <Btn primary onClick={() => setShowPlans(true)} style={{ marginTop: 14, width: "100%", justifyContent: "center" }}>Cambiar plan</Btn>
+      </Card>
+      {showPlans && <Card style={{ marginBottom: 14, border: "2px solid " + t.ac }}>
+        <div style={{ fontSize: 16, fontWeight: 600, color: t.tx, marginBottom: 16 }}>Elige tu nuevo plan</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+          {PLANS.map(p => <div key={p.id} style={{ textAlign: "center", padding: 20, border: p.pop ? "2px solid " + p.color : "1px solid " + t.brd, borderRadius: 14, cursor: "pointer", transition: "all .2s" }} onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 8px 25px " + t.sh; }} onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}>
+            {p.pop && <div style={{ fontSize: 10, fontWeight: 700, color: p.color, marginBottom: 4 }}>MAS POPULAR</div>}
+            <div style={{ fontSize: 15, fontWeight: 700, color: t.tx }}>{p.name}</div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: p.color, margin: "8px 0" }}>{p.price}<span style={{ fontSize: 12, color: t.txM }}>/mes</span></div>
+            <div style={{ fontSize: 11, color: t.txS, marginBottom: 12 }}>{p.desc}</div>
+            <Btn primary={p.pop} secondary={!p.pop} onClick={() => { setShowPlans(false); alert("Para cambiar de plan contacta a soporte@datagrowth.agency\n\nCuando conectemos Stripe, podras cambiar de plan directamente."); }} style={{ width: "100%", justifyContent: "center", fontSize: 12, padding: "8px 12px" }}>{p.id === currentPlan.id ? "Plan actual" : "Elegir"}</Btn>
+          </div>)}
+        </div>
+        <Btn ghost onClick={() => setShowPlans(false)} style={{ marginTop: 12, width: "100%", justifyContent: "center", fontSize: 12 }}>Cancelar</Btn>
+      </Card>}
+      <Card style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 16, fontWeight: 600, color: t.tx, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}><Ic name="shield" size={18}/> Seguridad</div>
+        {!showPassForm ? <Btn onClick={() => setShowPassForm(true)}>Cambiar contraseña</Btn> : <div>
+          <div style={{ marginBottom: 10 }}><Label>Contraseña actual</Label><Input type="password" value={oldPass} onChange={e => setOldPass(e.target.value)} placeholder="Tu contraseña actual"/></div>
+          <div style={{ marginBottom: 10 }}><Label>Nueva contraseña</Label><Input type="password" value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="Nueva contraseña"/></div>
+          <div style={{ marginBottom: 14 }}><Label>Confirmar nueva contraseña</Label><Input type="password" value={confirmPass} onChange={e => setConfirmPass(e.target.value)} placeholder="Repite la nueva contraseña"/></div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <Btn primary onClick={() => { if (!oldPass || !newPass) return; if (newPass !== confirmPass) { setPassMsg("Las contraseñas no coinciden"); return; } if (newPass.length < 6) { setPassMsg("Minimo 6 caracteres"); return; } setPassMsg("✅ Contraseña actualizada"); setOldPass(""); setNewPass(""); setConfirmPass(""); setTimeout(() => { setPassMsg(""); setShowPassForm(false); }, 2000); }}>{passMsg.startsWith("✅") ? passMsg : "Guardar"}</Btn>
+            <Btn ghost onClick={() => { setShowPassForm(false); setOldPass(""); setNewPass(""); setConfirmPass(""); setPassMsg(""); }}>Cancelar</Btn>
+          </div>
+          {passMsg && !passMsg.startsWith("✅") && <div style={{ marginTop: 8, fontSize: 12, color: "#ef4444" }}>{passMsg}</div>}
+        </div>}
+      </Card>
       <Card><div style={{ fontSize: 16, fontWeight: 600, color: t.tx, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}><Ic name="help" size={18}/> Soporte</div><div style={{ fontSize: 14, color: t.txS }}>¿Necesitas ayuda? <span style={{ color: t.ac }}>soporte@datagrowth.agency</span></div></Card>
     </Section>
   );
@@ -1091,14 +1131,14 @@ export default function App() {
   const onAuth = (u) => { setUser(u); setView("app"); setPage("dashboard"); };
   const logout = () => { setUser(null); setView("landing"); setPage("dashboard"); setAuthMode("login"); };
 
-  const agNav = [{ id: "dashboard", label: "Dashboard", ic: "grid" }, { id: "factory", label: "Fábrica Creativa", ic: "factory", tag: "AI" }, { id: "branding", label: "Branding Kit", ic: "palette" }, { id: "clients", label: "Clientes", ic: "users" }, { id: "plans", label: "Planes", ic: "card" }, { id: "team", label: "Equipo", ic: "users" }, { id: "settings", label: "Config API", ic: "settings" }];
+  const agNav = [{ id: "dashboard", label: "Dashboard", ic: "grid" }, { id: "factory", label: "Fábrica Creativa", ic: "factory", tag: "AI" }, { id: "branding", label: "Branding Kit", ic: "palette" }, { id: "clients", label: "Clientes", ic: "users" }, { id: "plans", label: "Planes", ic: "card" }, { id: "team", label: "Equipo", ic: "users" }];
   const clNav = [{ id: "dashboard", label: "Mi Dashboard", ic: "grid" }, { id: "factory", label: "Crear Contenido", ic: "factory", tag: "AI" }, { id: "branding", label: "Mis Marcas", ic: "palette" }, { id: "settings", label: "Mi Cuenta", ic: "settings" }];
   const nav = isAdmin ? agNav : clNav;
 
   if (view === "landing") return <ThemeCtx.Provider value={th}><Landing onLogin={() => { setAuthMode("login"); setView("auth"); }} onRegister={(plan) => { setSelPlan(plan || null); setAuthMode("register"); setView("auth"); }} dark={dark} setDark={setDark}/></ThemeCtx.Provider>;
   if (view === "auth") return <ThemeCtx.Provider value={th}><Auth mode={authMode} setMode={setAuthMode} onAuth={onAuth} dark={dark} setDark={setDark} selPlan={selPlan}/></ThemeCtx.Provider>;
 
-  const agPages = { dashboard: <AgencyDash setPage={setPage} brands={brands}/>, factory: <Factory brands={brands} gemKey={gemKey} isAdmin={true}/>, branding: <BrandKit brands={brands} setBrands={setBrands}/>, clients: <AgencyClients/>, plans: <AgencyPlans/>, team: <AgencyTeam/>, settings: <AgencySettings gemKey={gemKey} setGemKey={setGemKey}/> };
+  const agPages = { dashboard: <AgencyDash setPage={setPage} brands={brands}/>, factory: <Factory brands={brands} gemKey={gemKey} isAdmin={true}/>, branding: <BrandKit brands={brands} setBrands={setBrands}/>, clients: <AgencyClients/>, plans: <AgencyPlans/>, team: <AgencyTeam/> };
   const clPages = { dashboard: (() => { const t = th; return <Section title="Mi Dashboard" right={<Badge color="#37c2eb">Cliente</Badge>}><div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 24 }}>{[{ l: "Marcas", v: String(brands.length), c: "#06b6d4" }, { l: "Contenido", v: brands.length ? "34" : "0", c: "#37c2eb" }, { l: "Posts/mes", v: brands.length ? "12" : "0", c: "#8b5cf6" }].map((s, i) => <Card key={i}><div style={{ fontSize: 12, color: t.txM, marginBottom: 8 }}>{s.l}</div><div style={{ fontSize: 28, fontWeight: 800, color: s.c }}>{s.v}</div></Card>)}</div>{brands.length ? <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{brands.map(b => <Card key={b.id} onClick={() => setPage("factory")} style={{ display: "flex", alignItems: "center", gap: 12 }}><div style={{ width: 40, height: 40, borderRadius: 10, background: b.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{b.emoji}</div><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{b.name}</div><div style={{ fontSize: 11, color: t.txM }}>{b.industry}</div></div><Badge>Activa</Badge></Card>)}<Card onClick={() => setPage("branding")} style={{ display: "flex", alignItems: "center", justifyContent: "center", border: `2px dashed ${t.brd}`, minHeight: 70 }}><div style={{ textAlign: "center", color: t.txM }}><div style={{ fontSize: 24 }}>+</div><div style={{ fontSize: 12 }}>Nueva marca</div></div></Card></div> : <Card style={{ textAlign: "center", padding: 48 }}><div style={{ fontSize: 48, marginBottom: 12 }}>🚀</div><div style={{ fontSize: 18, fontWeight: 700, color: t.tx, marginBottom: 8 }}>¡Bienvenido!</div><div style={{ fontSize: 14, color: t.txM, marginBottom: 20 }}>Crea tu primera marca para empezar.</div><Btn primary onClick={() => setPage("branding")} style={{ margin: "0 auto" }}><Ic name="plus" size={14}/> Crear marca</Btn></Card>}</Section>; })(), factory: <Factory brands={brands} gemKey={gemKey} isAdmin={false}/>, branding: <BrandKit brands={brands} setBrands={setBrands}/>, settings: <ClientSettings user={user} setUser={setUser}/> };
   const pages = isAdmin ? agPages : clPages;
 
