@@ -52,24 +52,9 @@ const CopyBtn = ({ text, label }) => { const t = useT(); const [c, setC] = useSt
 const Logo = ({ size = 32 }) => <img src="/logo.jpg" alt="DataGrowth" style={{ width: size, height: size, borderRadius: size * 0.25, objectFit: "cover" }}/>;
 
 // ══════ LANDING PAGE (Supabase-inspired) ══════
-const Landing = ({ onLogin, onRegister, dark, setDark }) => {
+const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }) => {
   const t = useT();
-  const [showPlans, setShowPlans] = useState(false);
   const [customAmount, setCustomAmount] = useState(150);
-
-  useEffect(() => {
-    if (showPlans) {
-      window.history.pushState({ landingView: "plans" }, "", "#plans");
-    }
-  }, [showPlans]);
-
-  useEffect(() => {
-    const handlePop = (e) => {
-      if (showPlans) setShowPlans(false);
-    };
-    window.addEventListener("popstate", handlePop);
-    return () => window.removeEventListener("popstate", handlePop);
-  }, [showPlans]);
   const features = [
     { icon: "🖼️", title: "Imagenes AI", desc: "Genera imagenes profesionales con Nano Banana de Google. Sube fotos reales de tu producto y la IA las transforma." },
     { icon: "🎬", title: "Videos AI", desc: "Crea reels de 8 segundos con Veo 3.1. Videos realistas con audio, desde texto o animando tus propias fotos." },
@@ -1162,29 +1147,37 @@ export default function App() {
   const [authMode, setAuthMode] = useState("login");
   const [selPlan, setSelPlan] = useState(null);
   const [user, setUser] = useState(null);
-  const [page, setPage] = useState(() => {
-    const hash = window.location.hash.replace("#", "");
-    return hash || "dashboard";
-  });
+  const [page, setPage] = useState("dashboard");
+  const [landingSubView, setLandingSubView] = useState("home"); // "home" | "plans"
   const [sb, setSb] = useState(true);
 
-  // Browser back/forward buttons support
-  useEffect(() => {
-    if (view === "app") {
-      window.history.pushState({ view, page }, "", `#${page}`);
-    } else if (view === "auth") {
-      window.history.pushState({ view, page }, "", "#auth");
-    } else if (view === "landing") {
-      window.history.pushState({ view, page }, "", "#");
-    }
-  }, [view, page]);
+  // Función central de navegación — siempre usar esta para navegar
+  const navigate = (newView, opts = {}) => {
+    const newPage = opts.page || page;
+    const newLandingSubView = opts.landingSubView || "home";
+    const newAuthMode = opts.authMode || "login";
+    const state = { view: newView, page: newPage, landingSubView: newLandingSubView, authMode: newAuthMode };
+    let hash = "#";
+    if (newView === "app") hash = `#${newPage}`;
+    else if (newView === "auth") hash = `#auth-${newAuthMode}`;
+    else if (newView === "landing") hash = newLandingSubView === "plans" ? "#planes" : "#inicio";
+    window.history.pushState(state, "", hash);
+    setView(newView);
+    if (opts.page) setPage(opts.page);
+    if (opts.landingSubView !== undefined) setLandingSubView(opts.landingSubView);
+    if (opts.authMode) setAuthMode(opts.authMode);
+    if (opts.selPlan !== undefined) setSelPlan(opts.selPlan);
+  };
 
+  // Escuchar el botón atrás/adelante del navegador
   useEffect(() => {
     const handlePop = (e) => {
-      if (e.state?.view) {
-        setView(e.state.view);
-        if (e.state.page) setPage(e.state.page);
-      }
+      const s = e.state;
+      if (!s) return;
+      setView(s.view);
+      if (s.page) setPage(s.page);
+      if (s.landingSubView !== undefined) setLandingSubView(s.landingSubView);
+      if (s.authMode) setAuthMode(s.authMode);
     };
     window.addEventListener("popstate", handlePop);
     return () => window.removeEventListener("popstate", handlePop);
@@ -1270,16 +1263,17 @@ export default function App() {
   const brands = isAdmin ? agBrands : clBrands;
   const setBrands = isAdmin ? setAgBrands : setClBrands;
 
-  const onAuth = (u) => { setUser(u); setView("app"); setPage("dashboard"); loadBrands(u.id, u.role); };
-  const logout = async () => { await supabase.auth.signOut(); setUser(null); setView("landing"); setPage("dashboard"); setAuthMode("login"); };
+  const onAuth = (u) => { setUser(u); navigate("app", { page: "dashboard" }); loadBrands(u.id, u.role); };
+  const logout = async () => { await supabase.auth.signOut(); setUser(null); navigate("landing", { landingSubView: "home" }); };
 
   const agNav = [{ id: "dashboard", label: "Dashboard", ic: "grid" }, { id: "factory", label: "Fábrica Creativa", ic: "factory", tag: "AI" }, { id: "branding", label: "Branding Kit", ic: "palette" }, { id: "clients", label: "Clientes", ic: "users" }, { id: "plans", label: "Planes", ic: "card" }, { id: "team", label: "Equipo", ic: "users" }];
   const clNav = [{ id: "dashboard", label: "Mi Dashboard", ic: "grid" }, { id: "factory", label: "Crear Contenido", ic: "factory", tag: "AI" }, { id: "branding", label: "Mis Marcas", ic: "palette" }, { id: "settings", label: "Mi Cuenta", ic: "settings" }];
   const nav = isAdmin ? agNav : clNav;
+  const goPage = (p) => navigate("app", { page: p });
 
   if (view === "loading") return <ThemeCtx.Provider value={th}><div style={{ minHeight: "100vh", background: th.bg, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ textAlign: "center" }}><div style={{ width: 48, height: 48, border: "3px solid " + th.brd, borderTop: "3px solid " + th.ac, borderRadius: "50%", animation: "spin .8s linear infinite", margin: "0 auto 16px" }}/><div style={{ color: th.txS, fontSize: 14 }}>Cargando...</div></div></div></ThemeCtx.Provider>;
-  if (view === "landing") return <ThemeCtx.Provider value={th}><Landing onLogin={() => { setAuthMode("login"); setView("auth"); }} onRegister={(plan) => { setSelPlan(plan || null); setAuthMode("register"); setView("auth"); }} dark={dark} setDark={setDark}/></ThemeCtx.Provider>;
-  if (view === "auth") return <ThemeCtx.Provider value={th}><Auth mode={authMode} setMode={setAuthMode} onAuth={onAuth} dark={dark} setDark={setDark} selPlan={selPlan}/></ThemeCtx.Provider>;
+  if (view === "landing") return <ThemeCtx.Provider value={th}><Landing onLogin={() => navigate("auth", { authMode: "login" })} onRegister={(plan) => navigate("auth", { authMode: "register", selPlan: plan || null })} showPlans={landingSubView === "plans"} setShowPlans={(v) => navigate("landing", { landingSubView: v ? "plans" : "home" })} dark={dark} setDark={setDark}/></ThemeCtx.Provider>;
+  if (view === "auth") return <ThemeCtx.Provider value={th}><Auth mode={authMode} setMode={(m) => navigate("auth", { authMode: m })} onAuth={onAuth} dark={dark} setDark={setDark} selPlan={selPlan}/></ThemeCtx.Provider>;
 
   const agPages = { dashboard: <AgencyDash setPage={setPage} brands={brands}/>, factory: <Factory brands={brands} gemKey={gemKey} isAdmin={true} user={user}/>, branding: <BrandKit brands={brands} setBrands={setBrands} user={user}/>, clients: <AgencyClients/>, plans: <AgencyPlans/>, team: <AgencyTeam/> };
   const clPages = { dashboard: (() => { const t = th; return <Section title="Mi Dashboard" right={<Badge color="#37c2eb">Cliente</Badge>}><div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 24 }}>{[{ l: "Marcas", v: String(brands.length), c: "#06b6d4" }, { l: "Contenido", v: brands.length ? "34" : "0", c: "#37c2eb" }, { l: "Posts/mes", v: brands.length ? "12" : "0", c: "#8b5cf6" }].map((s, i) => <Card key={i}><div style={{ fontSize: 12, color: t.txM, marginBottom: 8 }}>{s.l}</div><div style={{ fontSize: 28, fontWeight: 800, color: s.c }}>{s.v}</div></Card>)}</div>{brands.length ? <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{brands.map(b => <Card key={b.id} onClick={() => setPage("factory")} style={{ display: "flex", alignItems: "center", gap: 12 }}><div style={{ width: 40, height: 40, borderRadius: 10, background: b.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{b.emoji}</div><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{b.name}</div><div style={{ fontSize: 11, color: t.txM }}>{b.industry}</div></div><Badge>Activa</Badge></Card>)}<Card onClick={() => setPage("branding")} style={{ display: "flex", alignItems: "center", justifyContent: "center", border: `2px dashed ${t.brd}`, minHeight: 70 }}><div style={{ textAlign: "center", color: t.txM }}><div style={{ fontSize: 24 }}>+</div><div style={{ fontSize: 12 }}>Nueva marca</div></div></Card></div> : <Card style={{ textAlign: "center", padding: 48 }}><div style={{ fontSize: 48, marginBottom: 12 }}>🚀</div><div style={{ fontSize: 18, fontWeight: 700, color: t.tx, marginBottom: 8 }}>¡Bienvenido!</div><div style={{ fontSize: 14, color: t.txM, marginBottom: 20 }}>Crea tu primera marca para empezar.</div><Btn primary onClick={() => setPage("branding")} style={{ margin: "0 auto" }}><Ic name="plus" size={14}/> Crear marca</Btn></Card>}</Section>; })(), factory: <Factory brands={brands} gemKey={gemKey} isAdmin={false} user={user}/>, branding: <BrandKit brands={brands} setBrands={setBrands} user={user}/>, settings: <ClientSettings user={user} setUser={setUser}/> };
@@ -1294,7 +1288,7 @@ export default function App() {
             <div><div style={{ fontSize: 14, fontWeight: 700, color: th.tx }}>DataGrowth</div><div style={{ fontSize: 9, color: th.ac, textTransform: "uppercase", letterSpacing: 2, fontWeight: 600 }}>{isAdmin ? "Agency" : "Client"}</div></div>
           </div>
           <div style={{ padding: "12px 0", minWidth: 230, flex: 1, overflowY: "auto" }}>
-            {nav.map(item => <div key={item.id} onClick={() => setPage(item.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", cursor: "pointer", color: page === item.id ? th.tx : th.txS, background: page === item.id ? th.acS : "transparent", borderLeft: page === item.id ? `3px solid ${th.ac}` : "3px solid transparent", fontSize: 13, fontWeight: 500 }}><Ic name={item.ic} size={16}/>{item.label}{item.tag && <span style={{ marginLeft: "auto", fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 20, background: th.acS, color: th.ac }}>{item.tag}</span>}</div>)}
+            {nav.map(item => <div key={item.id} onClick={() => goPage(item.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", cursor: "pointer", color: page === item.id ? th.tx : th.txS, background: page === item.id ? th.acS : "transparent", borderLeft: page === item.id ? `3px solid ${th.ac}` : "3px solid transparent", fontSize: 13, fontWeight: 500 }}><Ic name={item.ic} size={16}/>{item.label}{item.tag && <span style={{ marginLeft: "auto", fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 20, background: th.acS, color: th.ac }}>{item.tag}</span>}</div>)}
           </div>
           <div style={{ padding: "8px 16px", borderTop: `1px solid ${th.brd}`, minWidth: 230 }}>
             <div onClick={() => setDark(!dark)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", background: th.bgI, borderRadius: 8, cursor: "pointer" }}><Ic name={dark ? "moon" : "sun"} size={14}/><span style={{ fontSize: 12, color: th.txS }}>{dark ? "Oscuro" : "Claro"}</span><div style={{ marginLeft: "auto", width: 32, height: 16, borderRadius: 8, background: dark ? th.ac : th.brd, position: "relative" }}><div style={{ width: 12, height: 12, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: dark ? 18 : 2, transition: "left .3s" }}/></div></div>
