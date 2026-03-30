@@ -56,6 +56,20 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
   const t = useT();
   const [showPlans, setShowPlans] = useState(false);
   const [customAmount, setCustomAmount] = useState(150);
+
+  useEffect(() => {
+    if (showPlans) {
+      window.history.pushState({ landingView: "plans" }, "", "#plans");
+    }
+  }, [showPlans]);
+
+  useEffect(() => {
+    const handlePop = (e) => {
+      if (showPlans) setShowPlans(false);
+    };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, [showPlans]);
   const features = [
     { icon: "🖼️", title: "Imagenes AI", desc: "Genera imagenes profesionales con Nano Banana de Google. Sube fotos reales de tu producto y la IA las transforma." },
     { icon: "🎬", title: "Videos AI", desc: "Crea reels de 8 segundos con Veo 3.1. Videos realistas con audio, desde texto o animando tus propias fotos." },
