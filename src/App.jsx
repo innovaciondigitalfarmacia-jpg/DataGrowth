@@ -1,4 +1,7 @@
 import { useState, useEffect, createContext, useContext } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient("https://wmonacfzxjpndbhwsdsf.supabase.co", "sb_publishable_TT6jl9XE1oQmHRPeuT68wg_KMy2106J");
 
 const ThemeCtx = createContext();
 const useT = () => useContext(ThemeCtx);
@@ -287,14 +290,45 @@ const Auth = ({ mode, setMode, onAuth, dark, setDark, selPlan }) => {
   const formatCard = (v) => { const n = v.replace(/\D/g, "").slice(0, 16); return n.replace(/(.{4})/g, "$1 ").trim(); };
   const formatExp = (v) => { const n = v.replace(/\D/g, "").slice(0, 4); return n.length > 2 ? n.slice(0, 2) + "/" + n.slice(2) : n; };
 
-  const go = () => {
-    if (mode === "forgot") { setSent(true); return; }
+  const [err, setErr] = useState("");
+
+  const go = async () => {
+    setErr("");
+    if (mode === "forgot") {
+      if (!email) return;
+      setLl(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+      setLl(false);
+      if (error) { setErr(error.message); return; }
+      setSent(true);
+      return;
+    }
     if (!email || !pass) return;
     if (mode === "register" && !name) return;
     if (mode === "register" && isPaid && (!cardNum || !cardExp || !cardCvc)) return;
     setLl(true);
-    const isAdmin = email.toLowerCase() === ADMIN_EMAIL.toLowerCase() && pass === ADMIN_PASS;
-    setTimeout(() => onAuth({ name: mode === "register" ? name : email.split("@")[0], email, company, phone, role: isAdmin ? "agency" : "client" }), 800);
+
+    if (mode === "register") {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password: pass,
+        options: { data: { name, company, phone } }
+      });
+      setLl(false);
+      if (error) { setErr(error.message === "User already registered" ? "Ya existe una cuenta con este email" : error.message); return; }
+      if (data.user) {
+        const profile = await supabase.from("profiles").select("*").eq("id", data.user.id).single();
+        onAuth({ id: data.user.id, name, email, company, phone, role: profile.data?.role || "client", plan: profile.data?.plan || "free" });
+      }
+    } else {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+      setLl(false);
+      if (error) { setErr(error.message === "Invalid login credentials" ? "Email o contraseña incorrectos" : error.message); return; }
+      if (data.user) {
+        const profile = await supabase.from("profiles").select("*").eq("id", data.user.id).single();
+        onAuth({ id: data.user.id, name: profile.data?.name || email.split("@")[0], email: data.user.email, company: profile.data?.company || "", phone: profile.data?.phone || "", role: profile.data?.role || "client", plan: profile.data?.plan || "free" });
+      }
+    }
   };
 
   return (
@@ -314,6 +348,7 @@ const Auth = ({ mode, setMode, onAuth, dark, setDark, selPlan }) => {
           <div style={{ marginBottom: 8 }}><Label>Contraseña</Label><Input value={pass} onChange={e => setPass(e.target.value)} type="password" placeholder="••••••••" onKeyDown={e => e.key === "Enter" && go()}/></div>
           <div onClick={() => setMode("forgot")} style={{ fontSize: 13, color: t.ac, cursor: "pointer", textAlign: "right", marginBottom: 24 }}>¿Olvidaste tu contraseña?</div>
           <button onClick={go} style={{ width: "100%", padding: 16, background: t.gr, color: "#fff", border: "none", borderRadius: 50, fontSize: 16, fontWeight: 600, cursor: "pointer", opacity: (!email || !pass) ? .5 : 1, boxShadow: "0 4px 20px rgba(55,194,235,.25)" }}>{ll ? "Ingresando..." : "Iniciar sesión"}</button>
+          {err && <div style={{ marginTop: 12, padding: "10px 14px", background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.3)", borderRadius: 10, fontSize: 13, color: "#ef4444", textAlign: "center" }}>{err}</div>}
           <div style={{ textAlign: "center", marginTop: 20 }}><span style={{ color: t.txM, fontSize: 13 }}>¿No tienes cuenta? </span><span onClick={() => setMode("register")} style={{ color: t.ac, fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Regístrate gratis</span></div>
         </>}
 
@@ -362,6 +397,7 @@ const Auth = ({ mode, setMode, onAuth, dark, setDark, selPlan }) => {
           </>}
 
           <button onClick={go} style={{ width: "100%", padding: 16, background: t.gr, color: "#fff", border: "none", borderRadius: 50, fontSize: 16, fontWeight: 600, cursor: "pointer", opacity: (!email || !pass || !name || (isPaid && (!cardNum || !cardExp || !cardCvc))) ? .5 : 1, boxShadow: "0 4px 20px rgba(55,194,235,.25)" }}>{ll ? "Procesando..." : isPaid ? `Pagar ${selPlan.price}/mes y crear cuenta` : "Crear cuenta gratis"}</button>
+          {err && <div style={{ marginTop: 12, padding: "10px 14px", background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.3)", borderRadius: 10, fontSize: 13, color: "#ef4444", textAlign: "center" }}>{err}</div>}
           {isPaid && <div style={{ textAlign: "center", marginTop: 10, fontSize: 12, color: t.txM }}>Puedes cancelar en cualquier momento. Sin permanencia.</div>}
           <div style={{ textAlign: "center", marginTop: 16 }}><span style={{ color: t.txM, fontSize: 13 }}>¿Ya tienes cuenta? </span><span onClick={() => setMode("login")} style={{ color: t.ac, fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Inicia sesión</span></div>
         </>}
@@ -578,14 +614,23 @@ const BrandEditor = ({ brand, onSave, onClose, isNew }) => {
 };
 
 // ══════ BRANDING KIT ══════
-const BrandKit = ({ brands, setBrands }) => {
+const BrandKit = ({ brands, setBrands, user }) => {
   const t = useT();
   const [sel, setSel] = useState(brands[0] || null);
   const [ed, setEd] = useState(null);
   const [cr, setCr] = useState(false);
   const [del, setDel] = useState(null);
   const [tab, setTab] = useState("identity");
-  const save = (b) => { if (cr) { setBrands([...brands, b]); setSel(b); } else { setBrands(brands.map(x => x.id === b.id ? b : x)); setSel(b); } setEd(null); setCr(false); };
+  const save = async (b) => {
+    if (cr) {
+      const { data } = await supabase.from("brands").insert({ user_id: user.id, name: b.name, short: b.short, color: b.color, industry: b.industry, tone: b.tone, audience: b.audience, emoji: b.emoji, brand_voice: b.brandVoice, img_style: b.imgStyle, sector: b.sector, colors: b.colors, products: b.products, description: b.description, differentiator: b.differentiator, website: b.website, instagram: b.instagram, facebook: b.facebook }).select().single();
+      if (data) { const nb = { ...data, brandVoice: data.brand_voice, imgStyle: data.img_style }; setBrands([...brands, nb]); setSel(nb); }
+    } else {
+      await supabase.from("brands").update({ name: b.name, short: b.short, color: b.color, industry: b.industry, tone: b.tone, audience: b.audience, emoji: b.emoji, brand_voice: b.brandVoice, img_style: b.imgStyle, sector: b.sector, colors: b.colors, products: b.products, description: b.description, differentiator: b.differentiator, website: b.website, instagram: b.instagram, facebook: b.facebook }).eq("id", b.id);
+      setBrands(brands.map(x => x.id === b.id ? b : x)); setSel(b);
+    }
+    setEd(null); setCr(false);
+  };
 
   const tabs = [
     { id: "identity", label: "Identidad", icon: "🏢" },
@@ -675,13 +720,13 @@ const BrandKit = ({ brands, setBrands }) => {
         </>}
       </> : <Card style={{ textAlign: "center", padding: 48 }}><div style={{ fontSize: 48, marginBottom: 12 }}>🚀</div><div style={{ fontSize: 18, fontWeight: 700, color: t.tx, marginBottom: 6 }}>¡Bienvenido!</div><div style={{ fontSize: 14, color: t.txM, marginBottom: 20, maxWidth: 380, margin: "0 auto 20px" }}>Crea tu primera marca para generar contenido con IA.</div><Btn primary onClick={() => setCr(true)} style={{ margin: "0 auto" }}><Ic name="plus" size={14}/> Crear marca</Btn></Card>}
       {(ed || cr) && <BrandEditor brand={ed} isNew={cr} onSave={save} onClose={() => { setEd(null); setCr(false); }}/>}
-      {del && <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}><Card style={{ width: 380, textAlign: "center" }}><div style={{ fontSize: 36, marginBottom: 10 }}>⚠️</div><div style={{ fontSize: 17, fontWeight: 700, color: t.tx, marginBottom: 8 }}>¿Eliminar?</div><div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 16 }}><Btn onClick={() => setDel(null)}>Cancelar</Btn><Btn danger onClick={() => { setBrands(brands.filter(b => b.id !== del)); setSel(brands.find(b => b.id !== del)); setDel(null); }}>Eliminar</Btn></div></Card></div>}
+      {del && <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}><Card style={{ width: 380, textAlign: "center" }}><div style={{ fontSize: 36, marginBottom: 10 }}>⚠️</div><div style={{ fontSize: 17, fontWeight: 700, color: t.tx, marginBottom: 8 }}>¿Eliminar?</div><div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 16 }}><Btn onClick={() => setDel(null)}>Cancelar</Btn><Btn danger onClick={async () => { await supabase.from("brands").delete().eq("id", del); setBrands(brands.filter(b => b.id !== del)); setSel(brands.find(b => b.id !== del)); setDel(null); }}>Eliminar</Btn></div></Card></div>}
     </Section>
   );
 };
 
 // ══════ FACTORY ══════
-const Factory = ({ brands, gemKey, isAdmin }) => {
+const Factory = ({ brands, gemKey, isAdmin, user }) => {
   const t = useT();
   const [brand, setBrand] = useState(brands[0]);
   const [ct, setCt] = useState(CTYPES[0]);
@@ -689,9 +734,24 @@ const Factory = ({ brands, gemKey, isAdmin }) => {
   const [result, setResult] = useState(null);
   const [txt, setTxt] = useState("");
   const [loading, setLoading] = useState(false);
-  const [usage, setUsage] = useState(() => { try { return JSON.parse(localStorage.getItem("dg_usage") || "{}"); } catch { return {}; } });
+  const [usage, setUsage] = useState({});
+  const currentMonth = new Date().toISOString().slice(0, 7);
   const getUsage = (typeId) => usage[typeId] || 0;
-  const addUsage = (typeId) => { setUsage(prev => { const n = { ...prev, [typeId]: (prev[typeId] || 0) + 1 }; try { localStorage.setItem("dg_usage", JSON.stringify(n)); } catch {} return n; }); };
+  const addUsage = async (typeId) => {
+    setUsage(prev => ({ ...prev, [typeId]: (prev[typeId] || 0) + 1 }));
+    const { data: existing } = await supabase.from("usage").select("*").eq("user_id", user?.id).eq("content_type", typeId).eq("month", currentMonth).single();
+    if (existing) {
+      await supabase.from("usage").update({ count: existing.count + 1 }).eq("id", existing.id);
+    } else {
+      await supabase.from("usage").insert({ user_id: user?.id, content_type: typeId, month: currentMonth, count: 1 });
+    }
+  };
+  useEffect(() => {
+    if (!user?.id || isAdmin) return;
+    supabase.from("usage").select("*").eq("user_id", user.id).eq("month", currentMonth).then(({ data }) => {
+      const u = {}; (data || []).forEach(r => { u[r.content_type] = r.count; }); setUsage(u);
+    });
+  }, [user?.id]);
   const userPlan = isAdmin ? PLANS[2] : PLANS[0];
   const getLimit = (typeId) => userPlan.limits?.[typeId] ?? 9999;
   const getLeft = (typeId) => getLimit(typeId) - getUsage(typeId);
@@ -1008,9 +1068,11 @@ const ClientSettings = ({ user, setUser, onChangePlan }) => {
   const [newPass, setNewPass] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
   const [passMsg, setPassMsg] = useState("");
+  const [planMsg, setPlanMsg] = useState("");
   const currentPlan = PLANS.find(p => p.id === "free") || PLANS[0];
 
-  const saveProfile = () => {
+  const saveProfile = async () => {
+    if (user?.id) { await supabase.from("profiles").update({ name: editName, company: editCompany, phone: editPhone }).eq("id", user.id); }
     setUser({ ...user, name: editName, company: editCompany, phone: editPhone });
     setSaved(true); setTimeout(() => setSaved(false), 2000);
   };
@@ -1038,6 +1100,7 @@ const ClientSettings = ({ user, setUser, onChangePlan }) => {
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{CTYPES.map(c => <span key={c.id} style={{ fontSize: 11, padding: "3px 8px", background: t.bgI, borderRadius: 6, color: t.txS }}>{c.icon} {currentPlan.limits?.[c.id] === 9999 ? "∞" : (currentPlan.limits?.[c.id] || 0)}</span>)}</div>
         </div>
         <Btn primary onClick={() => setShowPlans(true)} style={{ marginTop: 14, width: "100%", justifyContent: "center" }}>Cambiar plan</Btn>
+        {planMsg && <div style={{ marginTop: 10, padding: "10px 14px", background: "rgba(55,194,235,0.1)", border: "1px solid rgba(55,194,235,0.3)", borderRadius: 10, fontSize: 13, color: t.ac, textAlign: "center" }}>{planMsg}</div>}
       </Card>
       {showPlans && <Card style={{ marginBottom: 14, border: "2px solid " + t.ac }}>
         <div style={{ fontSize: 16, fontWeight: 600, color: t.tx, marginBottom: 16 }}>Elige tu nuevo plan</div>
@@ -1047,7 +1110,7 @@ const ClientSettings = ({ user, setUser, onChangePlan }) => {
             <div style={{ fontSize: 15, fontWeight: 700, color: t.tx }}>{p.name}</div>
             <div style={{ fontSize: 28, fontWeight: 800, color: p.color, margin: "8px 0" }}>{p.price}<span style={{ fontSize: 12, color: t.txM }}>/mes</span></div>
             <div style={{ fontSize: 11, color: t.txS, marginBottom: 12 }}>{p.desc}</div>
-            <Btn primary={p.pop} secondary={!p.pop} onClick={() => { setShowPlans(false); alert("Para cambiar de plan contacta a soporte@datagrowth.agency\n\nCuando conectemos Stripe, podras cambiar de plan directamente."); }} style={{ width: "100%", justifyContent: "center", fontSize: 12, padding: "8px 12px" }}>{p.id === currentPlan.id ? "Plan actual" : "Elegir"}</Btn>
+            <Btn primary={p.pop} secondary={!p.pop} onClick={() => { if (p.id !== currentPlan.id) { setShowPlans(false); setPassMsg(""); setPlanMsg("✅ Plan " + p.name + " seleccionado. Cuando conectemos Stripe se activara automaticamente."); setTimeout(() => setPlanMsg(""), 4000); } }} style={{ width: "100%", justifyContent: "center", fontSize: 12, padding: "8px 12px" }}>{p.id === currentPlan.id ? "Plan actual" : "Elegir"}</Btn>
           </div>)}
         </div>
         <Btn ghost onClick={() => setShowPlans(false)} style={{ marginTop: 12, width: "100%", justifyContent: "center", fontSize: 12 }}>Cancelar</Btn>
@@ -1059,7 +1122,7 @@ const ClientSettings = ({ user, setUser, onChangePlan }) => {
           <div style={{ marginBottom: 10 }}><Label>Nueva contraseña</Label><Input type="password" value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="Nueva contraseña"/></div>
           <div style={{ marginBottom: 14 }}><Label>Confirmar nueva contraseña</Label><Input type="password" value={confirmPass} onChange={e => setConfirmPass(e.target.value)} placeholder="Repite la nueva contraseña"/></div>
           <div style={{ display: "flex", gap: 10 }}>
-            <Btn primary onClick={() => { if (!oldPass || !newPass) return; if (newPass !== confirmPass) { setPassMsg("Las contraseñas no coinciden"); return; } if (newPass.length < 6) { setPassMsg("Minimo 6 caracteres"); return; } setPassMsg("✅ Contraseña actualizada"); setOldPass(""); setNewPass(""); setConfirmPass(""); setTimeout(() => { setPassMsg(""); setShowPassForm(false); }, 2000); }}>{passMsg.startsWith("✅") ? passMsg : "Guardar"}</Btn>
+            <Btn primary onClick={async () => { if (!oldPass || !newPass) return; if (newPass !== confirmPass) { setPassMsg("Las contraseñas no coinciden"); return; } if (newPass.length < 6) { setPassMsg("Minimo 6 caracteres"); return; } const { error } = await supabase.auth.updateUser({ password: newPass }); if (error) { setPassMsg("Error: " + error.message); return; } setPassMsg("✅ Contraseña actualizada"); setOldPass(""); setNewPass(""); setConfirmPass(""); setTimeout(() => { setPassMsg(""); setShowPassForm(false); }, 2000); }}>{passMsg.startsWith("✅") ? passMsg : "Guardar"}</Btn>
             <Btn ghost onClick={() => { setShowPassForm(false); setOldPass(""); setNewPass(""); setConfirmPass(""); setPassMsg(""); }}>Cancelar</Btn>
           </div>
           {passMsg && !passMsg.startsWith("✅") && <div style={{ marginTop: 8, fontSize: 12, color: "#ef4444" }}>{passMsg}</div>}
@@ -1072,14 +1135,16 @@ const ClientSettings = ({ user, setUser, onChangePlan }) => {
 
 // ══════ AGENCY PAGES ══════
 const AgencyDash = ({ setPage, brands }) => { const t = useT(); return <Section title="Dashboard Agencia" right={<Badge color="#8b5cf6">Admin</Badge>}><div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 24 }}>{[{ l: "Contenido", v: "247", c: "#37c2eb" }, { l: "Marcas", v: String(brands.length), c: "#06b6d4" }, { l: "Clientes", v: "5", c: "#8b5cf6" }, { l: "Revenue", v: "$216", c: "#f59e0b" }].map((s, i) => <Card key={i}><div style={{ fontSize: 12, color: t.txM, marginBottom: 8 }}>{s.l}</div><div style={{ fontSize: 28, fontWeight: 800, color: s.c }}>{s.v}</div></Card>)}</div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{brands.map(b => <Card key={b.id} onClick={() => setPage("factory")} style={{ display: "flex", alignItems: "center", gap: 12 }}><div style={{ width: 40, height: 40, borderRadius: 10, background: b.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{b.emoji}</div><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{b.name}</div><div style={{ fontSize: 11, color: t.txM }}>{b.industry}</div></div><Badge>Activa</Badge></Card>)}</div></Section>; };
-const AgencyClients = () => { const t = useT(); return <Section title="Clientes" right={<Btn primary><Ic name="plus" size={14}/> Nuevo</Btn>}><Card style={{ padding: 0 }}><div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", padding: "12px 20px", background: t.bgI, fontSize: 11, fontWeight: 600, color: t.txM, textTransform: "uppercase" }}><div>Empresa</div><div>Plan</div><div>Revenue</div></div>{[{ n: "Cliente A", p: "Pro", r: "$29" }, { n: "Cliente B", p: "Agency", r: "$79" }, { n: "Cliente C", p: "Starter", r: "$0" }, { n: "Cliente D", p: "Pro", r: "$29" }].map((c, i) => <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", padding: "14px 20px", borderBottom: `1px solid ${t.brd}`, alignItems: "center" }}><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{c.n}</div><Badge color={c.p === "Agency" ? "#8b5cf6" : c.p === "Pro" ? "#37c2eb" : "#888"}>{c.p}</Badge><div style={{ color: t.tx }}>{c.r}/mes</div></div>)}</Card></Section>; };
+const AgencyClients = () => { const t = useT(); const [clients, setClients] = useState([]); const [loading, setLoading] = useState(true);
+  useEffect(() => { supabase.from("profiles").select("*").eq("role", "client").then(({ data }) => { setClients(data || []); setLoading(false); }); }, []);
+  return <Section title="Clientes" right={<Badge>{clients.length} registrados</Badge>}><Card style={{ padding: 0 }}><div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", padding: "12px 20px", background: t.bgI, fontSize: 11, fontWeight: 600, color: t.txM, textTransform: "uppercase" }}><div>Empresa</div><div>Plan</div><div>Registro</div></div>{loading ? <div style={{ padding: 20, textAlign: "center", color: t.txM }}>Cargando...</div> : clients.length === 0 ? <div style={{ padding: 30, textAlign: "center", color: t.txM }}>No hay clientes registrados aún</div> : clients.map((c, i) => <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", padding: "14px 20px", borderBottom: `1px solid ${t.brd}`, alignItems: "center" }}><div><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{c.name || c.email}</div><div style={{ fontSize: 11, color: t.txM }}>{c.email}</div></div><Badge color={c.plan === "agency" ? "#8b5cf6" : c.plan === "pro" ? "#37c2eb" : "#888"}>{c.plan || "free"}</Badge><div style={{ color: t.txS, fontSize: 12 }}>{c.created_at ? new Date(c.created_at).toLocaleDateString() : ""}</div></div>)}</Card></Section>; };
 const AgencyTeam = () => { const t = useT(); return <Section title="Equipo" right={<Btn primary><Ic name="plus" size={14}/> Invitar</Btn>}><div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>{[{ n: "Julian", r: "Admin", c: "#ec4899" }, { n: "María", r: "Editor", c: "#3b82f6" }].map((m, i) => <Card key={i}><div style={{ display: "flex", alignItems: "center", gap: 12 }}><div style={{ width: 44, height: 44, borderRadius: "50%", background: m.c, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 18, color: "#fff" }}>{m.n[0]}</div><div><div style={{ fontSize: 15, fontWeight: 600, color: t.tx }}>{m.n}</div><Badge color={m.r === "Admin" ? "#8b5cf6" : "#37c2eb"}>{m.r}</Badge></div></div></Card>)}</div></Section>; };
 const AgencyPlans = () => { const t = useT(); return <Section title="Planes"><div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>{PLANS.map(p => <Card key={p.id} style={{ textAlign: "center", border: p.pop ? `2px solid ${p.color}` : `1px solid ${t.brd}`, position: "relative" }}>{p.pop && <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: p.color, color: "#fff", padding: "4px 16px", borderRadius: 20, fontSize: 11, fontWeight: 700 }}>Popular</div>}<div style={{ fontSize: 17, fontWeight: 600, color: t.tx, paddingTop: p.pop ? 10 : 0 }}>{p.name}</div><div style={{ fontSize: 40, fontWeight: 800, color: p.color, margin: "8px 0" }}>{p.price}<span style={{ fontSize: 14, color: t.txM }}>/mes</span></div>{p.features.map((f, i) => <div key={i} style={{ fontSize: 13, color: t.tx, padding: "5px 0" }}>✓ {f}</div>)}</Card>)}</div></Section>; };
 const AgencySettings = ({ gemKey, setGemKey }) => { const t = useT(); const [k, setK] = useState(gemKey); const [sv, setSv] = useState(false); return <Section title="Configuración API"><Card style={{ marginBottom: 12 }}><div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontWeight: 600, color: t.tx }}>Claude</span><Badge>Conectada</Badge></div></Card><Card style={{ border: `1px solid ${gemKey ? "rgba(55,194,235,.3)" : "rgba(245,158,11,.3)"}` }}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><span style={{ fontWeight: 600, color: t.tx }}>Gemini Imágenes</span>{gemKey ? <Badge>Conectada</Badge> : <Badge color="#f59e0b">Pendiente</Badge>}</div><div style={{ display: "flex", gap: 10 }}><Input value={k} onChange={e => setK(e.target.value)} type="password" placeholder="AIzaSy..."/><Btn primary onClick={() => { setGemKey(k); try { localStorage.setItem("dg_gemkey", k); } catch {} setSv(true); setTimeout(() => setSv(false), 2000); }}>{sv ? "✅" : "Guardar"}</Btn></div></Card></Section>; };
 
 // ══════ APP ══════
 export default function App() {
-  const [view, setView] = useState("landing"); // landing, auth, app
+  const [view, setView] = useState("loading"); // loading, landing, auth, app
   const [authMode, setAuthMode] = useState("login");
   const [selPlan, setSelPlan] = useState(null);
   const [user, setUser] = useState(null);
@@ -1087,8 +1152,46 @@ export default function App() {
   const [sb, setSb] = useState(true);
   const [dark, setDark] = useState(true);
   const [gemKey, setGemKey] = useState(() => { try { return localStorage.getItem("dg_gemkey") || ""; } catch { return ""; } });
-  const [agBrands, setAgBrands] = useState(AGENCY_BRANDS);
+  const [agBrands, setAgBrands] = useState([]);
   const [clBrands, setClBrands] = useState([]);
+
+  const loadBrands = async (userId, role) => {
+    const { data } = await supabase.from("brands").select("*").eq("user_id", userId);
+    const mapped = (data || []).map(b => ({ ...b, brandVoice: b.brand_voice, imgStyle: b.img_style, logoBase64: b.logo_base64 }));
+    if (role === "agency") {
+      if (mapped.length === 0) {
+        // Seed default brands for admin on first login
+        for (const b of AGENCY_BRANDS) {
+          await supabase.from("brands").insert({ user_id: userId, name: b.name, short: b.short, color: b.color, industry: b.industry, tone: b.tone, audience: b.audience, emoji: b.emoji, brand_voice: b.brandVoice, img_style: b.imgStyle, sector: b.sector, colors: b.colors, products: b.products, description: b.description, differentiator: b.differentiator, website: b.website });
+        }
+        const { data: seeded } = await supabase.from("brands").select("*").eq("user_id", userId);
+        setAgBrands((seeded || []).map(b => ({ ...b, brandVoice: b.brand_voice, imgStyle: b.img_style, logoBase64: b.logo_base64 })));
+      } else {
+        setAgBrands(mapped);
+      }
+    } else {
+      setClBrands(mapped);
+    }
+  };
+
+  // Check session on mount
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
+        const role = profile?.role || "client";
+        setUser({ id: session.user.id, name: profile?.name || session.user.email.split("@")[0], email: session.user.email, company: profile?.company || "", phone: profile?.phone || "", role, plan: profile?.plan || "free" });
+        setView("app");
+        await loadBrands(session.user.id, role);
+      } else {
+        setView("landing");
+      }
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_OUT") { setUser(null); setView("landing"); }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Google Translate - injected into body so it works on ALL views
   useEffect(() => {
@@ -1128,18 +1231,19 @@ export default function App() {
   const brands = isAdmin ? agBrands : clBrands;
   const setBrands = isAdmin ? setAgBrands : setClBrands;
 
-  const onAuth = (u) => { setUser(u); setView("app"); setPage("dashboard"); };
-  const logout = () => { setUser(null); setView("landing"); setPage("dashboard"); setAuthMode("login"); };
+  const onAuth = (u) => { setUser(u); setView("app"); setPage("dashboard"); loadBrands(u.id, u.role); };
+  const logout = async () => { await supabase.auth.signOut(); setUser(null); setView("landing"); setPage("dashboard"); setAuthMode("login"); };
 
   const agNav = [{ id: "dashboard", label: "Dashboard", ic: "grid" }, { id: "factory", label: "Fábrica Creativa", ic: "factory", tag: "AI" }, { id: "branding", label: "Branding Kit", ic: "palette" }, { id: "clients", label: "Clientes", ic: "users" }, { id: "plans", label: "Planes", ic: "card" }, { id: "team", label: "Equipo", ic: "users" }];
   const clNav = [{ id: "dashboard", label: "Mi Dashboard", ic: "grid" }, { id: "factory", label: "Crear Contenido", ic: "factory", tag: "AI" }, { id: "branding", label: "Mis Marcas", ic: "palette" }, { id: "settings", label: "Mi Cuenta", ic: "settings" }];
   const nav = isAdmin ? agNav : clNav;
 
+  if (view === "loading") return <ThemeCtx.Provider value={th}><div style={{ minHeight: "100vh", background: th.bg, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ textAlign: "center" }}><div style={{ width: 48, height: 48, border: "3px solid " + th.brd, borderTop: "3px solid " + th.ac, borderRadius: "50%", animation: "spin .8s linear infinite", margin: "0 auto 16px" }}/><div style={{ color: th.txS, fontSize: 14 }}>Cargando...</div></div></div></ThemeCtx.Provider>;
   if (view === "landing") return <ThemeCtx.Provider value={th}><Landing onLogin={() => { setAuthMode("login"); setView("auth"); }} onRegister={(plan) => { setSelPlan(plan || null); setAuthMode("register"); setView("auth"); }} dark={dark} setDark={setDark}/></ThemeCtx.Provider>;
   if (view === "auth") return <ThemeCtx.Provider value={th}><Auth mode={authMode} setMode={setAuthMode} onAuth={onAuth} dark={dark} setDark={setDark} selPlan={selPlan}/></ThemeCtx.Provider>;
 
-  const agPages = { dashboard: <AgencyDash setPage={setPage} brands={brands}/>, factory: <Factory brands={brands} gemKey={gemKey} isAdmin={true}/>, branding: <BrandKit brands={brands} setBrands={setBrands}/>, clients: <AgencyClients/>, plans: <AgencyPlans/>, team: <AgencyTeam/> };
-  const clPages = { dashboard: (() => { const t = th; return <Section title="Mi Dashboard" right={<Badge color="#37c2eb">Cliente</Badge>}><div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 24 }}>{[{ l: "Marcas", v: String(brands.length), c: "#06b6d4" }, { l: "Contenido", v: brands.length ? "34" : "0", c: "#37c2eb" }, { l: "Posts/mes", v: brands.length ? "12" : "0", c: "#8b5cf6" }].map((s, i) => <Card key={i}><div style={{ fontSize: 12, color: t.txM, marginBottom: 8 }}>{s.l}</div><div style={{ fontSize: 28, fontWeight: 800, color: s.c }}>{s.v}</div></Card>)}</div>{brands.length ? <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{brands.map(b => <Card key={b.id} onClick={() => setPage("factory")} style={{ display: "flex", alignItems: "center", gap: 12 }}><div style={{ width: 40, height: 40, borderRadius: 10, background: b.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{b.emoji}</div><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{b.name}</div><div style={{ fontSize: 11, color: t.txM }}>{b.industry}</div></div><Badge>Activa</Badge></Card>)}<Card onClick={() => setPage("branding")} style={{ display: "flex", alignItems: "center", justifyContent: "center", border: `2px dashed ${t.brd}`, minHeight: 70 }}><div style={{ textAlign: "center", color: t.txM }}><div style={{ fontSize: 24 }}>+</div><div style={{ fontSize: 12 }}>Nueva marca</div></div></Card></div> : <Card style={{ textAlign: "center", padding: 48 }}><div style={{ fontSize: 48, marginBottom: 12 }}>🚀</div><div style={{ fontSize: 18, fontWeight: 700, color: t.tx, marginBottom: 8 }}>¡Bienvenido!</div><div style={{ fontSize: 14, color: t.txM, marginBottom: 20 }}>Crea tu primera marca para empezar.</div><Btn primary onClick={() => setPage("branding")} style={{ margin: "0 auto" }}><Ic name="plus" size={14}/> Crear marca</Btn></Card>}</Section>; })(), factory: <Factory brands={brands} gemKey={gemKey} isAdmin={false}/>, branding: <BrandKit brands={brands} setBrands={setBrands}/>, settings: <ClientSettings user={user} setUser={setUser}/> };
+  const agPages = { dashboard: <AgencyDash setPage={setPage} brands={brands}/>, factory: <Factory brands={brands} gemKey={gemKey} isAdmin={true} user={user}/>, branding: <BrandKit brands={brands} setBrands={setBrands} user={user}/>, clients: <AgencyClients/>, plans: <AgencyPlans/>, team: <AgencyTeam/> };
+  const clPages = { dashboard: (() => { const t = th; return <Section title="Mi Dashboard" right={<Badge color="#37c2eb">Cliente</Badge>}><div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 24 }}>{[{ l: "Marcas", v: String(brands.length), c: "#06b6d4" }, { l: "Contenido", v: brands.length ? "34" : "0", c: "#37c2eb" }, { l: "Posts/mes", v: brands.length ? "12" : "0", c: "#8b5cf6" }].map((s, i) => <Card key={i}><div style={{ fontSize: 12, color: t.txM, marginBottom: 8 }}>{s.l}</div><div style={{ fontSize: 28, fontWeight: 800, color: s.c }}>{s.v}</div></Card>)}</div>{brands.length ? <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{brands.map(b => <Card key={b.id} onClick={() => setPage("factory")} style={{ display: "flex", alignItems: "center", gap: 12 }}><div style={{ width: 40, height: 40, borderRadius: 10, background: b.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{b.emoji}</div><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{b.name}</div><div style={{ fontSize: 11, color: t.txM }}>{b.industry}</div></div><Badge>Activa</Badge></Card>)}<Card onClick={() => setPage("branding")} style={{ display: "flex", alignItems: "center", justifyContent: "center", border: `2px dashed ${t.brd}`, minHeight: 70 }}><div style={{ textAlign: "center", color: t.txM }}><div style={{ fontSize: 24 }}>+</div><div style={{ fontSize: 12 }}>Nueva marca</div></div></Card></div> : <Card style={{ textAlign: "center", padding: 48 }}><div style={{ fontSize: 48, marginBottom: 12 }}>🚀</div><div style={{ fontSize: 18, fontWeight: 700, color: t.tx, marginBottom: 8 }}>¡Bienvenido!</div><div style={{ fontSize: 14, color: t.txM, marginBottom: 20 }}>Crea tu primera marca para empezar.</div><Btn primary onClick={() => setPage("branding")} style={{ margin: "0 auto" }}><Ic name="plus" size={14}/> Crear marca</Btn></Card>}</Section>; })(), factory: <Factory brands={brands} gemKey={gemKey} isAdmin={false} user={user}/>, branding: <BrandKit brands={brands} setBrands={setBrands} user={user}/>, settings: <ClientSettings user={user} setUser={setUser}/> };
   const pages = isAdmin ? agPages : clPages;
 
   return (
