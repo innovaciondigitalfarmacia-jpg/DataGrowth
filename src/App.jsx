@@ -1148,8 +1148,24 @@ export default function App() {
   const [authMode, setAuthMode] = useState("login");
   const [selPlan, setSelPlan] = useState(null);
   const [user, setUser] = useState(null);
-  const [page, setPage] = useState("dashboard");
+  const [page, setPage] = useState(() => {
+    const hash = window.location.hash.replace("#", "");
+    return hash || "dashboard";
+  });
   const [sb, setSb] = useState(true);
+
+  // Browser back/forward buttons support
+  useEffect(() => {
+    window.history.pushState({ page }, "", `#${page}`);
+  }, [page]);
+
+  useEffect(() => {
+    const handlePop = (e) => {
+      if (e.state?.page) setPage(e.state.page);
+    };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, []);
   const [dark, setDark] = useState(true);
   const [gemKey, setGemKey] = useState(() => { try { return localStorage.getItem("dg_gemkey") || ""; } catch { return ""; } });
   const [agBrands, setAgBrands] = useState([]);
