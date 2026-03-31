@@ -280,25 +280,17 @@ const ResetPassword = ({ t, onDone }) => {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const hash = window.location.hash;
-    const params = new URLSearchParams(hash.replace("#", ""));
-    const accessToken = params.get("access_token");
-    const type = params.get("type");
-    if (accessToken && type === "recovery") {
-      // Establecer sesión directamente con el access token
-      supabase.auth.getUser(accessToken).then(({ data, error }) => {
-        if (error || !data?.user) {
-          setErr("Link inválido o expirado. Solicita uno nuevo.");
-        } else {
-          // Forzar la sesión con el token
-          supabase.auth.setSession({ access_token: accessToken, refresh_token: accessToken })
-            .then(() => setReady(true))
-            .catch(() => setReady(true)); // intentar de todos modos
-        }
-      });
-    } else {
-      setErr("Link inválido. Solicita un nuevo correo de recuperación.");
-    }
+    // Supabase ya maneja el token automáticamente al detectar el hash
+    // Solo verificamos que haya sesión activa
+    const timer = setTimeout(async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setReady(true);
+      } else {
+        setErr("Link inválido o expirado. Solicita uno nuevo.");
+      }
+    }, 800); // Dar tiempo a Supabase para procesar el token del hash
+    return () => clearTimeout(timer);
   }, []);
 
   const save = async () => {
