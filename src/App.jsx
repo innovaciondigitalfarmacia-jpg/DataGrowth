@@ -1111,6 +1111,114 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
 };
 
 // ══════ CLIENT SETTINGS ══════
+const ClientTeam = ({ user }) => {
+  const t = useT();
+  const MAX_SEATS = 5;
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteName, setInviteName] = useState("");
+  const [invitePass, setInvitePass] = useState("");
+  const [inviteRole, setInviteRole] = useState("Editor");
+  const [inviting, setInviting] = useState(false);
+  const [err, setErr] = useState("");
+  const [ok, setOk] = useState("");
+
+  const load = async () => {
+    setLoading(true);
+    const { data } = await supabase.from("team_members").select("*").eq("invited_by", user?.id).order("created_at", { ascending: true });
+    setMembers(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const invite = async () => {
+    if (!inviteEmail || !invitePass || !inviteName) return setErr("Completa todos los campos");
+    if (invitePass.length < 8) return setErr("La contraseña debe tener al menos 8 caracteres");
+    if (members.length >= MAX_SEATS - 1) return setErr(`Tu plan Agency incluye máximo ${MAX_SEATS} usuarios (incluyéndote a ti)`);
+    setInviting(true); setErr(""); setOk("");
+    const res = await fetch("https://wmonacfzxjpndbhwsdsf.supabase.co/auth/v1/admin/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "apikey": "sb_publishable_TT6jl9XE1oQmHRPeuT68wg_KMy2106J", "Authorization": "Bearer sb_publishable_TT6jl9XE1oQmHRPeuT68wg_KMy2106J" },
+      body: JSON.stringify({ email: inviteEmail, password: invitePass, email_confirm: true, user_metadata: { name: inviteName } })
+    });
+    const userData = await res.json();
+    if (userData.id) {
+      await supabase.from("profiles").upsert({ id: userData.id, name: inviteName, email: inviteEmail, role: "team_" + inviteRole.toLowerCase(), plan: "free" });
+    }
+    await supabase.from("team_members").insert({ email: inviteEmail, name: inviteName, role: inviteRole, invited_by: user?.id });
+    setInviting(false);
+    setOk(`✅ Usuario creado: ${inviteEmail} / ${invitePass}`);
+    setInviteEmail(""); setInviteName(""); setInvitePass("");
+    load();
+  };
+
+  const remove = async (id) => { await supabase.from("team_members").delete().eq("id", id); load(); };
+  const colors = ["#3b82f6","#8b5cf6","#f59e0b","#10b981","#ef4444"];
+
+  return (
+    <Section title="Mi Equipo" right={
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ fontSize: 12, color: t.txM }}>{members.length + 1}/{MAX_SEATS} seats</span>
+        {members.length < MAX_SEATS - 1 && <Btn primary onClick={() => { setShowInvite(!showInvite); setErr(""); setOk(""); }}><Ic name="plus" size={14}/> Agregar</Btn>}
+      </div>
+    }>
+      {showInvite && (
+        <Card style={{ marginBottom: 20, border: `1px solid ${t.ac}40` }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: t.tx, marginBottom: 14 }}>Agregar miembro del equipo</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <div><Label req>Nombre</Label><Input value={inviteName} onChange={e => setInviteName(e.target.value)} placeholder="Nombre completo"/></div>
+            <div><Label req>Email</Label><Input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} type="email" placeholder="correo@empresa.com"/></div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 12, marginBottom: 14 }}>
+            <div><Label req>Contraseña</Label><Input value={invitePass} onChange={e => setInvitePass(e.target.value)} type="text" placeholder="Mínimo 8 caracteres"/></div>
+            <div><Label>Rol</Label>
+              <select value={inviteRole} onChange={e => setInviteRole(e.target.value)} style={{ padding: "12px 16px", background: t.bgI, border: `1px solid ${t.brd}`, borderRadius: 10, color: t.tx, fontSize: 14, cursor: "pointer", width: "100%" }}>
+                <option>Editor</option>
+                <option>Viewer</option>
+              </select>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <Btn primary onClick={invite}>{inviting ? "Creando..." : "Crear usuario"}</Btn>
+            <Btn secondary onClick={() => setShowInvite(false)}>Cancelar</Btn>
+          </div>
+          {err && <div style={{ marginTop: 10, fontSize: 13, color: "#ef4444" }}>{err}</div>}
+          {ok && <div style={{ marginTop: 10, fontSize: 13, color: "#10b981", fontWeight: 600 }}>{ok}</div>}
+        </Card>
+      )}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
+        <Card>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#37c2eb", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 18, color: "#fff" }}>{(user?.name || "U")[0].toUpperCase()}</div>
+            <div><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{user?.name}</div><Badge color="#37c2eb">Propietario</Badge></div>
+          </div>
+        </Card>
+        {loading ? null : members.map((m, i) => (
+          <Card key={m.id}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 44, height: 44, borderRadius: "50%", background: colors[i % colors.length], display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 18, color: "#fff" }}>{(m.name || m.email)[0].toUpperCase()}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: t.tx }}>{m.name || m.email}</div>
+                <div style={{ fontSize: 11, color: t.txM, marginBottom: 4 }}>{m.email}</div>
+                <Badge color={m.role === "Editor" ? "#37c2eb" : "#888"}>{m.role}</Badge>
+              </div>
+              <div onClick={() => remove(m.id)} style={{ cursor: "pointer", color: t.txM }}><Ic name="x" size={14}/></div>
+            </div>
+          </Card>
+        ))}
+        {!loading && members.length < MAX_SEATS - 1 && Array.from({ length: MAX_SEATS - 1 - members.length }).map((_, i) => (
+          <Card key={"empty-" + i} style={{ border: `2px dashed ${t.brd}`, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 80, cursor: "pointer" }} onClick={() => setShowInvite(true)}>
+            <div style={{ textAlign: "center", color: t.txM }}><div style={{ fontSize: 24 }}>+</div><div style={{ fontSize: 12 }}>Seat disponible</div></div>
+          </Card>
+        ))}
+      </div>
+    </Section>
+  );
+};
+
 const ClientSettings = ({ user, setUser, onChangePlan }) => {
   const t = useT();
   const Toggle = ({ v, set }) => <div onClick={() => set(!v)} style={{ width: 40, height: 22, borderRadius: 11, background: v ? t.ac : t.brd, position: "relative", cursor: "pointer", flexShrink: 0 }}><div style={{ width: 18, height: 18, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: v ? 20 : 2, transition: "left .3s" }}/></div>;
@@ -1564,7 +1672,9 @@ export default function App() {
   const agNav = [{ id: "dashboard", label: "Dashboard", ic: "grid" }, { id: "factory", label: "Fábrica Creativa", ic: "factory", tag: "AI" }, { id: "branding", label: "Branding Kit", ic: "palette" }, { id: "clients", label: "Clientes", ic: "users" }, { id: "plans", label: "Planes", ic: "card" }, { id: "team", label: "Equipo", ic: "users" }];
   const editorNav = [{ id: "dashboard", label: "Dashboard", ic: "grid" }, { id: "factory", label: "Fábrica Creativa", ic: "factory", tag: "AI" }, { id: "branding", label: "Branding Kit", ic: "palette" }];
   const viewerNav = [{ id: "dashboard", label: "Dashboard", ic: "grid" }, { id: "branding", label: "Branding Kit", ic: "palette" }];
-  const clNav = [{ id: "dashboard", label: "Mi Dashboard", ic: "grid" }, { id: "factory", label: "Crear Contenido", ic: "factory", tag: "AI" }, { id: "branding", label: "Mis Marcas", ic: "palette" }, { id: "settings", label: "Mi Cuenta", ic: "settings" }];
+  const clNav = user?.plan === "agency"
+    ? [{ id: "dashboard", label: "Mi Dashboard", ic: "grid" }, { id: "factory", label: "Crear Contenido", ic: "factory", tag: "AI" }, { id: "branding", label: "Mis Marcas", ic: "palette" }, { id: "team", label: "Mi Equipo", ic: "users" }, { id: "settings", label: "Mi Cuenta", ic: "settings" }]
+    : [{ id: "dashboard", label: "Mi Dashboard", ic: "grid" }, { id: "factory", label: "Crear Contenido", ic: "factory", tag: "AI" }, { id: "branding", label: "Mis Marcas", ic: "palette" }, { id: "settings", label: "Mi Cuenta", ic: "settings" }];
   const nav = isAdmin || isTeamAdmin ? agNav : isTeamEditor ? editorNav : isTeamViewer ? viewerNav : clNav;
   const goPage = (p) => navigate("app", { page: p });
 
@@ -1574,7 +1684,7 @@ export default function App() {
 
   const agPages = { dashboard: <AgencyDash setPage={setPage} brands={brands}/>, factory: <Factory brands={brands} gemKey={gemKey} isAdmin={true} user={user}/>, branding: <BrandKit brands={brands} setBrands={setBrands} user={user}/>, clients: <AgencyClients/>, plans: <AgencyPlans user={user}/>, team: <AgencyTeam user={user}/> };
   const teamPages = { dashboard: <AgencyDash setPage={setPage} brands={brands}/>, factory: <Factory brands={brands} gemKey={gemKey} isAdmin={true} user={user}/>, branding: <BrandKit brands={brands} setBrands={setBrands} user={user} readOnly={isTeamViewer}/> };
-  const clPages = { dashboard: (() => { const t = th; return <Section title="Mi Dashboard" right={<Badge color="#37c2eb">Cliente</Badge>}><div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 24 }}>{[{ l: "Marcas", v: String(brands.length), c: "#06b6d4" }, { l: "Contenido", v: brands.length ? "34" : "0", c: "#37c2eb" }, { l: "Posts/mes", v: brands.length ? "12" : "0", c: "#8b5cf6" }].map((s, i) => <Card key={i}><div style={{ fontSize: 12, color: t.txM, marginBottom: 8 }}>{s.l}</div><div style={{ fontSize: 28, fontWeight: 800, color: s.c }}>{s.v}</div></Card>)}</div>{brands.length ? <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{brands.map(b => <Card key={b.id} onClick={() => setPage("factory")} style={{ display: "flex", alignItems: "center", gap: 12 }}><div style={{ width: 40, height: 40, borderRadius: 10, background: b.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{b.emoji}</div><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{b.name}</div><div style={{ fontSize: 11, color: t.txM }}>{b.industry}</div></div><Badge>Activa</Badge></Card>)}<Card onClick={() => setPage("branding")} style={{ display: "flex", alignItems: "center", justifyContent: "center", border: `2px dashed ${t.brd}`, minHeight: 70 }}><div style={{ textAlign: "center", color: t.txM }}><div style={{ fontSize: 24 }}>+</div><div style={{ fontSize: 12 }}>Nueva marca</div></div></Card></div> : <Card style={{ textAlign: "center", padding: 48 }}><div style={{ fontSize: 48, marginBottom: 12 }}>🚀</div><div style={{ fontSize: 18, fontWeight: 700, color: t.tx, marginBottom: 8 }}>¡Bienvenido!</div><div style={{ fontSize: 14, color: t.txM, marginBottom: 20 }}>Crea tu primera marca para empezar.</div><Btn primary onClick={() => setPage("branding")} style={{ margin: "0 auto" }}><Ic name="plus" size={14}/> Crear marca</Btn></Card>}</Section>; })(), factory: <Factory brands={brands} gemKey={gemKey} isAdmin={false} user={user}/>, branding: <BrandKit brands={brands} setBrands={setBrands} user={user}/>, settings: <ClientSettings user={user} setUser={setUser}/> };
+  const clPages = { dashboard: (() => { const t = th; return <Section title="Mi Dashboard" right={<Badge color="#37c2eb">Cliente</Badge>}><div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 24 }}>{[{ l: "Marcas", v: String(brands.length), c: "#06b6d4" }, { l: "Contenido", v: brands.length ? "34" : "0", c: "#37c2eb" }, { l: "Posts/mes", v: brands.length ? "12" : "0", c: "#8b5cf6" }].map((s, i) => <Card key={i}><div style={{ fontSize: 12, color: t.txM, marginBottom: 8 }}>{s.l}</div><div style={{ fontSize: 28, fontWeight: 800, color: s.c }}>{s.v}</div></Card>)}</div>{brands.length ? <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{brands.map(b => <Card key={b.id} onClick={() => setPage("factory")} style={{ display: "flex", alignItems: "center", gap: 12 }}><div style={{ width: 40, height: 40, borderRadius: 10, background: b.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{b.emoji}</div><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{b.name}</div><div style={{ fontSize: 11, color: t.txM }}>{b.industry}</div></div><Badge>Activa</Badge></Card>)}<Card onClick={() => setPage("branding")} style={{ display: "flex", alignItems: "center", justifyContent: "center", border: `2px dashed ${t.brd}`, minHeight: 70 }}><div style={{ textAlign: "center", color: t.txM }}><div style={{ fontSize: 24 }}>+</div><div style={{ fontSize: 12 }}>Nueva marca</div></div></Card></div> : <Card style={{ textAlign: "center", padding: 48 }}><div style={{ fontSize: 48, marginBottom: 12 }}>🚀</div><div style={{ fontSize: 18, fontWeight: 700, color: t.tx, marginBottom: 8 }}>¡Bienvenido!</div><div style={{ fontSize: 14, color: t.txM, marginBottom: 20 }}>Crea tu primera marca para empezar.</div><Btn primary onClick={() => setPage("branding")} style={{ margin: "0 auto" }}><Ic name="plus" size={14}/> Crear marca</Btn></Card>}</Section>; })(), factory: <Factory brands={brands} gemKey={gemKey} isAdmin={false} user={user}/>, branding: <BrandKit brands={brands} setBrands={setBrands} user={user}/>, team: <ClientTeam user={user}/>, settings: <ClientSettings user={user} setUser={setUser}/> };
   const pages = (isAdmin || isTeamAdmin) ? agPages : isTeam ? teamPages : clPages;
 
   return (
