@@ -1203,6 +1203,8 @@ const AgencyTeam = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteName, setInviteName] = useState("");
+  const [invitePass, setInvitePass] = useState("");
   const [inviteRole, setInviteRole] = useState("Editor");
   const [inviting, setInviting] = useState(false);
   const [err, setErr] = useState("");
@@ -1218,18 +1220,46 @@ const AgencyTeam = ({ user }) => {
   useEffect(() => { load(); }, []);
 
   const invite = async () => {
-    if (!inviteEmail) return;
+    if (!inviteEmail || !invitePass || !inviteName) return setErr("Completa todos los campos");
+    if (invitePass.length < 8) return setErr("La contraseña debe tener al menos 8 caracteres");
     setInviting(true); setErr(""); setOk("");
-    const { error } = await supabase.from("team_members").insert({ email: inviteEmail, role: inviteRole, invited_by: user?.id });
+
+    // Crear usuario en Supabase Auth usando la API admin
+    const res = await fetch("https://wmonacfzxjpndbhwsdsf.supabase.co/auth/v1/admin/users", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": "sb_publishable_TT6jl9XE1oQmHRPeuT68wg_KMy2106J",
+        "Authorization": "Bearer sb_publishable_TT6jl9XE1oQmHRPeuT68wg_KMy2106J"
+      },
+      body: JSON.stringify({ email: inviteEmail, password: invitePass, email_confirm: true, user_metadata: { name: inviteName } })
+    });
+    const userData = await res.json();
+
+    if (userData.error || !userData.id) {
+      // Si el usuario ya existe, igual guardamos en team_members
+      if (!userData.error?.includes("already")) {
+        setInviting(false);
+        setErr(userData.error || userData.msg || "Error al crear usuario");
+        return;
+      }
+    }
+
+    // Guardar en profiles con el rol correcto
+    if (userData.id) {
+      await supabase.from("profiles").upsert({ id: userData.id, name: inviteName, email: inviteEmail, role: "team_" + inviteRole.toLowerCase(), plan: "free" });
+    }
+
+    // Guardar en team_members
+    await supabase.from("team_members").insert({ email: inviteEmail, name: inviteName, role: inviteRole, invited_by: user?.id });
+
     setInviting(false);
-    if (error) { setErr("Error al invitar: " + error.message); return; }
-    setOk("¡Invitación enviada a " + inviteEmail + "!");
-    setInviteEmail("");
+    setOk(`✅ Usuario creado: ${inviteEmail} / ${invitePass}`);
+    setInviteEmail(""); setInviteName(""); setInvitePass("");
     load();
-    setTimeout(() => { setShowInvite(false); setOk(""); }, 2000);
   };
 
-  const remove = async (id) => {
+  const remove = async (id, email) => {
     await supabase.from("team_members").delete().eq("id", id);
     load();
   };
@@ -1237,25 +1267,36 @@ const AgencyTeam = ({ user }) => {
   const colors = ["#ec4899","#3b82f6","#8b5cf6","#f59e0b","#10b981","#ef4444","#06b6d4"];
 
   return (
-    <Section title="Equipo" right={<Btn primary onClick={() => { setShowInvite(true); setErr(""); setOk(""); }}><Ic name="plus" size={14}/> Invitar</Btn>}>
+    <Section title="Equipo" right={<Btn primary onClick={() => { setShowInvite(!showInvite); setErr(""); setOk(""); }}><Ic name="plus" size={14}/> Invitar</Btn>}>
       {showInvite && (
         <Card style={{ marginBottom: 20, border: `1px solid ${t.ac}40` }}>
-          <div style={{ fontSize: 16, fontWeight: 600, color: t.tx, marginBottom: 16 }}>Invitar miembro</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 12, marginBottom: 12 }}>
-            <Input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} type="email" placeholder="correo@empresa.com" onKeyDown={e => e.key === "Enter" && invite()}/>
-            <select value={inviteRole} onChange={e => setInviteRole(e.target.value)}
-              style={{ padding: "12px 16px", background: t.bgI, border: `1px solid ${t.brd}`, borderRadius: 10, color: t.tx, fontSize: 14, cursor: "pointer" }}>
-              <option>Editor</option>
-              <option>Viewer</option>
-              <option>Admin</option>
-            </select>
+          <div style={{ fontSize: 16, fontWeight: 600, color: t.tx, marginBottom: 16 }}>Crear usuario de equipo</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <div><Label req>Nombre</Label><Input value={inviteName} onChange={e => setInviteName(e.target.value)} placeholder="Nombre completo"/></div>
+            <div><Label req>Email</Label><Input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} type="email" placeholder="correo@empresa.com"/></div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 12, marginBottom: 16 }}>
+            <div><Label req>Contraseña</Label><Input value={invitePass} onChange={e => setInvitePass(e.target.value)} type="text" placeholder="Mínimo 8 caracteres"/></div>
+            <div><Label>Rol</Label>
+              <select value={inviteRole} onChange={e => setInviteRole(e.target.value)}
+                style={{ padding: "12px 16px", background: t.bgI, border: `1px solid ${t.brd}`, borderRadius: 10, color: t.tx, fontSize: 14, cursor: "pointer", width: "100%" }}>
+                <option>Editor</option>
+                <option>Viewer</option>
+                <option>Admin</option>
+              </select>
+            </div>
+          </div>
+          <div style={{ padding: "10px 14px", background: t.bgI, borderRadius: 10, fontSize: 12, color: t.txM, marginBottom: 14 }}>
+            <strong style={{ color: t.tx }}>Editor:</strong> genera contenido y edita marcas &nbsp;|&nbsp;
+            <strong style={{ color: t.tx }}>Viewer:</strong> solo ve marcas &nbsp;|&nbsp;
+            <strong style={{ color: t.tx }}>Admin:</strong> acceso total
           </div>
           <div style={{ display: "flex", gap: 10 }}>
-            <Btn primary onClick={invite}>{inviting ? "Invitando..." : "Enviar invitación"}</Btn>
-            <Btn secondary onClick={() => setShowInvite(false)}>Cancelar</Btn>
+            <Btn primary onClick={invite}>{inviting ? "Creando usuario..." : "Crear usuario"}</Btn>
+            <Btn secondary onClick={() => { setShowInvite(false); setErr(""); setOk(""); }}>Cancelar</Btn>
           </div>
           {err && <div style={{ marginTop: 10, fontSize: 13, color: "#ef4444" }}>{err}</div>}
-          {ok && <div style={{ marginTop: 10, fontSize: 13, color: "#10b981" }}>{ok}</div>}
+          {ok && <div style={{ marginTop: 10, fontSize: 13, color: "#10b981", fontWeight: 600 }}>{ok}</div>}
         </Card>
       )}
       {loading ? <div style={{ color: t.txM, padding: 20 }}>Cargando...</div> :
@@ -1263,11 +1304,10 @@ const AgencyTeam = ({ user }) => {
         <Card style={{ textAlign: "center", padding: 48 }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>👥</div>
           <div style={{ fontSize: 16, fontWeight: 600, color: t.tx, marginBottom: 8 }}>Sin miembros aún</div>
-          <div style={{ fontSize: 14, color: t.txM }}>Invita a tu equipo para colaborar.</div>
+          <div style={{ fontSize: 14, color: t.txM }}>Crea usuarios para tu equipo con el botón Invitar.</div>
         </Card>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
-          {/* El admin siempre aparece primero */}
           <Card>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#8b5cf6", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 18, color: "#fff" }}>{(user?.name || "A")[0].toUpperCase()}</div>
@@ -1280,12 +1320,13 @@ const AgencyTeam = ({ user }) => {
           {members.map((m, i) => (
             <Card key={m.id}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 44, height: 44, borderRadius: "50%", background: colors[i % colors.length], display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 18, color: "#fff" }}>{m.email[0].toUpperCase()}</div>
+                <div style={{ width: 44, height: 44, borderRadius: "50%", background: colors[i % colors.length], display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 18, color: "#fff" }}>{(m.name || m.email)[0].toUpperCase()}</div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: t.tx }}>{m.email}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{m.name || m.email}</div>
+                  <div style={{ fontSize: 11, color: t.txM, marginBottom: 4 }}>{m.email}</div>
                   <Badge color={m.role === "Admin" ? "#8b5cf6" : m.role === "Editor" ? "#37c2eb" : "#888"}>{m.role}</Badge>
                 </div>
-                <div onClick={() => remove(m.id)} style={{ cursor: "pointer", color: t.txM, padding: 4 }} title="Eliminar"><Ic name="x" size={14}/></div>
+                <div onClick={() => remove(m.id, m.email)} style={{ cursor: "pointer", color: t.txM, padding: 4 }} title="Eliminar"><Ic name="x" size={14}/></div>
               </div>
             </Card>
           ))}
@@ -1412,11 +1453,19 @@ export default function App() {
   const [clBrands, setClBrands] = useState([]);
 
   const loadBrands = async (userId, role) => {
+    if (role && role.startsWith("team_")) {
+      // Miembros del equipo ven las marcas del admin (el dueño de la plataforma)
+      const { data: adminProfile } = await supabase.from("profiles").select("id").eq("role", "agency").single();
+      if (adminProfile?.id) {
+        const { data } = await supabase.from("brands").select("*").eq("user_id", adminProfile.id);
+        setAgBrands((data || []).map(b => ({ ...b, brandVoice: b.brand_voice, imgStyle: b.img_style, logoBase64: b.logo_base64 })));
+      }
+      return;
+    }
     const { data } = await supabase.from("brands").select("*").eq("user_id", userId);
     const mapped = (data || []).map(b => ({ ...b, brandVoice: b.brand_voice, imgStyle: b.img_style, logoBase64: b.logo_base64 }));
     if (role === "agency") {
       if (mapped.length === 0) {
-        // Seed default brands for admin on first login
         for (const b of AGENCY_BRANDS) {
           await supabase.from("brands").insert({ user_id: userId, name: b.name, short: b.short, color: b.color, industry: b.industry, tone: b.tone, audience: b.audience, emoji: b.emoji, brand_voice: b.brandVoice, img_style: b.imgStyle, sector: b.sector, colors: b.colors, products: b.products, description: b.description, differentiator: b.differentiator, website: b.website });
         }
@@ -1502,15 +1551,21 @@ export default function App() {
 
   const th = dark ? TH.dark : TH.light;
   const isAdmin = user?.role === "agency";
-  const brands = isAdmin ? agBrands : clBrands;
-  const setBrands = isAdmin ? setAgBrands : setClBrands;
+  const isTeamEditor = user?.role === "team_editor";
+  const isTeamViewer = user?.role === "team_viewer";
+  const isTeamAdmin = user?.role === "team_admin";
+  const isTeam = isTeamEditor || isTeamViewer || isTeamAdmin;
+  const brands = (isAdmin || isTeam) ? agBrands : clBrands;
+  const setBrands = (isAdmin || isTeam) ? setAgBrands : setClBrands;
 
   const onAuth = (u) => { setUser(u); navigate("app", { page: "dashboard" }); loadBrands(u.id, u.role); };
   const logout = async () => { await supabase.auth.signOut(); setUser(null); navigate("landing", { landingSubView: "home" }); };
 
   const agNav = [{ id: "dashboard", label: "Dashboard", ic: "grid" }, { id: "factory", label: "Fábrica Creativa", ic: "factory", tag: "AI" }, { id: "branding", label: "Branding Kit", ic: "palette" }, { id: "clients", label: "Clientes", ic: "users" }, { id: "plans", label: "Planes", ic: "card" }, { id: "team", label: "Equipo", ic: "users" }];
+  const editorNav = [{ id: "dashboard", label: "Dashboard", ic: "grid" }, { id: "factory", label: "Fábrica Creativa", ic: "factory", tag: "AI" }, { id: "branding", label: "Branding Kit", ic: "palette" }];
+  const viewerNav = [{ id: "dashboard", label: "Dashboard", ic: "grid" }, { id: "branding", label: "Branding Kit", ic: "palette" }];
   const clNav = [{ id: "dashboard", label: "Mi Dashboard", ic: "grid" }, { id: "factory", label: "Crear Contenido", ic: "factory", tag: "AI" }, { id: "branding", label: "Mis Marcas", ic: "palette" }, { id: "settings", label: "Mi Cuenta", ic: "settings" }];
-  const nav = isAdmin ? agNav : clNav;
+  const nav = isAdmin || isTeamAdmin ? agNav : isTeamEditor ? editorNav : isTeamViewer ? viewerNav : clNav;
   const goPage = (p) => navigate("app", { page: p });
 
   if (view === "loading") return <ThemeCtx.Provider value={th}><div style={{ minHeight: "100vh", background: th.bg, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ textAlign: "center" }}><div style={{ width: 48, height: 48, border: "3px solid " + th.brd, borderTop: "3px solid " + th.ac, borderRadius: "50%", animation: "spin .8s linear infinite", margin: "0 auto 16px" }}/><div style={{ color: th.txS, fontSize: 14 }}>Cargando...</div></div></div></ThemeCtx.Provider>;
@@ -1518,8 +1573,9 @@ export default function App() {
   if (view === "auth") return <ThemeCtx.Provider value={th}><Auth mode={authMode} setMode={(m) => navigate("auth", { authMode: m })} onAuth={onAuth} dark={dark} setDark={setDark} selPlan={selPlan}/></ThemeCtx.Provider>;
 
   const agPages = { dashboard: <AgencyDash setPage={setPage} brands={brands}/>, factory: <Factory brands={brands} gemKey={gemKey} isAdmin={true} user={user}/>, branding: <BrandKit brands={brands} setBrands={setBrands} user={user}/>, clients: <AgencyClients/>, plans: <AgencyPlans user={user}/>, team: <AgencyTeam user={user}/> };
+  const teamPages = { dashboard: <AgencyDash setPage={setPage} brands={brands}/>, factory: <Factory brands={brands} gemKey={gemKey} isAdmin={true} user={user}/>, branding: <BrandKit brands={brands} setBrands={setBrands} user={user} readOnly={isTeamViewer}/> };
   const clPages = { dashboard: (() => { const t = th; return <Section title="Mi Dashboard" right={<Badge color="#37c2eb">Cliente</Badge>}><div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 24 }}>{[{ l: "Marcas", v: String(brands.length), c: "#06b6d4" }, { l: "Contenido", v: brands.length ? "34" : "0", c: "#37c2eb" }, { l: "Posts/mes", v: brands.length ? "12" : "0", c: "#8b5cf6" }].map((s, i) => <Card key={i}><div style={{ fontSize: 12, color: t.txM, marginBottom: 8 }}>{s.l}</div><div style={{ fontSize: 28, fontWeight: 800, color: s.c }}>{s.v}</div></Card>)}</div>{brands.length ? <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{brands.map(b => <Card key={b.id} onClick={() => setPage("factory")} style={{ display: "flex", alignItems: "center", gap: 12 }}><div style={{ width: 40, height: 40, borderRadius: 10, background: b.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{b.emoji}</div><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{b.name}</div><div style={{ fontSize: 11, color: t.txM }}>{b.industry}</div></div><Badge>Activa</Badge></Card>)}<Card onClick={() => setPage("branding")} style={{ display: "flex", alignItems: "center", justifyContent: "center", border: `2px dashed ${t.brd}`, minHeight: 70 }}><div style={{ textAlign: "center", color: t.txM }}><div style={{ fontSize: 24 }}>+</div><div style={{ fontSize: 12 }}>Nueva marca</div></div></Card></div> : <Card style={{ textAlign: "center", padding: 48 }}><div style={{ fontSize: 48, marginBottom: 12 }}>🚀</div><div style={{ fontSize: 18, fontWeight: 700, color: t.tx, marginBottom: 8 }}>¡Bienvenido!</div><div style={{ fontSize: 14, color: t.txM, marginBottom: 20 }}>Crea tu primera marca para empezar.</div><Btn primary onClick={() => setPage("branding")} style={{ margin: "0 auto" }}><Ic name="plus" size={14}/> Crear marca</Btn></Card>}</Section>; })(), factory: <Factory brands={brands} gemKey={gemKey} isAdmin={false} user={user}/>, branding: <BrandKit brands={brands} setBrands={setBrands} user={user}/>, settings: <ClientSettings user={user} setUser={setUser}/> };
-  const pages = isAdmin ? agPages : clPages;
+  const pages = (isAdmin || isTeamAdmin) ? agPages : isTeam ? teamPages : clPages;
 
   return (
     <ThemeCtx.Provider value={th}>
@@ -1545,7 +1601,7 @@ export default function App() {
           <div style={{ padding: "12px 24px", borderBottom: `1px solid ${th.brd}`, display: "flex", alignItems: "center", gap: 12, background: th.bgS }}>
             <div onClick={() => setSb(!sb)} style={{ cursor: "pointer", color: th.txS }}><Ic name={sb ? "x" : "menu"} size={20}/></div>
             <div style={{ fontSize: 14, fontWeight: 500, color: th.txS }}>{nav.find(n => n.id === page)?.label}</div>
-            <div style={{ marginLeft: "auto" }}><Badge color={isAdmin ? "#8b5cf6" : "#37c2eb"}>{isAdmin ? "Agencia" : "Cliente"}</Badge></div>
+            <div style={{ marginLeft: "auto" }}><Badge color={(isAdmin || isTeamAdmin) ? "#8b5cf6" : isTeamEditor ? "#37c2eb" : isTeamViewer ? "#888" : "#37c2eb"}>{isAdmin ? "Agencia" : isTeamAdmin ? "Admin" : isTeamEditor ? "Editor" : isTeamViewer ? "Viewer" : "Cliente"}</Badge></div>
           </div>
           <div style={{ flex: 1, overflow: "auto", padding: 28 }}>{pages[page] || pages.dashboard}</div>
         </div>
