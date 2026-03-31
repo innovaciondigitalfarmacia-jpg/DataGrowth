@@ -277,6 +277,25 @@ const ResetPassword = ({ t, onDone }) => {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [ok, setOk] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    // Intercambiar el token de la URL por una sesión válida
+    const hash = window.location.hash;
+    const params = new URLSearchParams(hash.replace("#", ""));
+    const accessToken = params.get("access_token");
+    const refreshToken = params.get("refresh_token") || "";
+    const type = params.get("type");
+    if (accessToken && type === "recovery") {
+      supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+        .then(({ error }) => {
+          if (error) setErr("Link inválido o expirado. Solicita uno nuevo.");
+          else setReady(true);
+        });
+    } else {
+      setErr("Link inválido. Solicita un nuevo correo de recuperación.");
+    }
+  }, []);
 
   const save = async () => {
     if (!pass || pass.length < 8) return setErr("La contraseña debe tener al menos 8 caracteres");
@@ -286,7 +305,8 @@ const ResetPassword = ({ t, onDone }) => {
     setLoading(false);
     if (error) return setErr(error.message);
     setOk(true);
-    setTimeout(() => onDone(), 2000);
+    await supabase.auth.signOut();
+    setTimeout(() => { window.location.hash = ""; onDone(); }, 2000);
   };
 
   return <>
@@ -296,10 +316,10 @@ const ResetPassword = ({ t, onDone }) => {
       <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
       <div style={{ fontSize: 16, fontWeight: 600, color: t.tx }}>¡Contraseña actualizada!</div>
       <div style={{ fontSize: 13, color: t.txS, marginTop: 6 }}>Redirigiendo al login...</div>
-    </div> : <>
+    </div> : !ready && !err ? <div style={{ textAlign: "center", padding: 20, color: t.txS }}>Verificando link...</div> : <>
       <div style={{ marginBottom: 16 }}><Label req>Nueva contraseña</Label><Input value={pass} onChange={e => setPass(e.target.value)} type="password" placeholder="Mínimo 8 caracteres"/></div>
       <div style={{ marginBottom: 24 }}><Label req>Repetir contraseña</Label><Input value={pass2} onChange={e => setPass2(e.target.value)} type="password" placeholder="Repite la contraseña" onKeyDown={e => e.key === "Enter" && save()}/></div>
-      <button onClick={save} style={{ width: "100%", padding: 16, background: t.gr, color: "#fff", border: "none", borderRadius: 50, fontSize: 16, fontWeight: 600, cursor: "pointer", opacity: (!pass || !pass2) ? .5 : 1 }}>{loading ? "Guardando..." : "Guardar contraseña"}</button>
+      <button onClick={save} disabled={!ready} style={{ width: "100%", padding: 16, background: t.gr, color: "#fff", border: "none", borderRadius: 50, fontSize: 16, fontWeight: 600, cursor: ready ? "pointer" : "not-allowed", opacity: (!pass || !pass2 || !ready) ? .5 : 1 }}>{loading ? "Guardando..." : "Guardar contraseña"}</button>
       {err && <div style={{ marginTop: 12, padding: "10px 14px", background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.3)", borderRadius: 10, fontSize: 13, color: "#ef4444", textAlign: "center" }}>{err}</div>}
     </>}
   </>;
