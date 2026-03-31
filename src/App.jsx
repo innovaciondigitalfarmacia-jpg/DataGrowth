@@ -271,6 +271,40 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
 };
 
 // ══════ AUTH ══════
+const ResetPassword = ({ t, onDone }) => {
+  const [pass, setPass] = useState("");
+  const [pass2, setPass2] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+  const [ok, setOk] = useState(false);
+
+  const save = async () => {
+    if (!pass || pass.length < 8) return setErr("La contraseña debe tener al menos 8 caracteres");
+    if (pass !== pass2) return setErr("Las contraseñas no coinciden");
+    setLoading(true);
+    const { error } = await supabase.auth.updateUser({ password: pass });
+    setLoading(false);
+    if (error) return setErr(error.message);
+    setOk(true);
+    setTimeout(() => onDone(), 2000);
+  };
+
+  return <>
+    <div style={{ fontSize: 22, fontWeight: 700, color: t.tx, marginBottom: 4 }}>Nueva contraseña</div>
+    <p style={{ fontSize: 14, color: t.txS, marginBottom: 24 }}>Escribe tu nueva contraseña.</p>
+    {ok ? <div style={{ textAlign: "center", padding: 20 }}>
+      <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+      <div style={{ fontSize: 16, fontWeight: 600, color: t.tx }}>¡Contraseña actualizada!</div>
+      <div style={{ fontSize: 13, color: t.txS, marginTop: 6 }}>Redirigiendo al login...</div>
+    </div> : <>
+      <div style={{ marginBottom: 16 }}><Label req>Nueva contraseña</Label><Input value={pass} onChange={e => setPass(e.target.value)} type="password" placeholder="Mínimo 8 caracteres"/></div>
+      <div style={{ marginBottom: 24 }}><Label req>Repetir contraseña</Label><Input value={pass2} onChange={e => setPass2(e.target.value)} type="password" placeholder="Repite la contraseña" onKeyDown={e => e.key === "Enter" && save()}/></div>
+      <button onClick={save} style={{ width: "100%", padding: 16, background: t.gr, color: "#fff", border: "none", borderRadius: 50, fontSize: 16, fontWeight: 600, cursor: "pointer", opacity: (!pass || !pass2) ? .5 : 1 }}>{loading ? "Guardando..." : "Guardar contraseña"}</button>
+      {err && <div style={{ marginTop: 12, padding: "10px 14px", background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.3)", borderRadius: 10, fontSize: 13, color: "#ef4444", textAlign: "center" }}>{err}</div>}
+    </>}
+  </>;
+};
+
 const Auth = ({ mode, setMode, onAuth, dark, setDark, selPlan }) => {
   const t = useT();
   const [email, setEmail] = useState("");
@@ -417,6 +451,8 @@ const Auth = ({ mode, setMode, onAuth, dark, setDark, selPlan }) => {
             </div>
           </>}
         </>}
+
+        {mode === "reset-password" && <ResetPassword t={t} onDone={() => setMode("login")} />}
       </div>
     </div>
   );
@@ -1222,6 +1258,11 @@ export default function App() {
       }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setView("auth");
+        setAuthMode("reset-password");
+        return;
+      }
       if (event === "SIGNED_OUT") { setUser(null); setView("landing"); window.history.replaceState({ view: "landing", page: "dashboard", landingSubView: "home", authMode: "login" }, "", "#inicio"); }
     });
     return () => subscription.unsubscribe();
