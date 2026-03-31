@@ -280,17 +280,21 @@ const ResetPassword = ({ t, onDone }) => {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Supabase ya maneja el token automáticamente al detectar el hash
-    // Solo verificamos que haya sesión activa
-    const timer = setTimeout(async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
+    // Escuchar el evento PASSWORD_RECOVERY que Supabase dispara con sesión lista
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" && session) {
         setReady(true);
-      } else {
-        setErr("Link inválido o expirado. Solicita uno nuevo.");
+        setErr("");
       }
-    }, 800); // Dar tiempo a Supabase para procesar el token del hash
-    return () => clearTimeout(timer);
+    });
+    // También verificar si ya hay sesión activa (por si el evento ya pasó)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) setReady(true);
+    });
+    const timeout = setTimeout(() => {
+      if (!ready) setErr("Link inválido o expirado. Solicita uno nuevo.");
+    }, 4000);
+    return () => { subscription.unsubscribe(); clearTimeout(timeout); };
   }, []);
 
   const save = async () => {
@@ -1610,7 +1614,7 @@ export default function App() {
         return;
       }
       // Ignorar SIGNED_IN si estamos en modo reset-password
-      if (event === "SIGNED_IN") return;
+      if (event === "SIGNED_IN" && authMode === "reset-password") return;
       if (event === "SIGNED_OUT") { setUser(null); setView("landing"); window.history.replaceState({ view: "landing", page: "dashboard", landingSubView: "home", authMode: "login" }, "", "#inicio"); }
     });
     return () => subscription.unsubscribe();
