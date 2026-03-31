@@ -1244,6 +1244,15 @@ export default function App() {
 
   // Check session on mount
   useEffect(() => {
+    // Si hay token de recovery en la URL, no hacer login automático
+    const hash = window.location.hash;
+    const isRecovery = hash.includes("type=recovery") || hash.includes("error=access_denied");
+    if (isRecovery) {
+      setView("auth");
+      setAuthMode("reset-password");
+      return;
+    }
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
@@ -1263,6 +1272,8 @@ export default function App() {
         setAuthMode("reset-password");
         return;
       }
+      // Ignorar SIGNED_IN si estamos en modo reset-password
+      if (event === "SIGNED_IN") return;
       if (event === "SIGNED_OUT") { setUser(null); setView("landing"); window.history.replaceState({ view: "landing", page: "dashboard", landingSubView: "home", authMode: "login" }, "", "#inicio"); }
     });
     return () => subscription.unsubscribe();
