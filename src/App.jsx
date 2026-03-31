@@ -1214,13 +1214,15 @@ export default function App() {
         const role = profile?.role || "client";
         setUser({ id: session.user.id, name: profile?.name || session.user.email.split("@")[0], email: session.user.email, company: profile?.company || "", phone: profile?.phone || "", role, plan: profile?.plan || "free" });
         setView("app");
+        window.history.replaceState({ view: "app", page: "dashboard", landingSubView: "home", authMode: "login" }, "", "#dashboard");
         await loadBrands(session.user.id, role);
       } else {
         setView("landing");
+        window.history.replaceState({ view: "landing", page: "dashboard", landingSubView: "home", authMode: "login" }, "", "#inicio");
       }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_OUT") { setUser(null); setView("landing"); }
+      if (event === "SIGNED_OUT") { setUser(null); setView("landing"); window.history.replaceState({ view: "landing", page: "dashboard", landingSubView: "home", authMode: "login" }, "", "#inicio"); }
     });
     return () => subscription.unsubscribe();
   }, []);
