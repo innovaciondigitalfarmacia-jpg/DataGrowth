@@ -1197,8 +1197,172 @@ const AgencyDash = ({ setPage, brands }) => { const t = useT(); return <Section 
 const AgencyClients = () => { const t = useT(); const [clients, setClients] = useState([]); const [loading, setLoading] = useState(true);
   useEffect(() => { supabase.from("profiles").select("*").eq("role", "client").then(({ data }) => { setClients(data || []); setLoading(false); }); }, []);
   return <Section title="Clientes" right={<Badge>{clients.length} registrados</Badge>}><Card style={{ padding: 0 }}><div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", padding: "12px 20px", background: t.bgI, fontSize: 11, fontWeight: 600, color: t.txM, textTransform: "uppercase" }}><div>Empresa</div><div>Plan</div><div>Registro</div></div>{loading ? <div style={{ padding: 20, textAlign: "center", color: t.txM }}>Cargando...</div> : clients.length === 0 ? <div style={{ padding: 30, textAlign: "center", color: t.txM }}>No hay clientes registrados aún</div> : clients.map((c, i) => <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", padding: "14px 20px", borderBottom: `1px solid ${t.brd}`, alignItems: "center" }}><div><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{c.name || c.email}</div><div style={{ fontSize: 11, color: t.txM }}>{c.email}</div></div><Badge color={c.plan === "agency" ? "#8b5cf6" : c.plan === "pro" ? "#37c2eb" : "#888"}>{c.plan || "free"}</Badge><div style={{ color: t.txS, fontSize: 12 }}>{c.created_at ? new Date(c.created_at).toLocaleDateString() : ""}</div></div>)}</Card></Section>; };
-const AgencyTeam = () => { const t = useT(); return <Section title="Equipo" right={<Btn primary><Ic name="plus" size={14}/> Invitar</Btn>}><div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>{[{ n: "Julian", r: "Admin", c: "#ec4899" }, { n: "María", r: "Editor", c: "#3b82f6" }].map((m, i) => <Card key={i}><div style={{ display: "flex", alignItems: "center", gap: 12 }}><div style={{ width: 44, height: 44, borderRadius: "50%", background: m.c, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 18, color: "#fff" }}>{m.n[0]}</div><div><div style={{ fontSize: 15, fontWeight: 600, color: t.tx }}>{m.n}</div><Badge color={m.r === "Admin" ? "#8b5cf6" : "#37c2eb"}>{m.r}</Badge></div></div></Card>)}</div></Section>; };
-const AgencyPlans = () => { const t = useT(); return <Section title="Planes"><div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>{PLANS.map(p => <Card key={p.id} style={{ textAlign: "center", border: p.pop ? `2px solid ${p.color}` : `1px solid ${t.brd}`, position: "relative" }}>{p.pop && <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: p.color, color: "#fff", padding: "4px 16px", borderRadius: 20, fontSize: 11, fontWeight: 700 }}>Popular</div>}<div style={{ fontSize: 17, fontWeight: 600, color: t.tx, paddingTop: p.pop ? 10 : 0 }}>{p.name}</div><div style={{ fontSize: 40, fontWeight: 800, color: p.color, margin: "8px 0" }}>{p.price}<span style={{ fontSize: 14, color: t.txM }}>/mes</span></div>{p.features.map((f, i) => <div key={i} style={{ fontSize: 13, color: t.tx, padding: "5px 0" }}>✓ {f}</div>)}</Card>)}</div></Section>; };
+const AgencyTeam = ({ user }) => {
+  const t = useT();
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("Editor");
+  const [inviting, setInviting] = useState(false);
+  const [err, setErr] = useState("");
+  const [ok, setOk] = useState("");
+
+  const load = async () => {
+    setLoading(true);
+    const { data } = await supabase.from("team_members").select("*").order("created_at", { ascending: true });
+    setMembers(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const invite = async () => {
+    if (!inviteEmail) return;
+    setInviting(true); setErr(""); setOk("");
+    const { error } = await supabase.from("team_members").insert({ email: inviteEmail, role: inviteRole, invited_by: user?.id });
+    setInviting(false);
+    if (error) { setErr("Error al invitar: " + error.message); return; }
+    setOk("¡Invitación enviada a " + inviteEmail + "!");
+    setInviteEmail("");
+    load();
+    setTimeout(() => { setShowInvite(false); setOk(""); }, 2000);
+  };
+
+  const remove = async (id) => {
+    await supabase.from("team_members").delete().eq("id", id);
+    load();
+  };
+
+  const colors = ["#ec4899","#3b82f6","#8b5cf6","#f59e0b","#10b981","#ef4444","#06b6d4"];
+
+  return (
+    <Section title="Equipo" right={<Btn primary onClick={() => { setShowInvite(true); setErr(""); setOk(""); }}><Ic name="plus" size={14}/> Invitar</Btn>}>
+      {showInvite && (
+        <Card style={{ marginBottom: 20, border: `1px solid ${t.ac}40` }}>
+          <div style={{ fontSize: 16, fontWeight: 600, color: t.tx, marginBottom: 16 }}>Invitar miembro</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 12, marginBottom: 12 }}>
+            <Input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} type="email" placeholder="correo@empresa.com" onKeyDown={e => e.key === "Enter" && invite()}/>
+            <select value={inviteRole} onChange={e => setInviteRole(e.target.value)}
+              style={{ padding: "12px 16px", background: t.bgI, border: `1px solid ${t.brd}`, borderRadius: 10, color: t.tx, fontSize: 14, cursor: "pointer" }}>
+              <option>Editor</option>
+              <option>Viewer</option>
+              <option>Admin</option>
+            </select>
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <Btn primary onClick={invite}>{inviting ? "Invitando..." : "Enviar invitación"}</Btn>
+            <Btn secondary onClick={() => setShowInvite(false)}>Cancelar</Btn>
+          </div>
+          {err && <div style={{ marginTop: 10, fontSize: 13, color: "#ef4444" }}>{err}</div>}
+          {ok && <div style={{ marginTop: 10, fontSize: 13, color: "#10b981" }}>{ok}</div>}
+        </Card>
+      )}
+      {loading ? <div style={{ color: t.txM, padding: 20 }}>Cargando...</div> :
+      members.length === 0 ? (
+        <Card style={{ textAlign: "center", padding: 48 }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>👥</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: t.tx, marginBottom: 8 }}>Sin miembros aún</div>
+          <div style={{ fontSize: 14, color: t.txM }}>Invita a tu equipo para colaborar.</div>
+        </Card>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
+          {/* El admin siempre aparece primero */}
+          <Card>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#8b5cf6", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 18, color: "#fff" }}>{(user?.name || "A")[0].toUpperCase()}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: t.tx }}>{user?.name || "Admin"}</div>
+                <Badge color="#8b5cf6">Admin</Badge>
+              </div>
+            </div>
+          </Card>
+          {members.map((m, i) => (
+            <Card key={m.id}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 44, height: 44, borderRadius: "50%", background: colors[i % colors.length], display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 18, color: "#fff" }}>{m.email[0].toUpperCase()}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: t.tx }}>{m.email}</div>
+                  <Badge color={m.role === "Admin" ? "#8b5cf6" : m.role === "Editor" ? "#37c2eb" : "#888"}>{m.role}</Badge>
+                </div>
+                <div onClick={() => remove(m.id)} style={{ cursor: "pointer", color: t.txM, padding: 4 }} title="Eliminar"><Ic name="x" size={14}/></div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </Section>
+  );
+};
+const AgencyPlans = ({ user }) => {
+  const t = useT();
+  const [customAmount, setCustomAmount] = useState(150);
+  const posts = Math.round(customAmount * 2.02);
+  const videos = Math.round(customAmount * 0.14);
+  const isAdmin = user?.role === "agency";
+
+  return (
+    <Section title="Planes">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginBottom: isAdmin ? 0 : 32 }}>
+        {PLANS.map(p => (
+          <Card key={p.id} style={{ textAlign: "center", border: p.pop ? `2px solid ${p.color}` : `1px solid ${t.brd}`, position: "relative" }}>
+            {p.pop && <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: p.color, color: "#fff", padding: "4px 16px", borderRadius: 20, fontSize: 11, fontWeight: 700 }}>Popular</div>}
+            {user?.plan === p.id && <div style={{ position: "absolute", top: 12, right: 12, background: "#10b981", color: "#fff", padding: "2px 10px", borderRadius: 20, fontSize: 10, fontWeight: 700 }}>Tu plan</div>}
+            <div style={{ fontSize: 17, fontWeight: 600, color: t.tx, paddingTop: p.pop ? 10 : 0 }}>{p.name}</div>
+            <div style={{ fontSize: 40, fontWeight: 800, color: p.color, margin: "8px 0" }}>{p.price}<span style={{ fontSize: 14, color: t.txM }}>/mes</span></div>
+            {p.features.map((f, i) => <div key={i} style={{ fontSize: 13, color: t.tx, padding: "5px 0" }}>✓ {f}</div>)}
+            {!isAdmin && user?.plan !== p.id && (
+              <Btn primary style={{ marginTop: 16, width: "100%", background: p.color, boxShadow: "none" }}
+                onClick={() => window.open("https://datagrowthagency.com/#planes", "_blank")}>
+                {`Suscribirse a ${p.name}`}
+              </Btn>
+            )}
+          </Card>
+        ))}
+      </div>
+
+      {!isAdmin && (
+        <Card style={{ background: "linear-gradient(135deg, rgba(55,194,235,0.05), rgba(139,92,246,0.05))", border: `1px solid ${t.ac}30` }}>
+          <div style={{ textAlign: "center", marginBottom: 24 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 8 }}>Plan Personalizado</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: t.tx }}>Tu defines cuanto invertir</div>
+            <div style={{ fontSize: 14, color: t.txS, marginTop: 6 }}>Mueve el slider o escribe el monto. Calculamos automáticamente lo que recibes.</div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
+            <input type="range" min="150" max="500" value={customAmount} onChange={e => setCustomAmount(Number(e.target.value))}
+              style={{ flex: 1, accentColor: t.ac, height: 6, cursor: "pointer" }}/>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, background: t.bgI, border: `1px solid ${t.brd}`, borderRadius: 12, padding: "10px 16px", minWidth: 120 }}>
+              <span style={{ fontSize: 20, fontWeight: 700, color: t.ac }}>$</span>
+              <input type="number" min="150" max="500" value={customAmount}
+                onChange={e => setCustomAmount(Math.max(150, Math.min(500, Number(e.target.value))))}
+                style={{ width: 60, fontSize: 22, fontWeight: 800, color: t.tx, background: "transparent", border: "none", outline: "none", textAlign: "center" }}/>
+              <span style={{ fontSize: 13, color: t.txM }}>/mes</span>
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 24 }}>
+            {[
+              { icon: "🖼️", val: posts, label: "Posts/mes" },
+              { icon: "🎬", val: videos, label: "Videos/mes" },
+              { icon: "🏢", val: "Ilimitadas", label: "Marcas" },
+              { icon: "✨", val: "Todos", label: "Formatos" },
+            ].map((item, i) => (
+              <div key={i} style={{ textAlign: "center", padding: 16, background: t.bgI, borderRadius: 12 }}>
+                <div style={{ fontSize: 28, marginBottom: 4 }}>{item.icon}</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: t.ac }}>{item.val}</div>
+                <div style={{ fontSize: 12, color: t.txS }}>{item.label}</div>
+              </div>
+            ))}
+          </div>
+          <Btn primary style={{ width: "100%", padding: 16, fontSize: 16, borderRadius: 50 }}
+            onClick={() => window.open("https://datagrowthagency.com/#planes", "_blank")}>
+            Empezar con plan de ${customAmount}/mes
+          </Btn>
+          <div style={{ textAlign: "center", marginTop: 12, fontSize: 12, color: t.txM }}>Todos los planes incluyen acceso a la plataforma completa. Sin permanencia. Cancela cuando quieras.</div>
+        </Card>
+      )}
+    </Section>
+  );
+};
 const AgencySettings = ({ gemKey, setGemKey }) => { const t = useT(); const [k, setK] = useState(gemKey); const [sv, setSv] = useState(false); return <Section title="Configuración API"><Card style={{ marginBottom: 12 }}><div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontWeight: 600, color: t.tx }}>Claude</span><Badge>Conectada</Badge></div></Card><Card style={{ border: `1px solid ${gemKey ? "rgba(55,194,235,.3)" : "rgba(245,158,11,.3)"}` }}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><span style={{ fontWeight: 600, color: t.tx }}>Gemini Imágenes</span>{gemKey ? <Badge>Conectada</Badge> : <Badge color="#f59e0b">Pendiente</Badge>}</div><div style={{ display: "flex", gap: 10 }}><Input value={k} onChange={e => setK(e.target.value)} type="password" placeholder="AIzaSy..."/><Btn primary onClick={() => { setGemKey(k); try { localStorage.setItem("dg_gemkey", k); } catch {} setSv(true); setTimeout(() => setSv(false), 2000); }}>{sv ? "✅" : "Guardar"}</Btn></div></Card></Section>; };
 
 // ══════ APP ══════
@@ -1353,7 +1517,7 @@ export default function App() {
   if (view === "landing") return <ThemeCtx.Provider value={th}><Landing onLogin={() => navigate("auth", { authMode: "login" })} onRegister={(plan) => navigate("auth", { authMode: "register", selPlan: plan || null })} showPlans={landingSubView === "plans"} setShowPlans={(v) => { if (v) { navigate("landing", { landingSubView: "plans" }); } else { window.history.back(); } }} dark={dark} setDark={setDark}/></ThemeCtx.Provider>;
   if (view === "auth") return <ThemeCtx.Provider value={th}><Auth mode={authMode} setMode={(m) => navigate("auth", { authMode: m })} onAuth={onAuth} dark={dark} setDark={setDark} selPlan={selPlan}/></ThemeCtx.Provider>;
 
-  const agPages = { dashboard: <AgencyDash setPage={setPage} brands={brands}/>, factory: <Factory brands={brands} gemKey={gemKey} isAdmin={true} user={user}/>, branding: <BrandKit brands={brands} setBrands={setBrands} user={user}/>, clients: <AgencyClients/>, plans: <AgencyPlans/>, team: <AgencyTeam/> };
+  const agPages = { dashboard: <AgencyDash setPage={setPage} brands={brands}/>, factory: <Factory brands={brands} gemKey={gemKey} isAdmin={true} user={user}/>, branding: <BrandKit brands={brands} setBrands={setBrands} user={user}/>, clients: <AgencyClients/>, plans: <AgencyPlans user={user}/>, team: <AgencyTeam user={user}/> };
   const clPages = { dashboard: (() => { const t = th; return <Section title="Mi Dashboard" right={<Badge color="#37c2eb">Cliente</Badge>}><div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 24 }}>{[{ l: "Marcas", v: String(brands.length), c: "#06b6d4" }, { l: "Contenido", v: brands.length ? "34" : "0", c: "#37c2eb" }, { l: "Posts/mes", v: brands.length ? "12" : "0", c: "#8b5cf6" }].map((s, i) => <Card key={i}><div style={{ fontSize: 12, color: t.txM, marginBottom: 8 }}>{s.l}</div><div style={{ fontSize: 28, fontWeight: 800, color: s.c }}>{s.v}</div></Card>)}</div>{brands.length ? <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{brands.map(b => <Card key={b.id} onClick={() => setPage("factory")} style={{ display: "flex", alignItems: "center", gap: 12 }}><div style={{ width: 40, height: 40, borderRadius: 10, background: b.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{b.emoji}</div><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{b.name}</div><div style={{ fontSize: 11, color: t.txM }}>{b.industry}</div></div><Badge>Activa</Badge></Card>)}<Card onClick={() => setPage("branding")} style={{ display: "flex", alignItems: "center", justifyContent: "center", border: `2px dashed ${t.brd}`, minHeight: 70 }}><div style={{ textAlign: "center", color: t.txM }}><div style={{ fontSize: 24 }}>+</div><div style={{ fontSize: 12 }}>Nueva marca</div></div></Card></div> : <Card style={{ textAlign: "center", padding: 48 }}><div style={{ fontSize: 48, marginBottom: 12 }}>🚀</div><div style={{ fontSize: 18, fontWeight: 700, color: t.tx, marginBottom: 8 }}>¡Bienvenido!</div><div style={{ fontSize: 14, color: t.txM, marginBottom: 20 }}>Crea tu primera marca para empezar.</div><Btn primary onClick={() => setPage("branding")} style={{ margin: "0 auto" }}><Ic name="plus" size={14}/> Crear marca</Btn></Card>}</Section>; })(), factory: <Factory brands={brands} gemKey={gemKey} isAdmin={false} user={user}/>, branding: <BrandKit brands={brands} setBrands={setBrands} user={user}/>, settings: <ClientSettings user={user} setUser={setUser}/> };
   const pages = isAdmin ? agPages : clPages;
 
