@@ -92,8 +92,13 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
         </div>
         <h1 style={{ fontSize: "clamp(36px,5.5vw,64px)", fontWeight: 800, lineHeight: 1.08, letterSpacing: -2, marginBottom: 20 }}>Crea contenido en minutos{" "}<span style={{ color: t.ac }}>Escala a miles</span></h1>
         <p style={{ fontSize: 18, color: t.txS, maxWidth: 640, margin: "0 auto 36px", lineHeight: 1.6 }}>DataGrowth es la plataforma de inteligencia artificial que genera posts, imagenes, videos, carruseles, reels, copys y emails profesionales para tu marca o la de tus clientes. Configura tu identidad de marca una sola vez y genera contenido ilimitado con un clic.</p>
-        <div style={{ display: "flex", gap: 14, justifyContent: "center" }}>
+        <div style={{ display: "flex", gap: 14, justifyContent: "center", marginBottom: 60 }}>
           <Btn primary onClick={() => setShowPlans(true)} style={{ fontSize: 18, padding: "18px 48px", borderRadius: 50 }}>Ver planes</Btn>
+        </div>
+        {/* HERO IMAGE */}
+        <div style={{ position: "relative", borderRadius: 20, overflow: "hidden", boxShadow: `0 40px 120px ${t.sh}, 0 0 0 1px ${t.brd}`, maxWidth: 900, margin: "0 auto" }}>
+          <img src="/hero-image.png" alt="DataGrowth plataforma" style={{ width: "100%", display: "block", borderRadius: 20 }}/>
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 60%, " + t.bg + ")", borderRadius: 20, pointerEvents: "none" }}/>
         </div>
       </div>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px" }}>
