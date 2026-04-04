@@ -1317,6 +1317,7 @@ const AgencyClients = () => {
   const [newPass, setNewPass] = useState("");
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     supabase.from("profiles").select("*").eq("role", "client").then(({ data }) => {
@@ -1325,31 +1326,53 @@ const AgencyClients = () => {
     });
   }, []);
 
+  const filtered = clients.filter(c =>
+    (c.name || "").toLowerCase().includes(search.toLowerCase()) ||
+    (c.email || "").toLowerCase().includes(search.toLowerCase())
+  );
+
   const changePassword = async () => {
     if (!newPass || newPass.length < 8) return setMsg("Mínimo 8 caracteres");
     setSaving(true); setMsg("");
-    const res = await fetch(`https://wmonacfzxjpndbhwsdsf.supabase.co/auth/v1/admin/users/${selectedClient.id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "apikey": "sb_publishable_TT6jl9XE1oQmHRPeuT68wg_KMy2106J",
-        "Authorization": "Bearer sb_publishable_TT6jl9XE1oQmHRPeuT68wg_KMy2106J"
-      },
-      body: JSON.stringify({ password: newPass })
-    });
-    const data = await res.json();
-    setSaving(false);
-    if (data.id) {
-      setMsg("✅ Contraseña actualizada correctamente");
-      setNewPass("");
-      setTimeout(() => { setSelectedClient(null); setMsg(""); }, 2000);
-    } else {
-      setMsg("❌ Error: " + (data.message || "No se pudo cambiar"));
+    try {
+      const res = await fetch("/api/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: selectedClient.id, password: newPass })
+      });
+      const data = await res.json();
+      setSaving(false);
+      if (data.success) {
+        setMsg("✅ Contraseña actualizada correctamente");
+        setNewPass("");
+        setTimeout(() => { setSelectedClient(null); setMsg(""); }, 2000);
+      } else {
+        setMsg("❌ Error: " + (data.error || "No se pudo cambiar"));
+      }
+    } catch (e) {
+      setSaving(false);
+      setMsg("❌ Error de conexión");
     }
   };
 
   return (
     <Section title="Clientes" right={<Badge>{clients.length} registrados</Badge>}>
+      {/* Buscador */}
+      <div style={{ marginBottom: 16, position: "relative" }}>
+        <div style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: t.txM }}>
+          <Ic name="users" size={16}/>
+        </div>
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar por nombre o correo..."
+          style={{ width: "100%", padding: "12px 16px 12px 42px", background: t.bgI, border: `1px solid ${t.brd}`, borderRadius: 10, color: t.tx, fontSize: 14, outline: "none", boxSizing: "border-box" }}
+          onFocus={e => e.target.style.borderColor = t.ac}
+          onBlur={e => e.target.style.borderColor = t.brd}
+        />
+        {search && <div onClick={() => setSearch("")} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: t.txM }}><Ic name="x" size={14}/></div>}
+      </div>
+
       {selectedClient && (
         <Card style={{ marginBottom: 16, border: `1px solid ${t.ac}40` }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
@@ -1366,13 +1389,14 @@ const AgencyClients = () => {
           {msg && <div style={{ marginTop: 10, fontSize: 13, color: msg.includes("✅") ? "#10b981" : "#ef4444" }}>{msg}</div>}
         </Card>
       )}
+
       <Card style={{ padding: 0 }}>
         <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", padding: "12px 20px", background: t.bgI, fontSize: 11, fontWeight: 600, color: t.txM, textTransform: "uppercase" }}>
           <div>Empresa</div><div>Plan</div><div>Registro</div><div>Acciones</div>
         </div>
         {loading ? <div style={{ padding: 20, textAlign: "center", color: t.txM }}>Cargando...</div> :
-        clients.length === 0 ? <div style={{ padding: 30, textAlign: "center", color: t.txM }}>No hay clientes registrados aún</div> :
-        clients.map((c, i) => (
+        filtered.length === 0 ? <div style={{ padding: 30, textAlign: "center", color: t.txM }}>{search ? `Sin resultados para "${search}"` : "No hay clientes registrados aún"}</div> :
+        filtered.map((c, i) => (
           <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", padding: "14px 20px", borderBottom: `1px solid ${t.brd}`, alignItems: "center" }}>
             <div><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{c.name || c.email}</div><div style={{ fontSize: 11, color: t.txM }}>{c.email}</div></div>
             <Badge color={c.plan === "agency" ? "#8b5cf6" : c.plan === "pro" ? "#37c2eb" : "#888"}>{c.plan || "free"}</Badge>
