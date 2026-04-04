@@ -1296,7 +1296,7 @@ const ClientSettings = ({ user, setUser, onChangePlan }) => {
           {passMsg && !passMsg.startsWith("✅") && <div style={{ marginTop: 8, fontSize: 12, color: "#ef4444" }}>{passMsg}</div>}
         </div>}
       </Card>
-      <Card><div style={{ fontSize: 16, fontWeight: 600, color: t.tx, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}><Ic name="help" size={18}/> Soporte</div><div style={{ fontSize: 14, color: t.txS }}>¿Necesitas ayuda? <span style={{ color: t.ac }}>soporte@datagrowth.agency</span></div></Card>
+      <Card><div style={{ fontSize: 16, fontWeight: 600, color: t.tx, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}><Ic name="help" size={18}/> Soporte</div><div style={{ fontSize: 14, color: t.txS }}>¿Necesitas ayuda? <span style={{ color: t.ac }}>soporte.datagrowth.agency@gmail.com</span></div></Card>
     </Section>
   );
 };
