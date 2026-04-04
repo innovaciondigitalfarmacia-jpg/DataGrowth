@@ -1309,9 +1309,81 @@ const AgencyDash = ({ setPage, brands, setBrands }) => { const t = useT();
     setBrands(brands.map(br => br.id === b.id ? { ...br, active: newActive } : br));
   };
   return <Section title="Dashboard Agencia" right={<Badge color="#8b5cf6">Admin</Badge>}><div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 24 }}>{[{ l: "Contenido", v: "247", c: "#37c2eb" }, { l: "Marcas", v: String(brands.length), c: "#06b6d4" }, { l: "Clientes", v: "5", c: "#8b5cf6" }, { l: "Revenue", v: "$216", c: "#f59e0b" }].map((s, i) => <Card key={i}><div style={{ fontSize: 12, color: t.txM, marginBottom: 8 }}>{s.l}</div><div style={{ fontSize: 28, fontWeight: 800, color: s.c }}>{s.v}</div></Card>)}</div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{brands.map(b => <Card key={b.id} style={{ display: "flex", alignItems: "center", gap: 12, opacity: b.active === false ? 0.5 : 1 }}><div onClick={() => setPage("factory")} style={{ width: 40, height: 40, borderRadius: 10, background: b.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0, cursor: "pointer" }}>{b.emoji}</div><div style={{ flex: 1, cursor: "pointer" }} onClick={() => setPage("factory")}><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{b.name}</div><div style={{ fontSize: 11, color: t.txM }}>{b.industry}</div></div><div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}><div onClick={(e) => { e.stopPropagation(); toggleBrand(b); }} style={{ width: 36, height: 20, borderRadius: 10, background: b.active === false ? t.brd : "#10b981", position: "relative", cursor: "pointer", flexShrink: 0, transition: "background .3s" }}><div style={{ width: 16, height: 16, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: b.active === false ? 2 : 18, transition: "left .3s" }}/></div><div style={{ fontSize: 9, color: b.active === false ? t.txM : "#10b981", fontWeight: 600 }}>{b.active === false ? "Inactiva" : "Activa"}</div></div></Card>)}</div></Section>; };
-const AgencyClients = () => { const t = useT(); const [clients, setClients] = useState([]); const [loading, setLoading] = useState(true);
-  useEffect(() => { supabase.from("profiles").select("*").eq("role", "client").then(({ data }) => { setClients(data || []); setLoading(false); }); }, []);
-  return <Section title="Clientes" right={<Badge>{clients.length} registrados</Badge>}><Card style={{ padding: 0 }}><div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", padding: "12px 20px", background: t.bgI, fontSize: 11, fontWeight: 600, color: t.txM, textTransform: "uppercase" }}><div>Empresa</div><div>Plan</div><div>Registro</div></div>{loading ? <div style={{ padding: 20, textAlign: "center", color: t.txM }}>Cargando...</div> : clients.length === 0 ? <div style={{ padding: 30, textAlign: "center", color: t.txM }}>No hay clientes registrados aún</div> : clients.map((c, i) => <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", padding: "14px 20px", borderBottom: `1px solid ${t.brd}`, alignItems: "center" }}><div><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{c.name || c.email}</div><div style={{ fontSize: 11, color: t.txM }}>{c.email}</div></div><Badge color={c.plan === "agency" ? "#8b5cf6" : c.plan === "pro" ? "#37c2eb" : "#888"}>{c.plan || "free"}</Badge><div style={{ color: t.txS, fontSize: 12 }}>{c.created_at ? new Date(c.created_at).toLocaleDateString() : ""}</div></div>)}</Card></Section>; };
+const AgencyClients = () => {
+  const t = useT();
+  const [clients, setClients] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [newPass, setNewPass] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    supabase.from("profiles").select("*").eq("role", "client").then(({ data }) => {
+      setClients(data || []);
+      setLoading(false);
+    });
+  }, []);
+
+  const changePassword = async () => {
+    if (!newPass || newPass.length < 8) return setMsg("Mínimo 8 caracteres");
+    setSaving(true); setMsg("");
+    const res = await fetch(`https://wmonacfzxjpndbhwsdsf.supabase.co/auth/v1/admin/users/${selectedClient.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": "sb_publishable_TT6jl9XE1oQmHRPeuT68wg_KMy2106J",
+        "Authorization": "Bearer sb_publishable_TT6jl9XE1oQmHRPeuT68wg_KMy2106J"
+      },
+      body: JSON.stringify({ password: newPass })
+    });
+    const data = await res.json();
+    setSaving(false);
+    if (data.id) {
+      setMsg("✅ Contraseña actualizada correctamente");
+      setNewPass("");
+      setTimeout(() => { setSelectedClient(null); setMsg(""); }, 2000);
+    } else {
+      setMsg("❌ Error: " + (data.message || "No se pudo cambiar"));
+    }
+  };
+
+  return (
+    <Section title="Clientes" right={<Badge>{clients.length} registrados</Badge>}>
+      {selectedClient && (
+        <Card style={{ marginBottom: 16, border: `1px solid ${t.ac}40` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: t.tx }}>Cambiar contraseña</div>
+              <div style={{ fontSize: 12, color: t.txM }}>{selectedClient.name || selectedClient.email}</div>
+            </div>
+            <div onClick={() => { setSelectedClient(null); setMsg(""); setNewPass(""); }} style={{ cursor: "pointer", color: t.txM }}><Ic name="x" size={16}/></div>
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <Input value={newPass} onChange={e => setNewPass(e.target.value)} type="text" placeholder="Nueva contraseña (mín. 8 caracteres)" onKeyDown={e => e.key === "Enter" && changePassword()}/>
+            <Btn primary onClick={changePassword}>{saving ? "Guardando..." : "Guardar"}</Btn>
+          </div>
+          {msg && <div style={{ marginTop: 10, fontSize: 13, color: msg.includes("✅") ? "#10b981" : "#ef4444" }}>{msg}</div>}
+        </Card>
+      )}
+      <Card style={{ padding: 0 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", padding: "12px 20px", background: t.bgI, fontSize: 11, fontWeight: 600, color: t.txM, textTransform: "uppercase" }}>
+          <div>Empresa</div><div>Plan</div><div>Registro</div><div>Acciones</div>
+        </div>
+        {loading ? <div style={{ padding: 20, textAlign: "center", color: t.txM }}>Cargando...</div> :
+        clients.length === 0 ? <div style={{ padding: 30, textAlign: "center", color: t.txM }}>No hay clientes registrados aún</div> :
+        clients.map((c, i) => (
+          <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", padding: "14px 20px", borderBottom: `1px solid ${t.brd}`, alignItems: "center" }}>
+            <div><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{c.name || c.email}</div><div style={{ fontSize: 11, color: t.txM }}>{c.email}</div></div>
+            <Badge color={c.plan === "agency" ? "#8b5cf6" : c.plan === "pro" ? "#37c2eb" : "#888"}>{c.plan || "free"}</Badge>
+            <div style={{ color: t.txS, fontSize: 12 }}>{c.created_at ? new Date(c.created_at).toLocaleDateString() : ""}</div>
+            <Btn secondary onClick={() => { setSelectedClient(c); setMsg(""); setNewPass(""); }} style={{ fontSize: 12, padding: "6px 12px" }}>🔑 Contraseña</Btn>
+          </div>
+        ))}
+      </Card>
+    </Section>
+  );
+};
 const AgencyTeam = ({ user }) => {
   const t = useT();
   const [members, setMembers] = useState([]);
