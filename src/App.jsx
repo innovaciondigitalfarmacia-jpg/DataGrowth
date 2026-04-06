@@ -52,129 +52,254 @@ const CopyBtn = ({ text, label }) => { const t = useT(); const [c, setC] = useSt
 const Logo = ({ size = 32 }) => <img src="/logo.jpg" alt="DataGrowth" style={{ width: size, height: size, borderRadius: size * 0.25, objectFit: "cover" }}/>;
 
 // ══════ LANDING PAGE (Supabase-inspired) ══════
+const BLOG_POSTS = [
+  { id: 1, tag: "Marketing IA", emoji: "🤖", title: "Cómo generar contenido para redes sociales con IA en minutos", desc: "Aprende a usar inteligencia artificial para crear posts, carruseles y reels profesionales sin ser diseñador.", date: "4 Jun 2026", min: "5 min", body: "En DataGrowth hemos desarrollado una plataforma que permite a agencias digitales y emprendedores generar contenido profesional en segundos. La clave está en configurar correctamente la identidad de tu marca.\n\nCon nuestra Fábrica Creativa puedes generar posts con imagen, carruseles de 5 slides, reels de hasta 8 segundos, copys para redes sociales, anuncios y emails de marketing. Todo con el tono, colores y voz de tu marca.\n\nEl proceso es simple: describes lo que quieres en lenguaje natural y la IA genera imagen, texto y hashtags listos para publicar. Sin conocimientos de diseño ni redacción." },
+  { id: 2, tag: "Estrategia", emoji: "📈", title: "5 estrategias de marketing digital que toda agencia debe aplicar en 2026", desc: "El marketing digital evoluciona rápido. Estas son las estrategias que están dominando este año.", date: "1 Jun 2026", min: "7 min", body: "El marketing digital en 2026 está siendo transformado por la inteligencia artificial. Aquí las 5 estrategias más efectivas:\n\n1. Contenido hiperpersonalizado: ya no basta con contenido genérico. Las marcas que ganan son las que hablan directamente a su audiencia con el tono correcto.\n\n2. Video corto consistente: Instagram Reels y TikTok siguen dominando. La clave es la consistencia, no la perfección.\n\n3. Email marketing automatizado: el email tiene el ROI más alto de todos los canales. Con IA puedes personalizarlo a escala.\n\n4. Branding coherente en todos los canales: tu marca debe verse y sonar igual en Instagram, email y anuncios.\n\n5. Datos reales en el contenido: la IA que usa información real de tu marca genera contenido más creíble y convincente." },
+  { id: 3, tag: "Branding", emoji: "🎨", title: "Por qué tu marca necesita contenido consistente para crecer en redes", desc: "La consistencia es el secreto del crecimiento orgánico. Te explicamos cómo lograrlo con IA.", date: "28 May 2026", min: "4 min", body: "El algoritmo de Instagram y otras redes sociales favorece a las cuentas que publican consistentemente. No es sobre cantidad, es sobre regularidad.\n\nEl problema es que crear contenido de calidad todos los días es agotador y costoso. Ahí es donde entra DataGrowth.\n\nCon nuestra plataforma puedes configurar tu marca una sola vez y generar semanas de contenido en minutos. Mismo tono, mismos colores, misma voz de marca en cada pieza.\n\nLas marcas que mantienen consistencia durante 6 meses ven en promedio un 3x en su alcance orgánico." },
+];
+
 const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }) => {
   const t = useT();
   const [customAmount, setCustomAmount] = useState(150);
-  const features = [
-    { icon: "🖼️", title: "Imagenes AI", desc: "Genera imagenes profesionales con Nano Banana de Google. Sube fotos reales de tu producto y la IA las transforma." },
-    { icon: "🎬", title: "Videos AI", desc: "Crea reels de 8 segundos con Veo 3.1. Videos realistas con audio, desde texto o animando tus propias fotos." },
-    { icon: "✍️", title: "Copy Profesional", desc: "Captions con emojis, ganchos que atrapan, CTAs que convierten. Texto listo para copiar y publicar." },
-    { icon: "🎠", title: "Carruseles", desc: "5 slides optimizados con estructura gancho-valor-CTA. Solo arma el diseno con los textos generados." },
-    { icon: "📧", title: "Email Marketing", desc: "Emails completos y persuasivos listos para enviar a tus clientes. Con CTA claro y tono de tu marca." },
-    { icon: "🏢", title: "Multi-marca", desc: "Gestiona multiples marcas desde un solo panel. Cada una con sus colores, tono, audiencia y voz unica." },
-    { icon: "🎨", title: "Branding Kit", desc: "Configura colores, tipografias, tono, audiencia y productos. La IA usa TODO para generar contenido fiel a tu marca." },
-    { icon: "🌐", title: "Info Real", desc: "Se conecta a tu pagina web y redes para usar informacion REAL. Nunca inventa precios ni datos falsos." },
-    { icon: "📢", title: "Anuncios", desc: "Genera imagenes y textos publicitarios listos para pauta en Meta Ads, Google Ads y mas." },
+  const [blogOpen, setBlogOpen] = useState(null);
+
+  const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+
+  const NAV_LINKS = [
+    { label: "Inicio", id: "inicio" },
+    { label: "Funciones", id: "funciones" },
+    { label: "Cómo funciona", id: "como" },
+    { label: "Planes", action: () => setShowPlans(true) },
+    { label: "Blog", id: "blog" },
+    { label: "Contacto", id: "footer" },
   ];
 
   return (
     <div style={{ background: t.bg, minHeight: "100vh", fontFamily: "'Segoe UI',system-ui,sans-serif", color: t.tx }}>
+      <style>{`
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+        @keyframes glow{0%,100%{text-shadow:0 0 20px rgba(55,194,235,0.3)}50%{text-shadow:0 0 50px rgba(55,194,235,0.7),0 0 100px rgba(55,194,235,0.2)}}
+        .dg-glow{animation:glow 3s ease-in-out infinite}
+      `}</style>
+
       {/* NAV */}
-      <nav style={{ padding: "16px 0", borderBottom: `1px solid ${t.brd}`, position: "sticky", top: 0, background: t.bg + "ee", backdropFilter: "blur(12px)", zIndex: 50 }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <nav style={{ height: 62, borderBottom: `1px solid ${t.brd}`, position: "sticky", top: 0, background: t.bg + "f2", backdropFilter: "blur(20px)", zIndex: 100, display: "flex", alignItems: "center" }}>
+        <div style={{ maxWidth: 1200, width: "100%", margin: "0 auto", padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, overflow: "hidden" }}><Logo size={32}/></div>
-            <span style={{ fontSize: 16, fontWeight: 700 }}>DataGrowth</span>
+            <div style={{ width: 30, height: 30, borderRadius: 8, overflow: "hidden" }}><Logo size={30}/></div>
+            <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.5 }}>DataGrowth</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div onClick={() => setDark(!dark)} style={{ cursor: "pointer", color: t.txM, padding: 6 }}><Ic name={dark ? "sun" : "moon"} size={16}/></div>
-            <Btn secondary onClick={onLogin} style={{ fontSize: 13, padding: "8px 18px" }}>Iniciar sesion</Btn>
-            <Btn primary onClick={() => onRegister()} style={{ fontSize: 13, padding: "8px 18px" }}>Crear cuenta gratis</Btn>
+          <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+            {NAV_LINKS.map((l, i) => (
+              <button key={i} onClick={l.action || (() => scrollTo(l.id))}
+                style={{ background: "transparent", border: "none", color: t.txS, fontSize: 13, fontWeight: 500, padding: "7px 14px", borderRadius: 7, cursor: "pointer", transition: "all .15s" }}
+                onMouseEnter={e => { e.currentTarget.style.color = t.ac; e.currentTarget.style.background = t.acS; }}
+                onMouseLeave={e => { e.currentTarget.style.color = t.txS; e.currentTarget.style.background = "transparent"; }}>
+                {l.label}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div onClick={() => setDark(!dark)} style={{ cursor: "pointer", color: t.txM, padding: 7, borderRadius: 7, background: t.bgI, display: "flex" }}><Ic name={dark ? "sun" : "moon"} size={15}/></div>
+            <button onClick={onLogin} style={{ background: "transparent", border: `1px solid ${t.brd}`, color: t.tx, fontSize: 13, fontWeight: 600, padding: "7px 16px", borderRadius: 8, cursor: "pointer" }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = t.ac}
+              onMouseLeave={e => e.currentTarget.style.borderColor = t.brd}>
+              Iniciar sesión
+            </button>
+            <button onClick={() => onRegister()} style={{ background: t.gr, border: "none", color: "#fff", fontSize: 13, fontWeight: 700, padding: "8px 18px", borderRadius: 8, cursor: "pointer" }}>
+              Crear cuenta gratis
+            </button>
           </div>
         </div>
       </nav>
 
       {/* HERO */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px 60px", textAlign: "center", position: "relative" }}>
-        <div style={{ position: "absolute", top: -100, left: "50%", transform: "translateX(-50%)", width: 600, height: 400, background: t.ac, borderRadius: "50%", filter: "blur(180px)", opacity: .06, pointerEvents: "none" }}/>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: t.bgC, border: `1px solid ${t.brd}`, borderRadius: 50, padding: "6px 18px 6px 8px", fontSize: 13, color: t.txS, marginBottom: 28 }}>
-          <span style={{ width: 8, height: 8, borderRadius: "50%", background: t.ac, animation: "pulse 2s infinite" }}/> Plataforma AI para agencias digitales
-        </div>
-        <h1 style={{ fontSize: "clamp(36px,5.5vw,64px)", fontWeight: 800, lineHeight: 1.08, letterSpacing: -2, marginBottom: 20 }}>Crea contenido en minutos{" "}<span style={{ color: t.ac }}>Escala a miles</span></h1>
-        <p style={{ fontSize: 18, color: t.txS, maxWidth: 640, margin: "0 auto 36px", lineHeight: 1.6 }}>DataGrowth es la plataforma de inteligencia artificial que genera posts, imagenes, videos, carruseles, reels, copys y emails profesionales para tu marca o la de tus clientes. Configura tu identidad de marca una sola vez y genera contenido ilimitado con un clic.</p>
-        <div style={{ display: "flex", gap: 14, justifyContent: "center", marginBottom: 60 }}>
-          <Btn primary onClick={() => setShowPlans(true)} style={{ fontSize: 18, padding: "18px 48px", borderRadius: 50 }}>Ver planes</Btn>
-        </div>
-        {/* HERO IMAGE */}
-        <div style={{ position: "relative", borderRadius: 20, overflow: "hidden", boxShadow: `0 40px 120px ${t.sh}, 0 0 0 1px ${t.brd}`, maxWidth: 900, margin: "0 auto" }}>
-          <img src="/hero-image.png" alt="DataGrowth plataforma" style={{ width: "100%", display: "block", borderRadius: 20 }}/>
-          <div style={{ position: "absolute", inset: 0, background: `linear-gradient(to bottom, transparent 50%, ${t.bg} 100%)`, borderRadius: 20, pointerEvents: "none", opacity: dark ? 1 : 0.6 }}/>
+      <div id="inicio" style={{ maxWidth: 1200, margin: "0 auto", padding: "90px 32px 70px", position: "relative" }}>
+        <div style={{ position: "absolute", top: 0, left: "35%", width: 700, height: 500, background: t.ac, borderRadius: "50%", filter: "blur(200px)", opacity: .04, pointerEvents: "none" }}/>
+        <div style={{ position: "relative" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, border: `1px solid ${t.ac}50`, borderRadius: 6, padding: "5px 14px 5px 10px", fontSize: 11, color: t.ac, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 36 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: t.ac, animation: "pulse 2s infinite" }}/> Plataforma IA · Agencias Digitales
+          </div>
+          <h1 className="dg-glow" style={{ fontSize: "clamp(44px,7vw,88px)", fontWeight: 900, lineHeight: 1.0, letterSpacing: -3, marginBottom: 28, maxWidth: 820, color: t.tx }}>
+            Deja de crear<br/>contenido{" "}<span style={{ color: t.ac }}>a mano.</span>
+          </h1>
+          <p style={{ fontSize: 18, color: t.txS, maxWidth: 520, lineHeight: 1.75, marginBottom: 44 }}>
+            DataGrowth genera posts, imágenes, videos, carruseles y emails en segundos. Con el tono, colores e información real de tu marca.
+          </p>
+          <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 80 }}>
+            <button onClick={() => onRegister()} style={{ background: t.ac, border: "none", color: "#fff", fontSize: 16, fontWeight: 700, padding: "15px 36px", borderRadius: 10, cursor: "pointer", boxShadow: `0 0 30px ${t.ac}40` }}>
+              Empezar gratis →
+            </button>
+            <button onClick={() => setShowPlans(true)} style={{ background: "transparent", border: `1px solid ${t.brd}`, color: t.tx, fontSize: 15, fontWeight: 500, padding: "15px 30px", borderRadius: 10, cursor: "pointer" }}>
+              Ver planes
+            </button>
+          </div>
+          <div style={{ position: "relative", borderRadius: 18, overflow: "hidden", boxShadow: `0 40px 120px ${t.sh}, 0 0 0 1px ${t.brd}` }}>
+            <img src="/hero-image.png" alt="DataGrowth plataforma" style={{ width: "100%", display: "block" }}/>
+            <div style={{ position: "absolute", inset: 0, background: `linear-gradient(to bottom, transparent 55%, ${t.bg} 100%)`, pointerEvents: "none", opacity: dark ? 1 : 0.5 }}/>
+          </div>
         </div>
       </div>
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px" }}>
-        <div style={{ textAlign: "center", marginBottom: 56 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Funcionalidades</div>
-          <h2 style={{ fontSize: 36, fontWeight: 700, letterSpacing: -1 }}>Todo lo que tu agencia necesita</h2>
-          <p style={{ fontSize: 15, color: t.txS, marginTop: 10, maxWidth: 500, margin: "10px auto 0" }}>Una sola plataforma para generar todo el contenido de tus marcas.</p>
+
+      {/* PROBLEMA */}
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "80px 32px" }}>
+        <div style={{ marginBottom: 52 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 16 }}>El problema</div>
+          <h2 style={{ fontSize: "clamp(28px,4vw,52px)", fontWeight: 900, letterSpacing: -2, marginBottom: 16, maxWidth: 620 }}>¿Te suena familiar?</h2>
+          <p style={{ fontSize: 16, color: t.txS, maxWidth: 540, lineHeight: 1.7 }}>Estas son las situaciones que viven la mayoría de agencias y marcas cada semana.</p>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
-          {features.map((f, i) => (
-            <div key={i} style={{ background: t.bgC, border: "1px solid " + t.brd, borderRadius: 16, padding: 28, transition: "all .3s", cursor: "default" }} onMouseEnter={e => { e.currentTarget.style.borderColor = t.ac + "50"; e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 40px " + t.sh; }} onMouseLeave={e => { e.currentTarget.style.borderColor = t.brd; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}>
-              <div style={{ width: 48, height: 48, borderRadius: 12, background: t.acS, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, marginBottom: 16 }}>{f.icon}</div>
-              <div style={{ fontSize: 17, fontWeight: 600, color: t.tx, marginBottom: 8 }}>{f.title}</div>
-              <div style={{ fontSize: 14, color: t.txS, lineHeight: 1.6 }}>{f.desc}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 1, background: t.brd, borderRadius: 16, overflow: "hidden" }}>
+          {[
+            { n: "01", title: "Horas perdidas cada semana", desc: "Tu equipo pasa más tiempo produciendo contenido que estrategizando. La IA puede hacer el trabajo pesado en segundos." },
+            { n: "02", title: "Tono inconsistente entre marcas", desc: "Sin un sistema centralizado, cada pieza suena diferente. La identidad de marca se pierde." },
+            { n: "03", title: "Escalar es demasiado costoso", desc: "Contratar más personas para producir más contenido no es sostenible. DataGrowth escala sin costo adicional." },
+          ].map((item, i) => (
+            <div key={i} style={{ padding: 36, background: t.bgC, transition: "background .2s" }}
+              onMouseEnter={e => e.currentTarget.style.background = t.bgI}
+              onMouseLeave={e => e.currentTarget.style.background = t.bgC}>
+              <div style={{ fontSize: 48, fontWeight: 900, color: t.ac + "25", marginBottom: 20, letterSpacing: -2, lineHeight: 1 }}>{item.n}</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: t.tx, marginBottom: 12, lineHeight: 1.3 }}>{item.title}</div>
+              <div style={{ fontSize: 14, color: t.txS, lineHeight: 1.7 }}>{item.desc}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* ABOUT US */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px", position: "relative" }}>
-        <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 500, height: 300, background: t.ac, borderRadius: "50%", filter: "blur(160px)", opacity: .04, pointerEvents: "none" }}/>
-        <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Quienes Somos</div>
-          <h2 style={{ fontSize: 36, fontWeight: 700, letterSpacing: -1 }}>La agencia digital que trabaja 24/7 para tu marca</h2>
-          <p style={{ fontSize: 16, color: t.txS, marginTop: 12, maxWidth: 700, margin: "12px auto 0", lineHeight: 1.7 }}>DataGrowth es una plataforma de inteligencia artificial disenada para agencias digitales, emprendedores y empresas que necesitan generar contenido profesional de forma rapida, consistente y alineado con su identidad de marca.</p>
+      {/* CÓMO FUNCIONA */}
+      <div id="como" style={{ maxWidth: 1200, margin: "0 auto", padding: "80px 32px" }}>
+        <div style={{ marginBottom: 52 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 16 }}>El proceso</div>
+          <h2 style={{ fontSize: "clamp(28px,4vw,52px)", fontWeight: 900, letterSpacing: -2, maxWidth: 500 }}>Del registro al contenido en 3 pasos</h2>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
           {[
-            { icon: "🎯", title: "Que hacemos", desc: "Generamos contenido completo para redes sociales usando inteligencia artificial de ultima generacion. Desde imagenes y videos hasta copys, carruseles, reels, anuncios y emails de marketing. Todo personalizado con los colores, tono de voz, productos e informacion real de tu marca." },
-            { icon: "🚀", title: "Como funciona", desc: "1. Creas tu marca y configuras tu Brand Kit. 2. Conectas tu pagina web o redes sociales. 3. Seleccionas el tipo de contenido. 4. Describes lo que quieres. 5. La IA genera todo en segundos: imagen, texto, hashtags, listo para publicar." },
-            { icon: "💡", title: "Que nos diferencia", desc: "DataGrowth se conecta a tu pagina web y redes sociales para extraer informacion REAL. Nunca inventa precios, productos ni servicios. Cada pieza de contenido refleja tu marca tal como es. Sube fotos reales y la IA las transforma en contenido profesional." },
-            { icon: "🏢", title: "Para quien es", desc: "Para agencias digitales que manejan multiples marcas. Para emprendedores que necesitan contenido profesional. Para empresas que quieren mantener sus redes activas. Para cualquier negocio que quiera escalar su presencia digital." }
-          ].map((item, i) => <div key={i} style={{ background: t.bgC, border: "1px solid " + t.brd, borderRadius: 16, padding: 28, transition: "all .3s" }} onMouseEnter={e => { e.currentTarget.style.borderColor = t.ac + "50"; e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 40px " + t.sh; }} onMouseLeave={e => { e.currentTarget.style.borderColor = t.brd; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}>
-            <div style={{ width: 48, height: 48, borderRadius: 12, background: t.acS, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, marginBottom: 14 }}>{item.icon}</div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: t.tx, marginBottom: 10 }}>{item.title}</div>
-            <div style={{ fontSize: 14, color: t.txS, lineHeight: 1.7 }}>{item.desc}</div>
-          </div>)}
-        </div>
-        <div style={{ marginTop: 24, background: t.bgC, border: "1px solid " + t.brd, borderRadius: 16, padding: 28 }}>
-          <div style={{ fontSize: 17, fontWeight: 700, color: t.tx, marginBottom: 16, textAlign: "center" }}>🛠️ Tecnologia que impulsa DataGrowth</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
-              {[
-                { icon: "🤖", name: "Claude AI", desc: "Genera textos, copys y emails de nivel agencia" },
-                { icon: "🖼️", name: "Nano Banana", desc: "Crea imagenes profesionales con IA de Google" },
-                { icon: "🎬", name: "Veo 3.1", desc: "Genera videos de 8 segundos en alta calidad" },
-                { icon: "🌐", name: "Web Scraping", desc: "Extrae info real de tu pagina web y redes" }
-              ].map((t2, i) => <div key={i} style={{ textAlign: "center", padding: 16, background: t.bgI, borderRadius: 12, transition: "all .3s" }} onMouseEnter={e => { e.currentTarget.style.background = t.acS; e.currentTarget.style.transform = "translateY(-2px)"; }} onMouseLeave={e => { e.currentTarget.style.background = t.bgI; e.currentTarget.style.transform = "none"; }}><div style={{ fontSize: 24, marginBottom: 6 }}>{t2.icon}</div><div style={{ fontSize: 13, fontWeight: 600, color: t.tx, marginBottom: 4 }}>{t2.name}</div><div style={{ fontSize: 11, color: t.txS }}>{t2.desc}</div></div>)}
+            { n: "01", title: "Configura tu marca", desc: "Agrega nombre, colores, tono, audiencia y productos. La IA aprende todo sobre tu marca." },
+            { n: "02", title: "Elige el formato", desc: "Post con imagen, carrusel, reel, copy, anuncio o email. Tú decides qué necesitas hoy." },
+            { n: "03", title: "Genera y publica", desc: "La IA crea el contenido en segundos. Descarga, edita si quieres y publica directamente." },
+          ].map((step, i) => (
+            <div key={i} style={{ padding: 36, border: `1px solid ${t.brd}`, borderRadius: 16, background: t.bgC, transition: "all .3s" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = t.ac + "60"; e.currentTarget.style.boxShadow = `0 8px 32px ${t.sh}`; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = t.brd; e.currentTarget.style.boxShadow = "none"; }}>
+              <div style={{ fontSize: 56, fontWeight: 900, color: t.ac, marginBottom: 24, lineHeight: 1, letterSpacing: -3, textShadow: `0 0 30px ${t.ac}60` }}>{step.n}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: t.tx, marginBottom: 12 }}>{step.title}</div>
+              <div style={{ fontSize: 14, color: t.txS, lineHeight: 1.7 }}>{step.desc}</div>
             </div>
+          ))}
         </div>
       </div>
 
+      {/* FUNCIONES */}
+      <div id="funciones" style={{ maxWidth: 1200, margin: "0 auto", padding: "80px 32px" }}>
+        <div style={{ marginBottom: 52 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 16 }}>Funcionalidades</div>
+          <h2 style={{ fontSize: "clamp(28px,4vw,52px)", fontWeight: 900, letterSpacing: -2, maxWidth: 600 }}>Todo lo que tu agencia necesita</h2>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
+          {[
+            { icon: "🖼️", title: "Imágenes AI", desc: "Genera imágenes profesionales con Nano Banana de Google. Sube fotos reales y la IA las transforma." },
+            { icon: "🎬", title: "Videos AI", desc: "Crea reels de 8 segundos con Veo 3.1. Videos realistas con audio desde texto o animando tus fotos." },
+            { icon: "✍️", title: "Copy Profesional", desc: "Captions con emojis, ganchos que atrapan y CTAs que convierten. Listo para copiar y publicar." },
+            { icon: "🎠", title: "Carruseles", desc: "5 slides optimizados con estructura gancho-valor-CTA." },
+            { icon: "📧", title: "Email Marketing", desc: "Emails completos y persuasivos listos para enviar. Tono fiel a tu marca." },
+            { icon: "🏢", title: "Multi-marca", desc: "Gestiona múltiples marcas desde un panel. Colores, tono y voz únicos por marca." },
+            { icon: "🎨", title: "Branding Kit", desc: "Configura tu identidad. La IA la usa en cada pieza de contenido." },
+            { icon: "🌐", title: "Info Real", desc: "Se conecta a tu web. Nunca inventa precios ni datos falsos." },
+            { icon: "📢", title: "Anuncios", desc: "Imágenes y textos listos para pauta en Meta Ads y Google Ads." },
+          ].map((f, i) => (
+            <div key={i} style={{ padding: 26, border: `1px solid ${t.brd}`, borderRadius: 14, background: t.bgC, transition: "all .25s" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = t.ac + "50"; e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = `0 10px 30px ${t.sh}`; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = t.brd; e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}>
+              <div style={{ fontSize: 26, marginBottom: 12 }}>{f.icon}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: t.tx, marginBottom: 6 }}>{f.title}</div>
+              <div style={{ fontSize: 13, color: t.txS, lineHeight: 1.6 }}>{f.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* TECH STRIP */}
+      <div style={{ borderTop: `1px solid ${t.brd}`, borderBottom: `1px solid ${t.brd}` }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "36px 32px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 24 }}>
+          <div style={{ fontSize: 12, color: t.txM, textTransform: "uppercase", letterSpacing: 2, fontWeight: 600 }}>Powered by</div>
+          {[{ icon: "🤖", name: "Claude AI" }, { icon: "🖼️", name: "Nano Banana" }, { icon: "🎬", name: "Veo 3.1" }, { icon: "🗄️", name: "Supabase" }, { icon: "⚡", name: "Vercel" }].map((tech, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, color: t.txS }}>
+              <span style={{ fontSize: 20 }}>{tech.icon}</span>
+              <span style={{ fontSize: 14, fontWeight: 600 }}>{tech.name}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* BLOG */}
+      <div id="blog" style={{ maxWidth: 1200, margin: "0 auto", padding: "80px 32px" }}>
+        {blogOpen ? (
+          <div>
+            <button onClick={() => setBlogOpen(null)} style={{ display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", color: t.txS, fontSize: 14, cursor: "pointer", marginBottom: 40, padding: 0, fontWeight: 500 }}>
+              <Ic name="back" size={16}/> Volver al blog
+            </button>
+            <div style={{ maxWidth: 680 }}>
+              <div style={{ display: "inline-block", background: t.acS, color: t.ac, fontSize: 10, fontWeight: 700, padding: "4px 12px", borderRadius: 6, marginBottom: 24, textTransform: "uppercase", letterSpacing: 1.5 }}>{blogOpen.tag}</div>
+              <h1 style={{ fontSize: "clamp(28px,4vw,52px)", fontWeight: 900, letterSpacing: -2, marginBottom: 20, lineHeight: 1.05 }}>{blogOpen.title}</h1>
+              <div style={{ fontSize: 12, color: t.txM, marginBottom: 48, textTransform: "uppercase", letterSpacing: 1 }}>{blogOpen.date} · {blogOpen.min} de lectura</div>
+              {blogOpen.body.split("\n\n").map((p, i) => (
+                <p key={i} style={{ fontSize: 16, color: t.txS, lineHeight: 1.8, marginBottom: 24 }}>{p}</p>
+              ))}
+              <div style={{ marginTop: 40, padding: 28, background: t.acS, border: `1px solid ${t.ac}40`, borderRadius: 14 }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: t.tx, marginBottom: 12 }}>¿Listo para escalar tu contenido?</div>
+                <button onClick={() => onRegister()} style={{ background: t.ac, border: "none", color: "#fff", fontSize: 14, fontWeight: 700, padding: "12px 28px", borderRadius: 8, cursor: "pointer" }}>Crear cuenta gratis →</button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div style={{ marginBottom: 48 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 16 }}>Blog</div>
+              <h2 style={{ fontSize: "clamp(28px,4vw,52px)", fontWeight: 900, letterSpacing: -2 }}>Recursos para tu agencia</h2>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
+              {BLOG_POSTS.map((post, i) => (
+                <div key={i} onClick={() => setBlogOpen(post)} style={{ border: `1px solid ${t.brd}`, borderRadius: 16, overflow: "hidden", cursor: "pointer", background: t.bgC, transition: "all .25s" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = t.ac + "50"; e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = `0 12px 40px ${t.sh}`; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = t.brd; e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}>
+                  <div style={{ height: 140, background: `linear-gradient(135deg, ${t.ac}15, ${t.ac}03)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 52, borderBottom: `1px solid ${t.brd}` }}>{post.emoji}</div>
+                  <div style={{ padding: 24 }}>
+                    <div style={{ display: "inline-block", background: t.acS, color: t.ac, fontSize: 9, fontWeight: 700, padding: "3px 10px", borderRadius: 5, marginBottom: 14, textTransform: "uppercase", letterSpacing: 1.5 }}>{post.tag}</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: t.tx, marginBottom: 10, lineHeight: 1.3 }}>{post.title}</div>
+                    <div style={{ fontSize: 13, color: t.txS, lineHeight: 1.6, marginBottom: 16 }}>{post.desc}</div>
+                    <div style={{ fontSize: 11, color: t.txM, textTransform: "uppercase", letterSpacing: 1 }}>{post.date} · {post.min}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
       {/* CTA */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px 80px" }}>
-        <div style={{ textAlign: "center", padding: "70px 40px", position: "relative", overflow: "hidden", background: t.bgC, border: "1px solid " + t.brd, borderRadius: 20 }}>
-          <div style={{ position: "absolute", top: -100, left: "50%", transform: "translateX(-50%)", width: 600, height: 400, background: t.ac, borderRadius: "50%", filter: "blur(150px)", opacity: .1, pointerEvents: "none" }}/>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 32px 80px" }}>
+        <div style={{ padding: "70px 48px", border: `1px solid ${t.brd}`, borderRadius: 20, background: t.bgC, textAlign: "center", position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 600, height: 400, background: t.ac, borderRadius: "50%", filter: "blur(150px)", opacity: .06, pointerEvents: "none" }}/>
           <div style={{ position: "relative" }}>
-            <div style={{ fontSize: 40, marginBottom: 16 }}>🚀</div>
-            <h2 style={{ fontSize: 34, fontWeight: 700, marginBottom: 14 }}>Empieza a crear contenido <span style={{ color: t.ac }}>hoy</span></h2>
-            <p style={{ fontSize: 16, color: t.txS, marginBottom: 32, maxWidth: 500, margin: "0 auto 32px" }}>Unete a las agencias y emprendedores que ya generan contenido profesional con IA. Sin tarjeta de credito.</p>
+            <div style={{ fontSize: 44, marginBottom: 20 }}>🚀</div>
+            <h2 style={{ fontSize: "clamp(28px,4vw,48px)", fontWeight: 900, letterSpacing: -2, marginBottom: 16 }}>Empieza a crear contenido <span style={{ color: t.ac }}>hoy</span></h2>
+            <p style={{ fontSize: 16, color: t.txS, marginBottom: 36, maxWidth: 500, margin: "0 auto 36px" }}>Únete a las agencias y emprendedores que ya generan contenido profesional con IA. Sin tarjeta de crédito.</p>
             <div style={{ display: "flex", gap: 14, justifyContent: "center" }}>
-              <Btn primary onClick={() => setShowPlans(true)} style={{ fontSize: 16, padding: "16px 40px", borderRadius: 50 }}>Ver planes</Btn>
+              <button onClick={() => onRegister()} style={{ background: t.ac, border: "none", color: "#fff", fontSize: 16, fontWeight: 700, padding: "16px 40px", borderRadius: 10, cursor: "pointer", boxShadow: `0 0 30px ${t.ac}40` }}>Crear cuenta gratis</button>
+              <button onClick={() => setShowPlans(true)} style={{ background: "transparent", border: `1px solid ${t.brd}`, color: t.tx, fontSize: 16, fontWeight: 500, padding: "16px 32px", borderRadius: 10, cursor: "pointer" }}>Ver planes</button>
             </div>
           </div>
         </div>
       </div>
 
       {/* FOOTER */}
-      <div style={{ borderTop: `1px solid ${t.brd}`, padding: "40px 0 24px" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px" }}>
+      <div id="footer" style={{ borderTop: `1px solid ${t.brd}`, padding: "40px 0 24px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 32px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 20, marginBottom: 24 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{ width: 28, height: 28, borderRadius: 7, overflow: "hidden" }}><Logo size={28}/></div>
-              <span style={{ fontSize: 15, fontWeight: 700, color: t.tx }}>DataGrowth</span>
+              <span style={{ fontSize: 15, fontWeight: 800, color: t.tx }}>DataGrowth</span>
             </div>
-            <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
               <a href="https://instagram.com/datagrowth.agency" target="_blank" rel="noopener noreferrer" style={{ color: t.txS, textDecoration: "none", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500, transition: "color .2s" }} onMouseEnter={e => e.currentTarget.style.color = "#E1306C"} onMouseLeave={e => e.currentTarget.style.color = t.txS}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
                 @datagrowth.agency
@@ -196,82 +321,78 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
         </div>
       </div>
 
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}} @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}} nav,section,h1,h2,p{animation:fadeUp .6s ease-out}`}</style>
-
-      {/* PLANS PAGE OVERLAY */}
+      {/* PLANS OVERLAY */}
       {showPlans && <div style={{ position: "fixed", inset: 0, background: t.bg, zIndex: 200, overflow: "auto" }}>
-        <nav style={{ padding: "16px 0", borderBottom: "1px solid " + t.brd, background: t.bg + "ee", backdropFilter: "blur(12px)" }}>
-          <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <nav style={{ padding: "16px 0", borderBottom: `1px solid ${t.brd}`, background: t.bg + "ee", backdropFilter: "blur(12px)" }}>
+          <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => setShowPlans(false)}>
-              <Ic name="back" size={20}/>
-              <div style={{ width: 32, height: 32, borderRadius: 8, overflow: "hidden" }}><Logo size={32}/></div>
-              <span style={{ fontSize: 16, fontWeight: 700 }}>DataGrowth</span>
+              <Ic name="back" size={20}/><div style={{ width: 30, height: 30, borderRadius: 8, overflow: "hidden" }}><Logo size={30}/></div>
+              <span style={{ fontSize: 15, fontWeight: 800 }}>DataGrowth</span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <Btn secondary onClick={onLogin} style={{ fontSize: 13, padding: "8px 18px" }}>Iniciar sesion</Btn>
-              <Btn primary onClick={() => onRegister()} style={{ fontSize: 13, padding: "8px 18px" }}>Crear cuenta gratis</Btn>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={onLogin} style={{ background: "transparent", border: `1px solid ${t.brd}`, color: t.tx, fontSize: 13, fontWeight: 600, padding: "7px 16px", borderRadius: 8, cursor: "pointer" }}>Iniciar sesión</button>
+              <button onClick={() => onRegister()} style={{ background: t.ac, border: "none", color: "#fff", fontSize: 13, fontWeight: 700, padding: "8px 18px", borderRadius: 8, cursor: "pointer" }}>Crear cuenta gratis</button>
             </div>
           </div>
         </nav>
-        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px 80px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "60px 32px 80px" }}>
           <div style={{ textAlign: "center", marginBottom: 56 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Precios</div>
-            <h2 style={{ fontSize: 40, fontWeight: 800, letterSpacing: -1 }}>Elige el plan perfecto para ti</h2>
+            <div style={{ fontSize: 11, fontWeight: 700, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Precios</div>
+            <h2 style={{ fontSize: "clamp(32px,4vw,56px)", fontWeight: 900, letterSpacing: -2 }}>Elige el plan perfecto para ti</h2>
             <p style={{ fontSize: 16, color: t.txS, marginTop: 12 }}>Empieza gratis. Escala cuando lo necesites. Cancela cuando quieras.</p>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24, alignItems: "start" }}>
             {PLANS.map(p => (
-              <div key={p.id} style={{ position: "relative", background: t.bgC, border: p.pop ? "2px solid " + p.color : "1px solid " + t.brd, borderRadius: 20, textAlign: "center", padding: 40, overflow: "visible", transition: "all .3s", transform: p.pop ? "scale(1.05)" : "none" }} onMouseEnter={e => { e.currentTarget.style.transform = p.pop ? "scale(1.07)" : "translateY(-6px)"; e.currentTarget.style.boxShadow = "0 20px 60px " + t.sh; }} onMouseLeave={e => { e.currentTarget.style.transform = p.pop ? "scale(1.05)" : "none"; e.currentTarget.style.boxShadow = "none"; }}>
+              <div key={p.id} style={{ position: "relative", background: t.bgC, border: p.pop ? `2px solid ${p.color}` : `1px solid ${t.brd}`, borderRadius: 20, textAlign: "center", padding: 40, overflow: "visible", transition: "all .3s", transform: p.pop ? "scale(1.05)" : "none" }}
+                onMouseEnter={e => { e.currentTarget.style.transform = p.pop ? "scale(1.07)" : "translateY(-6px)"; e.currentTarget.style.boxShadow = `0 20px 60px ${t.sh}`; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = p.pop ? "scale(1.05)" : "none"; e.currentTarget.style.boxShadow = "none"; }}>
                 {p.pop && <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: t.gr, color: "#fff", padding: "6px 28px", borderRadius: 20, fontSize: 12, fontWeight: 700, boxShadow: "0 4px 15px rgba(55,194,235,.3)" }}>Mas popular</div>}
                 <div style={{ fontSize: 22, fontWeight: 700, color: t.tx, marginBottom: 6, paddingTop: p.pop ? 10 : 0 }}>{p.name}</div>
                 <div style={{ fontSize: 14, color: t.txS, marginBottom: 20 }}>{p.desc}</div>
-                <div style={{ fontSize: 52, fontWeight: 800, color: p.color, marginBottom: 6 }}>{p.price}<span style={{ fontSize: 16, fontWeight: 400, color: t.txM }}>/mes</span></div>
-                <div style={{ borderTop: "1px solid " + t.brd, margin: "24px 0", paddingTop: 20 }}>
-                  {p.features.map((f, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", fontSize: 15, color: t.tx, textAlign: "left" }}><span style={{ color: t.ac, fontSize: 18, flexShrink: 0 }}>✓</span>{f}</div>)}
+                <div style={{ fontSize: 52, fontWeight: 900, color: p.color, marginBottom: 6 }}>{p.price}<span style={{ fontSize: 16, fontWeight: 400, color: t.txM }}>/mes</span></div>
+                <div style={{ borderTop: `1px solid ${t.brd}`, margin: "24px 0", paddingTop: 20 }}>
+                  {p.features.map((f, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", fontSize: 14, color: t.tx, textAlign: "left" }}><span style={{ color: t.ac, flexShrink: 0 }}>✓</span>{f}</div>)}
                 </div>
-                <Btn primary={p.pop} secondary={!p.pop} onClick={() => onRegister(p)} style={{ width: "100%", justifyContent: "center", padding: "16px 24px", borderRadius: 14, fontSize: 16 }}>{p.id === "free" ? "Crear cuenta gratis" : "Empezar con " + p.name}</Btn>
+                <Btn primary={p.pop} secondary={!p.pop} onClick={() => onRegister(p)} style={{ width: "100%", justifyContent: "center", padding: "14px 24px", borderRadius: 12, fontSize: 15 }}>{p.id === "free" ? "Crear cuenta gratis" : "Empezar con " + p.name}</Btn>
               </div>
             ))}
           </div>
-          {/* CUSTOM PLAN */}
-          <div style={{ marginTop: 40, background: t.bgC, border: "1px solid " + t.brd, borderRadius: 20, padding: 40, overflow: "hidden", position: "relative" }}>
+          <div style={{ marginTop: 40, background: t.bgC, border: `1px solid ${t.brd}`, borderRadius: 20, padding: 40, overflow: "hidden", position: "relative" }}>
             <div style={{ position: "absolute", top: -80, right: -80, width: 300, height: 300, background: t.ac, borderRadius: "50%", filter: "blur(120px)", opacity: .06, pointerEvents: "none" }}/>
-            <div style={{ position: "relative" }}>
-              <div style={{ textAlign: "center", marginBottom: 28 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 8 }}>Plan personalizado</div>
-                <div style={{ fontSize: 24, fontWeight: 700, color: t.tx }}>Tu defines cuanto invertir</div>
-                <div style={{ fontSize: 14, color: t.txS, marginTop: 6 }}>Mueve el slider o escribe el monto. Calculamos automaticamente lo que recibes.</div>
+            <div style={{ position: "relative", textAlign: "center", marginBottom: 28 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 8 }}>Plan personalizado</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: t.tx }}>Tu defines cuánto invertir</div>
+              <div style={{ fontSize: 14, color: t.txS, marginTop: 6 }}>Mueve el slider o escribe el monto. Calculamos lo que recibes.</div>
+            </div>
+            <div style={{ maxWidth: 500, margin: "0 auto" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
+                <input type="range" min="150" max="500" value={customAmount} onChange={e => setCustomAmount(Number(e.target.value))} style={{ flex: 1, height: 6, borderRadius: 3, background: t.brd, cursor: "pointer", accentColor: t.ac }}/>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, background: t.bgI, border: `1px solid ${t.brd}`, borderRadius: 12, padding: "8px 14px" }}>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: t.ac }}>$</span>
+                  <input type="number" min="150" max="500" value={customAmount} onChange={e => setCustomAmount(Math.max(150, Math.min(500, Number(e.target.value))))} style={{ width: 60, fontSize: 22, fontWeight: 800, color: t.tx, background: "transparent", border: "none", outline: "none", textAlign: "center" }}/>
+                  <span style={{ fontSize: 13, color: t.txM }}>/mes</span>
+                </div>
               </div>
-              <div style={{ maxWidth: 500, margin: "0 auto" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
-                  <input type="range" min="150" max="500" value={customAmount} onChange={e => setCustomAmount(Number(e.target.value))} style={{ flex: 1, height: 6, borderRadius: 3, background: t.brd, cursor: "pointer", accentColor: "#37c2eb" }}/>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, background: t.bgI, border: "1px solid " + t.brd, borderRadius: 12, padding: "8px 14px" }}>
-                    <span style={{ fontSize: 18, fontWeight: 700, color: t.ac }}>$</span>
-                    <input type="number" min="150" max="500" value={customAmount} onChange={e => setCustomAmount(Math.max(150, Math.min(500, Number(e.target.value))))} style={{ width: 60, fontSize: 22, fontWeight: 800, color: t.tx, background: "transparent", border: "none", outline: "none", textAlign: "center" }}/>
-                    <span style={{ fontSize: 13, color: t.txM }}>/mes</span>
-                  </div>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
-                  {[
-                    { label: "Posts/mes", value: 300 + Math.round((customAmount - 149) * 3), icon: "🖼️" },
-                    { label: "Videos/mes", value: 20 + Math.round(customAmount - 149), icon: "🎬" },
-                    { label: "Marcas", value: "Ilimitadas", icon: "🏢" },
-                    { label: "Formatos", value: "Todos", icon: "✨" }
-                  ].map((item, i) => <div key={i} style={{ textAlign: "center", padding: 16, background: t.bgI, borderRadius: 14, border: "1px solid " + t.brd }}>
-                    <div style={{ fontSize: 20, marginBottom: 6 }}>{item.icon}</div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: t.ac }}>{item.value}</div>
-                    <div style={{ fontSize: 11, color: t.txM, marginTop: 2 }}>{item.label}</div>
-                  </div>)}
-                </div>
-                <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-                  <Btn primary onClick={() => { const posts = 300 + Math.round((customAmount - 149) * 3); const vids = 20 + Math.round(customAmount - 149); onRegister({ id: "custom", name: "Custom", price: "$" + customAmount, desc: "Plan personalizado", color: "#37c2eb", brands: 99, limits: { post_visual: posts, carousel: posts, post_text: posts, ad: posts, email: posts, reel: vids }, features: [posts + " posts/mes", vids + " videos/mes", "Marcas ilimitadas", "Todos los formatos", "Info real de la web", "Soporte dedicado"] }); }} style={{ padding: "16px 40px", borderRadius: 14, fontSize: 16 }}>Empezar con plan de ${customAmount}/mes</Btn>
-                </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
+                {[
+                  { label: "Posts/mes", value: 300 + Math.round((customAmount - 149) * 3), icon: "🖼️" },
+                  { label: "Videos/mes", value: 20 + Math.round(customAmount - 149), icon: "🎬" },
+                  { label: "Marcas", value: "Ilimitadas", icon: "🏢" },
+                  { label: "Formatos", value: "Todos", icon: "✨" }
+                ].map((item, i) => <div key={i} style={{ textAlign: "center", padding: 16, background: t.bgI, borderRadius: 14, border: `1px solid ${t.brd}` }}>
+                  <div style={{ fontSize: 20, marginBottom: 6 }}>{item.icon}</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: t.ac }}>{item.value}</div>
+                  <div style={{ fontSize: 11, color: t.txM, marginTop: 2 }}>{item.label}</div>
+                </div>)}
+              </div>
+              <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+                <Btn primary onClick={() => { const posts = 300 + Math.round((customAmount - 149) * 3); const vids = 20 + Math.round(customAmount - 149); onRegister({ id: "custom", name: "Custom", price: "$" + customAmount, desc: "Plan personalizado", color: t.ac, brands: 99, limits: { post_visual: posts, carousel: posts, post_text: posts, ad: posts, email: posts, reel: vids }, features: [posts + " posts/mes", vids + " videos/mes", "Marcas ilimitadas", "Todos los formatos", "Info real de la web", "Soporte dedicado"] }); }} style={{ padding: "16px 40px", borderRadius: 12, fontSize: 16 }}>Empezar con plan de ${customAmount}/mes</Btn>
               </div>
             </div>
           </div>
-          <div style={{ textAlign: "center", marginTop: 40 }}>
-            <p style={{ fontSize: 13, color: t.txM }}>Todos los planes incluyen acceso a la plataforma completa. Sin permanencia. Cancela cuando quieras.</p>
-            <Btn ghost onClick={() => setShowPlans(false)} style={{ marginTop: 16, fontSize: 14 }}><Ic name="back" size={16}/> Volver al inicio</Btn>
+          <div style={{ textAlign: "center", marginTop: 32 }}>
+            <p style={{ fontSize: 13, color: t.txM }}>Sin permanencia. Cancela cuando quieras.</p>
+            <button onClick={() => setShowPlans(false)} style={{ marginTop: 16, background: "transparent", border: "none", color: t.txS, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}><Ic name="back" size={16}/> Volver al inicio</button>
           </div>
         </div>
       </div>}
@@ -286,25 +407,6 @@ const ResetPassword = ({ t, onDone }) => {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [ok, setOk] = useState(false);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    // Escuchar el evento PASSWORD_RECOVERY que Supabase dispara con sesión lista
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY" && session) {
-        setReady(true);
-        setErr("");
-      }
-    });
-    // También verificar si ya hay sesión activa (por si el evento ya pasó)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) setReady(true);
-    });
-    const timeout = setTimeout(() => {
-      if (!ready) setErr("Link inválido o expirado. Solicita uno nuevo.");
-    }, 4000);
-    return () => { subscription.unsubscribe(); clearTimeout(timeout); };
-  }, []);
 
   const save = async () => {
     if (!pass || pass.length < 8) return setErr("La contraseña debe tener al menos 8 caracteres");
@@ -314,8 +416,7 @@ const ResetPassword = ({ t, onDone }) => {
     setLoading(false);
     if (error) return setErr(error.message);
     setOk(true);
-    await supabase.auth.signOut();
-    setTimeout(() => { window.location.hash = ""; onDone(); }, 2000);
+    setTimeout(() => onDone(), 2000);
   };
 
   return <>
@@ -325,10 +426,10 @@ const ResetPassword = ({ t, onDone }) => {
       <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
       <div style={{ fontSize: 16, fontWeight: 600, color: t.tx }}>¡Contraseña actualizada!</div>
       <div style={{ fontSize: 13, color: t.txS, marginTop: 6 }}>Redirigiendo al login...</div>
-    </div> : !ready && !err ? <div style={{ textAlign: "center", padding: 20, color: t.txS }}>Verificando link...</div> : <>
+    </div> : <>
       <div style={{ marginBottom: 16 }}><Label req>Nueva contraseña</Label><Input value={pass} onChange={e => setPass(e.target.value)} type="password" placeholder="Mínimo 8 caracteres"/></div>
       <div style={{ marginBottom: 24 }}><Label req>Repetir contraseña</Label><Input value={pass2} onChange={e => setPass2(e.target.value)} type="password" placeholder="Repite la contraseña" onKeyDown={e => e.key === "Enter" && save()}/></div>
-      <button onClick={save} disabled={!ready} style={{ width: "100%", padding: 16, background: t.gr, color: "#fff", border: "none", borderRadius: 50, fontSize: 16, fontWeight: 600, cursor: ready ? "pointer" : "not-allowed", opacity: (!pass || !pass2 || !ready) ? .5 : 1 }}>{loading ? "Guardando..." : "Guardar contraseña"}</button>
+      <button onClick={save} style={{ width: "100%", padding: 16, background: t.gr, color: "#fff", border: "none", borderRadius: 50, fontSize: 16, fontWeight: 600, cursor: "pointer", opacity: (!pass || !pass2) ? .5 : 1 }}>{loading ? "Guardando..." : "Guardar contraseña"}</button>
       {err && <div style={{ marginTop: 12, padding: "10px 14px", background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.3)", borderRadius: 10, fontSize: 13, color: "#ef4444", textAlign: "center" }}>{err}</div>}
     </>}
   </>;
@@ -1116,114 +1217,6 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
 };
 
 // ══════ CLIENT SETTINGS ══════
-const ClientTeam = ({ user }) => {
-  const t = useT();
-  const MAX_SEATS = 5;
-  const [members, setMembers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showInvite, setShowInvite] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteName, setInviteName] = useState("");
-  const [invitePass, setInvitePass] = useState("");
-  const [inviteRole, setInviteRole] = useState("Editor");
-  const [inviting, setInviting] = useState(false);
-  const [err, setErr] = useState("");
-  const [ok, setOk] = useState("");
-
-  const load = async () => {
-    setLoading(true);
-    const { data } = await supabase.from("team_members").select("*").eq("invited_by", user?.id).order("created_at", { ascending: true });
-    setMembers(data || []);
-    setLoading(false);
-  };
-
-  useEffect(() => { load(); }, []);
-
-  const invite = async () => {
-    if (!inviteEmail || !invitePass || !inviteName) return setErr("Completa todos los campos");
-    if (invitePass.length < 8) return setErr("La contraseña debe tener al menos 8 caracteres");
-    if (members.length >= MAX_SEATS - 1) return setErr(`Tu plan Agency incluye máximo ${MAX_SEATS} usuarios (incluyéndote a ti)`);
-    setInviting(true); setErr(""); setOk("");
-    const res = await fetch("https://wmonacfzxjpndbhwsdsf.supabase.co/auth/v1/admin/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "apikey": "sb_publishable_TT6jl9XE1oQmHRPeuT68wg_KMy2106J", "Authorization": "Bearer sb_publishable_TT6jl9XE1oQmHRPeuT68wg_KMy2106J" },
-      body: JSON.stringify({ email: inviteEmail, password: invitePass, email_confirm: true, user_metadata: { name: inviteName } })
-    });
-    const userData = await res.json();
-    if (userData.id) {
-      await supabase.from("profiles").upsert({ id: userData.id, name: inviteName, email: inviteEmail, role: "team_" + inviteRole.toLowerCase(), plan: "free" });
-    }
-    await supabase.from("team_members").insert({ email: inviteEmail, name: inviteName, role: inviteRole, invited_by: user?.id });
-    setInviting(false);
-    setOk(`✅ Usuario creado: ${inviteEmail} / ${invitePass}`);
-    setInviteEmail(""); setInviteName(""); setInvitePass("");
-    load();
-  };
-
-  const remove = async (id) => { await supabase.from("team_members").delete().eq("id", id); load(); };
-  const colors = ["#3b82f6","#8b5cf6","#f59e0b","#10b981","#ef4444"];
-
-  return (
-    <Section title="Mi Equipo" right={
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ fontSize: 12, color: t.txM }}>{members.length + 1}/{MAX_SEATS} seats</span>
-        {members.length < MAX_SEATS - 1 && <Btn primary onClick={() => { setShowInvite(!showInvite); setErr(""); setOk(""); }}><Ic name="plus" size={14}/> Agregar</Btn>}
-      </div>
-    }>
-      {showInvite && (
-        <Card style={{ marginBottom: 20, border: `1px solid ${t.ac}40` }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: t.tx, marginBottom: 14 }}>Agregar miembro del equipo</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-            <div><Label req>Nombre</Label><Input value={inviteName} onChange={e => setInviteName(e.target.value)} placeholder="Nombre completo"/></div>
-            <div><Label req>Email</Label><Input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} type="email" placeholder="correo@empresa.com"/></div>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 12, marginBottom: 14 }}>
-            <div><Label req>Contraseña</Label><Input value={invitePass} onChange={e => setInvitePass(e.target.value)} type="text" placeholder="Mínimo 8 caracteres"/></div>
-            <div><Label>Rol</Label>
-              <select value={inviteRole} onChange={e => setInviteRole(e.target.value)} style={{ padding: "12px 16px", background: t.bgI, border: `1px solid ${t.brd}`, borderRadius: 10, color: t.tx, fontSize: 14, cursor: "pointer", width: "100%" }}>
-                <option>Editor</option>
-                <option>Viewer</option>
-              </select>
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <Btn primary onClick={invite}>{inviting ? "Creando..." : "Crear usuario"}</Btn>
-            <Btn secondary onClick={() => setShowInvite(false)}>Cancelar</Btn>
-          </div>
-          {err && <div style={{ marginTop: 10, fontSize: 13, color: "#ef4444" }}>{err}</div>}
-          {ok && <div style={{ marginTop: 10, fontSize: 13, color: "#10b981", fontWeight: 600 }}>{ok}</div>}
-        </Card>
-      )}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
-        <Card>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#37c2eb", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 18, color: "#fff" }}>{(user?.name || "U")[0].toUpperCase()}</div>
-            <div><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{user?.name}</div><Badge color="#37c2eb">Propietario</Badge></div>
-          </div>
-        </Card>
-        {loading ? null : members.map((m, i) => (
-          <Card key={m.id}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 44, height: 44, borderRadius: "50%", background: colors[i % colors.length], display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 18, color: "#fff" }}>{(m.name || m.email)[0].toUpperCase()}</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: t.tx }}>{m.name || m.email}</div>
-                <div style={{ fontSize: 11, color: t.txM, marginBottom: 4 }}>{m.email}</div>
-                <Badge color={m.role === "Editor" ? "#37c2eb" : "#888"}>{m.role}</Badge>
-              </div>
-              <div onClick={() => remove(m.id)} style={{ cursor: "pointer", color: t.txM }}><Ic name="x" size={14}/></div>
-            </div>
-          </Card>
-        ))}
-        {!loading && members.length < MAX_SEATS - 1 && Array.from({ length: MAX_SEATS - 1 - members.length }).map((_, i) => (
-          <Card key={"empty-" + i} style={{ border: `2px dashed ${t.brd}`, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 80, cursor: "pointer" }} onClick={() => setShowInvite(true)}>
-            <div style={{ textAlign: "center", color: t.txM }}><div style={{ fontSize: 24 }}>+</div><div style={{ fontSize: 12 }}>Seat disponible</div></div>
-          </Card>
-        ))}
-      </div>
-    </Section>
-  );
-};
-
 const ClientSettings = ({ user, setUser, onChangePlan }) => {
   const t = useT();
   const Toggle = ({ v, set }) => <div onClick={() => set(!v)} style={{ width: 40, height: 22, borderRadius: 11, background: v ? t.ac : t.brd, position: "relative", cursor: "pointer", flexShrink: 0 }}><div style={{ width: 18, height: 18, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: v ? 20 : 2, transition: "left .3s" }}/></div>;
@@ -1300,325 +1293,18 @@ const ClientSettings = ({ user, setUser, onChangePlan }) => {
           {passMsg && !passMsg.startsWith("✅") && <div style={{ marginTop: 8, fontSize: 12, color: "#ef4444" }}>{passMsg}</div>}
         </div>}
       </Card>
-      <Card><div style={{ fontSize: 16, fontWeight: 600, color: t.tx, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}><Ic name="help" size={18}/> Soporte</div><div style={{ fontSize: 14, color: t.txS }}>¿Necesitas ayuda? <span style={{ color: t.ac }}>soporte.datagrowth.agency@gmail.com</span></div></Card>
+      <Card><div style={{ fontSize: 16, fontWeight: 600, color: t.tx, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}><Ic name="help" size={18}/> Soporte</div><div style={{ fontSize: 14, color: t.txS }}>¿Necesitas ayuda? <span style={{ color: t.ac }}>soporte@datagrowth.agency</span></div></Card>
     </Section>
   );
 };
 
 // ══════ AGENCY PAGES ══════
-const AgencyDash = ({ setPage, brands, setBrands }) => { const t = useT(); 
-  const toggleBrand = async (b) => {
-    const newActive = b.active === false ? true : false;
-    await supabase.from("brands").update({ active: newActive }).eq("id", b.id);
-    setBrands(brands.map(br => br.id === b.id ? { ...br, active: newActive } : br));
-  };
-  return <Section title="Dashboard Agencia" right={<Badge color="#8b5cf6">Admin</Badge>}><div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 24 }}>{[{ l: "Contenido", v: "247", c: "#37c2eb" }, { l: "Marcas", v: String(brands.length), c: "#06b6d4" }, { l: "Clientes", v: "5", c: "#8b5cf6" }, { l: "Revenue", v: "$216", c: "#f59e0b" }].map((s, i) => <Card key={i}><div style={{ fontSize: 12, color: t.txM, marginBottom: 8 }}>{s.l}</div><div style={{ fontSize: 28, fontWeight: 800, color: s.c }}>{s.v}</div></Card>)}</div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{brands.map(b => <Card key={b.id} style={{ display: "flex", alignItems: "center", gap: 12, opacity: b.active === false ? 0.5 : 1 }}><div onClick={() => setPage("factory")} style={{ width: 40, height: 40, borderRadius: 10, background: b.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0, cursor: "pointer" }}>{b.emoji}</div><div style={{ flex: 1, cursor: "pointer" }} onClick={() => setPage("factory")}><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{b.name}</div><div style={{ fontSize: 11, color: t.txM }}>{b.industry}</div></div><div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}><div onClick={(e) => { e.stopPropagation(); toggleBrand(b); }} style={{ width: 36, height: 20, borderRadius: 10, background: b.active === false ? t.brd : "#10b981", position: "relative", cursor: "pointer", flexShrink: 0, transition: "background .3s" }}><div style={{ width: 16, height: 16, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: b.active === false ? 2 : 18, transition: "left .3s" }}/></div><div style={{ fontSize: 9, color: b.active === false ? t.txM : "#10b981", fontWeight: 600 }}>{b.active === false ? "Inactiva" : "Activa"}</div></div></Card>)}</div></Section>; };
-const AgencyClients = () => {
-  const t = useT();
-  const [clients, setClients] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedClient, setSelectedClient] = useState(null);
-  const [newPass, setNewPass] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState("");
-  const [search, setSearch] = useState("");
-
-  useEffect(() => {
-    supabase.from("profiles").select("*").eq("role", "client").then(({ data }) => {
-      setClients(data || []);
-      setLoading(false);
-    });
-  }, []);
-
-  const filtered = clients.filter(c =>
-    (c.name || "").toLowerCase().includes(search.toLowerCase()) ||
-    (c.email || "").toLowerCase().includes(search.toLowerCase())
-  );
-
-  const changePassword = async () => {
-    if (!newPass || newPass.length < 8) return setMsg("Mínimo 8 caracteres");
-    setSaving(true); setMsg("");
-    try {
-      const res = await fetch("/api/change-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: selectedClient.id, password: newPass })
-      });
-      const data = await res.json();
-      setSaving(false);
-      if (data.success) {
-        setMsg("✅ Contraseña actualizada correctamente");
-        setNewPass("");
-        setTimeout(() => { setSelectedClient(null); setMsg(""); }, 2000);
-      } else {
-        setMsg("❌ Error: " + (data.error || "No se pudo cambiar"));
-      }
-    } catch (e) {
-      setSaving(false);
-      setMsg("❌ Error de conexión");
-    }
-  };
-
-  return (
-    <Section title="Clientes" right={<Badge>{clients.length} registrados</Badge>}>
-      {/* Buscador */}
-      <div style={{ marginBottom: 16, position: "relative" }}>
-        <div style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: t.txM }}>
-          <Ic name="users" size={16}/>
-        </div>
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Buscar por nombre o correo..."
-          style={{ width: "100%", padding: "12px 16px 12px 42px", background: t.bgI, border: `1px solid ${t.brd}`, borderRadius: 10, color: t.tx, fontSize: 14, outline: "none", boxSizing: "border-box" }}
-          onFocus={e => e.target.style.borderColor = t.ac}
-          onBlur={e => e.target.style.borderColor = t.brd}
-        />
-        {search && <div onClick={() => setSearch("")} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: t.txM }}><Ic name="x" size={14}/></div>}
-      </div>
-
-      {selectedClient && (
-        <Card style={{ marginBottom: 16, border: `1px solid ${t.ac}40` }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: t.tx }}>Cambiar contraseña</div>
-              <div style={{ fontSize: 12, color: t.txM }}>{selectedClient.name || selectedClient.email}</div>
-            </div>
-            <div onClick={() => { setSelectedClient(null); setMsg(""); setNewPass(""); }} style={{ cursor: "pointer", color: t.txM }}><Ic name="x" size={16}/></div>
-          </div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <Input value={newPass} onChange={e => setNewPass(e.target.value)} type="text" placeholder="Nueva contraseña (mín. 8 caracteres)" onKeyDown={e => e.key === "Enter" && changePassword()}/>
-            <Btn primary onClick={changePassword}>{saving ? "Guardando..." : "Guardar"}</Btn>
-          </div>
-          {msg && <div style={{ marginTop: 10, fontSize: 13, color: msg.includes("✅") ? "#10b981" : "#ef4444" }}>{msg}</div>}
-        </Card>
-      )}
-
-      <Card style={{ padding: 0 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", padding: "12px 20px", background: t.bgI, fontSize: 11, fontWeight: 600, color: t.txM, textTransform: "uppercase" }}>
-          <div>Empresa</div><div>Plan</div><div>Registro</div><div>Acciones</div>
-        </div>
-        {loading ? <div style={{ padding: 20, textAlign: "center", color: t.txM }}>Cargando...</div> :
-        filtered.length === 0 ? <div style={{ padding: 30, textAlign: "center", color: t.txM }}>{search ? `Sin resultados para "${search}"` : "No hay clientes registrados aún"}</div> :
-        filtered.map((c, i) => (
-          <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", padding: "14px 20px", borderBottom: `1px solid ${t.brd}`, alignItems: "center" }}>
-            <div><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{c.name || c.email}</div><div style={{ fontSize: 11, color: t.txM }}>{c.email}</div></div>
-            <Badge color={c.plan === "agency" ? "#8b5cf6" : c.plan === "pro" ? "#37c2eb" : "#888"}>{c.plan || "free"}</Badge>
-            <div style={{ color: t.txS, fontSize: 12 }}>{c.created_at ? new Date(c.created_at).toLocaleDateString() : ""}</div>
-            <Btn secondary onClick={() => { setSelectedClient(c); setMsg(""); setNewPass(""); }} style={{ fontSize: 12, padding: "6px 12px" }}>🔑 Contraseña</Btn>
-          </div>
-        ))}
-      </Card>
-    </Section>
-  );
-};
-const AgencyTeam = ({ user }) => {
-  const t = useT();
-  const [members, setMembers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showInvite, setShowInvite] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteName, setInviteName] = useState("");
-  const [invitePass, setInvitePass] = useState("");
-  const [inviteRole, setInviteRole] = useState("Editor");
-  const [inviting, setInviting] = useState(false);
-  const [err, setErr] = useState("");
-  const [ok, setOk] = useState("");
-
-  const load = async () => {
-    setLoading(true);
-    const { data } = await supabase.from("team_members").select("*").order("created_at", { ascending: true });
-    setMembers(data || []);
-    setLoading(false);
-  };
-
-  useEffect(() => { load(); }, []);
-
-  const invite = async () => {
-    if (!inviteEmail || !invitePass || !inviteName) return setErr("Completa todos los campos");
-    if (invitePass.length < 8) return setErr("La contraseña debe tener al menos 8 caracteres");
-    setInviting(true); setErr(""); setOk("");
-
-    // Crear usuario en Supabase Auth usando la API admin
-    const res = await fetch("https://wmonacfzxjpndbhwsdsf.supabase.co/auth/v1/admin/users", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "apikey": "sb_publishable_TT6jl9XE1oQmHRPeuT68wg_KMy2106J",
-        "Authorization": "Bearer sb_publishable_TT6jl9XE1oQmHRPeuT68wg_KMy2106J"
-      },
-      body: JSON.stringify({ email: inviteEmail, password: invitePass, email_confirm: true, user_metadata: { name: inviteName } })
-    });
-    const userData = await res.json();
-
-    if (userData.error || !userData.id) {
-      // Si el usuario ya existe, igual guardamos en team_members
-      if (!userData.error?.includes("already")) {
-        setInviting(false);
-        setErr(userData.error || userData.msg || "Error al crear usuario");
-        return;
-      }
-    }
-
-    // Guardar en profiles con el rol correcto
-    if (userData.id) {
-      await supabase.from("profiles").upsert({ id: userData.id, name: inviteName, email: inviteEmail, role: "team_" + inviteRole.toLowerCase(), plan: "free" });
-    }
-
-    // Guardar en team_members
-    await supabase.from("team_members").insert({ email: inviteEmail, name: inviteName, role: inviteRole, invited_by: user?.id });
-
-    setInviting(false);
-    setOk(`✅ Usuario creado: ${inviteEmail} / ${invitePass}`);
-    setInviteEmail(""); setInviteName(""); setInvitePass("");
-    load();
-  };
-
-  const remove = async (id, email) => {
-    await supabase.from("team_members").delete().eq("id", id);
-    load();
-  };
-
-  const colors = ["#ec4899","#3b82f6","#8b5cf6","#f59e0b","#10b981","#ef4444","#06b6d4"];
-
-  return (
-    <Section title="Equipo" right={<Btn primary onClick={() => { setShowInvite(!showInvite); setErr(""); setOk(""); }}><Ic name="plus" size={14}/> Invitar</Btn>}>
-      {showInvite && (
-        <Card style={{ marginBottom: 20, border: `1px solid ${t.ac}40` }}>
-          <div style={{ fontSize: 16, fontWeight: 600, color: t.tx, marginBottom: 16 }}>Crear usuario de equipo</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-            <div><Label req>Nombre</Label><Input value={inviteName} onChange={e => setInviteName(e.target.value)} placeholder="Nombre completo"/></div>
-            <div><Label req>Email</Label><Input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} type="email" placeholder="correo@empresa.com"/></div>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 12, marginBottom: 16 }}>
-            <div><Label req>Contraseña</Label><Input value={invitePass} onChange={e => setInvitePass(e.target.value)} type="text" placeholder="Mínimo 8 caracteres"/></div>
-            <div><Label>Rol</Label>
-              <select value={inviteRole} onChange={e => setInviteRole(e.target.value)}
-                style={{ padding: "12px 16px", background: t.bgI, border: `1px solid ${t.brd}`, borderRadius: 10, color: t.tx, fontSize: 14, cursor: "pointer", width: "100%" }}>
-                <option>Editor</option>
-                <option>Viewer</option>
-                <option>Admin</option>
-              </select>
-            </div>
-          </div>
-          <div style={{ padding: "10px 14px", background: t.bgI, borderRadius: 10, fontSize: 12, color: t.txM, marginBottom: 14 }}>
-            <strong style={{ color: t.tx }}>Editor:</strong> genera contenido y edita marcas &nbsp;|&nbsp;
-            <strong style={{ color: t.tx }}>Viewer:</strong> solo ve marcas &nbsp;|&nbsp;
-            <strong style={{ color: t.tx }}>Admin:</strong> acceso total
-          </div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <Btn primary onClick={invite}>{inviting ? "Creando usuario..." : "Crear usuario"}</Btn>
-            <Btn secondary onClick={() => { setShowInvite(false); setErr(""); setOk(""); }}>Cancelar</Btn>
-          </div>
-          {err && <div style={{ marginTop: 10, fontSize: 13, color: "#ef4444" }}>{err}</div>}
-          {ok && <div style={{ marginTop: 10, fontSize: 13, color: "#10b981", fontWeight: 600 }}>{ok}</div>}
-        </Card>
-      )}
-      {loading ? <div style={{ color: t.txM, padding: 20 }}>Cargando...</div> :
-      members.length === 0 ? (
-        <Card style={{ textAlign: "center", padding: 48 }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>👥</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: t.tx, marginBottom: 8 }}>Sin miembros aún</div>
-          <div style={{ fontSize: 14, color: t.txM }}>Crea usuarios para tu equipo con el botón Invitar.</div>
-        </Card>
-      ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
-          <Card>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#8b5cf6", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 18, color: "#fff" }}>{(user?.name || "A")[0].toUpperCase()}</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 15, fontWeight: 600, color: t.tx }}>{user?.name || "Admin"}</div>
-                <Badge color="#8b5cf6">Admin</Badge>
-              </div>
-            </div>
-          </Card>
-          {members.map((m, i) => (
-            <Card key={m.id}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 44, height: 44, borderRadius: "50%", background: colors[i % colors.length], display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 18, color: "#fff" }}>{(m.name || m.email)[0].toUpperCase()}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{m.name || m.email}</div>
-                  <div style={{ fontSize: 11, color: t.txM, marginBottom: 4 }}>{m.email}</div>
-                  <Badge color={m.role === "Admin" ? "#8b5cf6" : m.role === "Editor" ? "#37c2eb" : "#888"}>{m.role}</Badge>
-                </div>
-                <div onClick={() => remove(m.id, m.email)} style={{ cursor: "pointer", color: t.txM, padding: 4 }} title="Eliminar"><Ic name="x" size={14}/></div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
-    </Section>
-  );
-};
-const AgencyPlans = ({ user }) => {
-  const t = useT();
-  const [customAmount, setCustomAmount] = useState(150);
-  const posts = Math.round(customAmount * 2.02);
-  const videos = Math.round(customAmount * 0.14);
-  const isAdmin = user?.role === "agency";
-
-  return (
-    <Section title="Planes">
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginBottom: isAdmin ? 0 : 32 }}>
-        {PLANS.map(p => (
-          <Card key={p.id} style={{ textAlign: "center", border: p.pop ? `2px solid ${p.color}` : `1px solid ${t.brd}`, position: "relative" }}>
-            {p.pop && <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: p.color, color: "#fff", padding: "4px 16px", borderRadius: 20, fontSize: 11, fontWeight: 700 }}>Popular</div>}
-            {user?.plan === p.id && <div style={{ position: "absolute", top: 12, right: 12, background: "#10b981", color: "#fff", padding: "2px 10px", borderRadius: 20, fontSize: 10, fontWeight: 700 }}>Tu plan</div>}
-            <div style={{ fontSize: 17, fontWeight: 600, color: t.tx, paddingTop: p.pop ? 10 : 0 }}>{p.name}</div>
-            <div style={{ fontSize: 40, fontWeight: 800, color: p.color, margin: "8px 0" }}>{p.price}<span style={{ fontSize: 14, color: t.txM }}>/mes</span></div>
-            {p.features.map((f, i) => <div key={i} style={{ fontSize: 13, color: t.tx, padding: "5px 0" }}>✓ {f}</div>)}
-            {!isAdmin && user?.plan !== p.id && (
-              <Btn primary style={{ marginTop: 16, width: "100%", background: p.color, boxShadow: "none" }}
-                onClick={() => window.open("https://datagrowthagency.com/#planes", "_blank")}>
-                {`Suscribirse a ${p.name}`}
-              </Btn>
-            )}
-          </Card>
-        ))}
-      </div>
-
-      {!isAdmin && (
-        <Card style={{ background: "linear-gradient(135deg, rgba(55,194,235,0.05), rgba(139,92,246,0.05))", border: `1px solid ${t.ac}30` }}>
-          <div style={{ textAlign: "center", marginBottom: 24 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 8 }}>Plan Personalizado</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: t.tx }}>Tu defines cuanto invertir</div>
-            <div style={{ fontSize: 14, color: t.txS, marginTop: 6 }}>Mueve el slider o escribe el monto. Calculamos automáticamente lo que recibes.</div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
-            <input type="range" min="150" max="500" value={customAmount} onChange={e => setCustomAmount(Number(e.target.value))}
-              style={{ flex: 1, accentColor: t.ac, height: 6, cursor: "pointer" }}/>
-            <div style={{ display: "flex", alignItems: "center", gap: 4, background: t.bgI, border: `1px solid ${t.brd}`, borderRadius: 12, padding: "10px 16px", minWidth: 120 }}>
-              <span style={{ fontSize: 20, fontWeight: 700, color: t.ac }}>$</span>
-              <input type="number" min="150" max="500" value={customAmount}
-                onChange={e => setCustomAmount(Math.max(150, Math.min(500, Number(e.target.value))))}
-                style={{ width: 60, fontSize: 22, fontWeight: 800, color: t.tx, background: "transparent", border: "none", outline: "none", textAlign: "center" }}/>
-              <span style={{ fontSize: 13, color: t.txM }}>/mes</span>
-            </div>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 24 }}>
-            {[
-              { icon: "🖼️", val: posts, label: "Posts/mes" },
-              { icon: "🎬", val: videos, label: "Videos/mes" },
-              { icon: "🏢", val: "Ilimitadas", label: "Marcas" },
-              { icon: "✨", val: "Todos", label: "Formatos" },
-            ].map((item, i) => (
-              <div key={i} style={{ textAlign: "center", padding: 16, background: t.bgI, borderRadius: 12 }}>
-                <div style={{ fontSize: 28, marginBottom: 4 }}>{item.icon}</div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: t.ac }}>{item.val}</div>
-                <div style={{ fontSize: 12, color: t.txS }}>{item.label}</div>
-              </div>
-            ))}
-          </div>
-          <Btn primary style={{ width: "100%", padding: 16, fontSize: 16, borderRadius: 50 }}
-            onClick={() => window.open("https://datagrowthagency.com/#planes", "_blank")}>
-            Empezar con plan de ${customAmount}/mes
-          </Btn>
-          <div style={{ textAlign: "center", marginTop: 12, fontSize: 12, color: t.txM }}>Todos los planes incluyen acceso a la plataforma completa. Sin permanencia. Cancela cuando quieras.</div>
-        </Card>
-      )}
-    </Section>
-  );
-};
+const AgencyDash = ({ setPage, brands }) => { const t = useT(); return <Section title="Dashboard Agencia" right={<Badge color="#8b5cf6">Admin</Badge>}><div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 24 }}>{[{ l: "Contenido", v: "247", c: "#37c2eb" }, { l: "Marcas", v: String(brands.length), c: "#06b6d4" }, { l: "Clientes", v: "5", c: "#8b5cf6" }, { l: "Revenue", v: "$216", c: "#f59e0b" }].map((s, i) => <Card key={i}><div style={{ fontSize: 12, color: t.txM, marginBottom: 8 }}>{s.l}</div><div style={{ fontSize: 28, fontWeight: 800, color: s.c }}>{s.v}</div></Card>)}</div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{brands.map(b => <Card key={b.id} onClick={() => setPage("factory")} style={{ display: "flex", alignItems: "center", gap: 12 }}><div style={{ width: 40, height: 40, borderRadius: 10, background: b.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{b.emoji}</div><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{b.name}</div><div style={{ fontSize: 11, color: t.txM }}>{b.industry}</div></div><Badge>Activa</Badge></Card>)}</div></Section>; };
+const AgencyClients = () => { const t = useT(); const [clients, setClients] = useState([]); const [loading, setLoading] = useState(true);
+  useEffect(() => { supabase.from("profiles").select("*").eq("role", "client").then(({ data }) => { setClients(data || []); setLoading(false); }); }, []);
+  return <Section title="Clientes" right={<Badge>{clients.length} registrados</Badge>}><Card style={{ padding: 0 }}><div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", padding: "12px 20px", background: t.bgI, fontSize: 11, fontWeight: 600, color: t.txM, textTransform: "uppercase" }}><div>Empresa</div><div>Plan</div><div>Registro</div></div>{loading ? <div style={{ padding: 20, textAlign: "center", color: t.txM }}>Cargando...</div> : clients.length === 0 ? <div style={{ padding: 30, textAlign: "center", color: t.txM }}>No hay clientes registrados aún</div> : clients.map((c, i) => <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", padding: "14px 20px", borderBottom: `1px solid ${t.brd}`, alignItems: "center" }}><div><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{c.name || c.email}</div><div style={{ fontSize: 11, color: t.txM }}>{c.email}</div></div><Badge color={c.plan === "agency" ? "#8b5cf6" : c.plan === "pro" ? "#37c2eb" : "#888"}>{c.plan || "free"}</Badge><div style={{ color: t.txS, fontSize: 12 }}>{c.created_at ? new Date(c.created_at).toLocaleDateString() : ""}</div></div>)}</Card></Section>; };
+const AgencyTeam = () => { const t = useT(); return <Section title="Equipo" right={<Btn primary><Ic name="plus" size={14}/> Invitar</Btn>}><div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>{[{ n: "Julian", r: "Admin", c: "#ec4899" }, { n: "María", r: "Editor", c: "#3b82f6" }].map((m, i) => <Card key={i}><div style={{ display: "flex", alignItems: "center", gap: 12 }}><div style={{ width: 44, height: 44, borderRadius: "50%", background: m.c, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 18, color: "#fff" }}>{m.n[0]}</div><div><div style={{ fontSize: 15, fontWeight: 600, color: t.tx }}>{m.n}</div><Badge color={m.r === "Admin" ? "#8b5cf6" : "#37c2eb"}>{m.r}</Badge></div></div></Card>)}</div></Section>; };
+const AgencyPlans = () => { const t = useT(); return <Section title="Planes"><div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>{PLANS.map(p => <Card key={p.id} style={{ textAlign: "center", border: p.pop ? `2px solid ${p.color}` : `1px solid ${t.brd}`, position: "relative" }}>{p.pop && <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: p.color, color: "#fff", padding: "4px 16px", borderRadius: 20, fontSize: 11, fontWeight: 700 }}>Popular</div>}<div style={{ fontSize: 17, fontWeight: 600, color: t.tx, paddingTop: p.pop ? 10 : 0 }}>{p.name}</div><div style={{ fontSize: 40, fontWeight: 800, color: p.color, margin: "8px 0" }}>{p.price}<span style={{ fontSize: 14, color: t.txM }}>/mes</span></div>{p.features.map((f, i) => <div key={i} style={{ fontSize: 13, color: t.tx, padding: "5px 0" }}>✓ {f}</div>)}</Card>)}</div></Section>; };
 const AgencySettings = ({ gemKey, setGemKey }) => { const t = useT(); const [k, setK] = useState(gemKey); const [sv, setSv] = useState(false); return <Section title="Configuración API"><Card style={{ marginBottom: 12 }}><div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontWeight: 600, color: t.tx }}>Claude</span><Badge>Conectada</Badge></div></Card><Card style={{ border: `1px solid ${gemKey ? "rgba(55,194,235,.3)" : "rgba(245,158,11,.3)"}` }}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><span style={{ fontWeight: 600, color: t.tx }}>Gemini Imágenes</span>{gemKey ? <Badge>Conectada</Badge> : <Badge color="#f59e0b">Pendiente</Badge>}</div><div style={{ display: "flex", gap: 10 }}><Input value={k} onChange={e => setK(e.target.value)} type="password" placeholder="AIzaSy..."/><Btn primary onClick={() => { setGemKey(k); try { localStorage.setItem("dg_gemkey", k); } catch {} setSv(true); setTimeout(() => setSv(false), 2000); }}>{sv ? "✅" : "Guardar"}</Btn></div></Card></Section>; };
 
 // ══════ APP ══════
@@ -1640,7 +1326,7 @@ export default function App() {
     let hash = "#";
     if (newView === "app") hash = `#${newPage}`;
     else if (newView === "auth") hash = `#auth-${newAuthMode}`;
-    else if (newView === "landing") hash = newLandingSubView === "plans" ? "#planes" : "/";
+    else if (newView === "landing") hash = newLandingSubView === "plans" ? "#planes" : "#inicio";
     window.history.pushState(state, "", hash);
     setView(newView);
     if (opts.page) setPage(opts.page);
@@ -1668,19 +1354,11 @@ export default function App() {
   const [clBrands, setClBrands] = useState([]);
 
   const loadBrands = async (userId, role) => {
-    if (role && role.startsWith("team_")) {
-      // Miembros del equipo ven las marcas del admin (el dueño de la plataforma)
-      const { data: adminProfile } = await supabase.from("profiles").select("id").eq("role", "agency").single();
-      if (adminProfile?.id) {
-        const { data } = await supabase.from("brands").select("*").eq("user_id", adminProfile.id);
-        setAgBrands((data || []).map(b => ({ ...b, brandVoice: b.brand_voice, imgStyle: b.img_style, logoBase64: b.logo_base64 })));
-      }
-      return;
-    }
     const { data } = await supabase.from("brands").select("*").eq("user_id", userId);
     const mapped = (data || []).map(b => ({ ...b, brandVoice: b.brand_voice, imgStyle: b.img_style, logoBase64: b.logo_base64 }));
     if (role === "agency") {
       if (mapped.length === 0) {
+        // Seed default brands for admin on first login
         for (const b of AGENCY_BRANDS) {
           await supabase.from("brands").insert({ user_id: userId, name: b.name, short: b.short, color: b.color, industry: b.industry, tone: b.tone, audience: b.audience, emoji: b.emoji, brand_voice: b.brandVoice, img_style: b.imgStyle, sector: b.sector, colors: b.colors, products: b.products, description: b.description, differentiator: b.differentiator, website: b.website });
         }
@@ -1715,7 +1393,7 @@ export default function App() {
         await loadBrands(session.user.id, role);
       } else {
         setView("landing");
-        window.history.replaceState({ view: "landing", page: "dashboard", landingSubView: "home", authMode: "login" }, "", "/");
+        window.history.replaceState({ view: "landing", page: "dashboard", landingSubView: "home", authMode: "login" }, "", "#inicio");
       }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -1725,8 +1403,8 @@ export default function App() {
         return;
       }
       // Ignorar SIGNED_IN si estamos en modo reset-password
-      if (event === "SIGNED_IN" && authMode === "reset-password") return;
-      if (event === "SIGNED_OUT") { setUser(null); setView("landing"); window.history.replaceState({ view: "landing", page: "dashboard", landingSubView: "home", authMode: "login" }, "", "/"); }
+      if (event === "SIGNED_IN") return;
+      if (event === "SIGNED_OUT") { setUser(null); setView("landing"); window.history.replaceState({ view: "landing", page: "dashboard", landingSubView: "home", authMode: "login" }, "", "#inicio"); }
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -1766,39 +1444,24 @@ export default function App() {
 
   const th = dark ? TH.dark : TH.light;
   const isAdmin = user?.role === "agency";
-  const isTeamEditor = user?.role === "team_editor";
-  const isTeamViewer = user?.role === "team_viewer";
-  const isTeamAdmin = user?.role === "team_admin";
-  const isTeam = isTeamEditor || isTeamViewer || isTeamAdmin;
-  const brands = (isAdmin || isTeam) ? agBrands : clBrands;
-  const setBrands = (isAdmin || isTeam) ? setAgBrands : setClBrands;
+  const brands = isAdmin ? agBrands : clBrands;
+  const setBrands = isAdmin ? setAgBrands : setClBrands;
 
   const onAuth = (u) => { setUser(u); navigate("app", { page: "dashboard" }); loadBrands(u.id, u.role); };
   const logout = async () => { await supabase.auth.signOut(); setUser(null); navigate("landing", { landingSubView: "home" }); };
 
   const agNav = [{ id: "dashboard", label: "Dashboard", ic: "grid" }, { id: "factory", label: "Fábrica Creativa", ic: "factory", tag: "AI" }, { id: "branding", label: "Branding Kit", ic: "palette" }, { id: "clients", label: "Clientes", ic: "users" }, { id: "plans", label: "Planes", ic: "card" }, { id: "team", label: "Equipo", ic: "users" }];
-  const editorNav = [{ id: "dashboard", label: "Dashboard", ic: "grid" }, { id: "factory", label: "Fábrica Creativa", ic: "factory", tag: "AI" }, { id: "branding", label: "Branding Kit", ic: "palette" }];
-  const viewerNav = [{ id: "dashboard", label: "Dashboard", ic: "grid" }, { id: "branding", label: "Branding Kit", ic: "palette" }];
-  const clNav = user?.plan === "agency"
-    ? [{ id: "dashboard", label: "Mi Dashboard", ic: "grid" }, { id: "factory", label: "Crear Contenido", ic: "factory", tag: "AI" }, { id: "branding", label: "Mis Marcas", ic: "palette" }, { id: "team", label: "Mi Equipo", ic: "users" }, { id: "settings", label: "Mi Cuenta", ic: "settings" }]
-    : [{ id: "dashboard", label: "Mi Dashboard", ic: "grid" }, { id: "factory", label: "Crear Contenido", ic: "factory", tag: "AI" }, { id: "branding", label: "Mis Marcas", ic: "palette" }, { id: "settings", label: "Mi Cuenta", ic: "settings" }];
-  const nav = isAdmin || isTeamAdmin ? agNav : isTeamEditor ? editorNav : isTeamViewer ? viewerNav : clNav;
+  const clNav = [{ id: "dashboard", label: "Mi Dashboard", ic: "grid" }, { id: "factory", label: "Crear Contenido", ic: "factory", tag: "AI" }, { id: "branding", label: "Mis Marcas", ic: "palette" }, { id: "settings", label: "Mi Cuenta", ic: "settings" }];
+  const nav = isAdmin ? agNav : clNav;
   const goPage = (p) => navigate("app", { page: p });
 
   if (view === "loading") return <ThemeCtx.Provider value={th}><div style={{ minHeight: "100vh", background: th.bg, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ textAlign: "center" }}><div style={{ width: 48, height: 48, border: "3px solid " + th.brd, borderTop: "3px solid " + th.ac, borderRadius: "50%", animation: "spin .8s linear infinite", margin: "0 auto 16px" }}/><div style={{ color: th.txS, fontSize: 14 }}>Cargando...</div></div></div></ThemeCtx.Provider>;
   if (view === "landing") return <ThemeCtx.Provider value={th}><Landing onLogin={() => navigate("auth", { authMode: "login" })} onRegister={(plan) => navigate("auth", { authMode: "register", selPlan: plan || null })} showPlans={landingSubView === "plans"} setShowPlans={(v) => { if (v) { navigate("landing", { landingSubView: "plans" }); } else { window.history.back(); } }} dark={dark} setDark={setDark}/></ThemeCtx.Provider>;
   if (view === "auth") return <ThemeCtx.Provider value={th}><Auth mode={authMode} setMode={(m) => navigate("auth", { authMode: m })} onAuth={onAuth} dark={dark} setDark={setDark} selPlan={selPlan}/></ThemeCtx.Provider>;
 
-  const agPages = { dashboard: <AgencyDash setPage={setPage} brands={brands} setBrands={setBrands}/>, factory: <Factory brands={brands.filter(b => b.active !== false)} gemKey={gemKey} isAdmin={true} user={user}/>, branding: <BrandKit brands={brands} setBrands={setBrands} user={user}/>, clients: <AgencyClients/>, plans: <AgencyPlans user={user}/>, team: <AgencyTeam user={user}/> };
-  const teamPages = { dashboard: <AgencyDash setPage={setPage} brands={brands}/>, factory: <Factory brands={brands} gemKey={gemKey} isAdmin={true} user={user}/>, branding: <BrandKit brands={brands} setBrands={setBrands} user={user} readOnly={isTeamViewer}/> };
-  const clPages = { dashboard: (() => { const t = th; 
-    const toggleBrand = async (b) => {
-      const newActive = b.active === false ? true : false;
-      await supabase.from("brands").update({ active: newActive }).eq("id", b.id);
-      setBrands(brands.map(br => br.id === b.id ? { ...br, active: newActive } : br));
-    };
-    return <Section title="Mi Dashboard" right={<Badge color="#37c2eb">Cliente</Badge>}><div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 24 }}>{[{ l: "Marcas", v: String(brands.length), c: "#06b6d4" }, { l: "Contenido", v: brands.length ? "34" : "0", c: "#37c2eb" }, { l: "Posts/mes", v: brands.length ? "12" : "0", c: "#8b5cf6" }].map((s, i) => <Card key={i}><div style={{ fontSize: 12, color: t.txM, marginBottom: 8 }}>{s.l}</div><div style={{ fontSize: 28, fontWeight: 800, color: s.c }}>{s.v}</div></Card>)}</div>{brands.length ? <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{brands.map(b => <Card key={b.id} style={{ display: "flex", alignItems: "center", gap: 12, opacity: b.active === false ? 0.5 : 1 }}><div onClick={() => goPage("factory")} style={{ width: 40, height: 40, borderRadius: 10, background: b.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0, cursor: "pointer" }}>{b.emoji}</div><div style={{ flex: 1, cursor: "pointer" }} onClick={() => goPage("factory")}><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{b.name}</div><div style={{ fontSize: 11, color: t.txM }}>{b.industry}</div></div><div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}><div onClick={(e) => { e.stopPropagation(); toggleBrand(b); }} style={{ width: 36, height: 20, borderRadius: 10, background: b.active === false ? t.brd : "#10b981", position: "relative", cursor: "pointer", flexShrink: 0, transition: "background .3s" }}><div style={{ width: 16, height: 16, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: b.active === false ? 2 : 18, transition: "left .3s" }}/></div><div style={{ fontSize: 9, color: b.active === false ? t.txM : "#10b981", fontWeight: 600 }}>{b.active === false ? "Inactiva" : "Activa"}</div></div></Card>)}<Card onClick={() => goPage("branding")} style={{ display: "flex", alignItems: "center", justifyContent: "center", border: `2px dashed ${t.brd}`, minHeight: 70 }}><div style={{ textAlign: "center", color: t.txM }}><div style={{ fontSize: 24 }}>+</div><div style={{ fontSize: 12 }}>Nueva marca</div></div></Card></div> : <Card style={{ textAlign: "center", padding: 48 }}><div style={{ fontSize: 48, marginBottom: 12 }}>🚀</div><div style={{ fontSize: 18, fontWeight: 700, color: t.tx, marginBottom: 8 }}>¡Bienvenido!</div><div style={{ fontSize: 14, color: t.txM, marginBottom: 20 }}>Crea tu primera marca para empezar.</div><Btn primary onClick={() => goPage("branding")} style={{ margin: "0 auto" }}><Ic name="plus" size={14}/> Crear marca</Btn></Card>}</Section>; })(), factory: <Factory brands={brands.filter(b => b.active !== false)} gemKey={gemKey} isAdmin={false} user={user}/>, branding: <BrandKit brands={brands} setBrands={setBrands} user={user}/>, team: <ClientTeam user={user}/>, settings: <ClientSettings user={user} setUser={setUser}/> };
-  const pages = (isAdmin || isTeamAdmin) ? agPages : isTeam ? teamPages : clPages;
+  const agPages = { dashboard: <AgencyDash setPage={setPage} brands={brands}/>, factory: <Factory brands={brands} gemKey={gemKey} isAdmin={true} user={user}/>, branding: <BrandKit brands={brands} setBrands={setBrands} user={user}/>, clients: <AgencyClients/>, plans: <AgencyPlans/>, team: <AgencyTeam/> };
+  const clPages = { dashboard: (() => { const t = th; return <Section title="Mi Dashboard" right={<Badge color="#37c2eb">Cliente</Badge>}><div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 24 }}>{[{ l: "Marcas", v: String(brands.length), c: "#06b6d4" }, { l: "Contenido", v: brands.length ? "34" : "0", c: "#37c2eb" }, { l: "Posts/mes", v: brands.length ? "12" : "0", c: "#8b5cf6" }].map((s, i) => <Card key={i}><div style={{ fontSize: 12, color: t.txM, marginBottom: 8 }}>{s.l}</div><div style={{ fontSize: 28, fontWeight: 800, color: s.c }}>{s.v}</div></Card>)}</div>{brands.length ? <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{brands.map(b => <Card key={b.id} onClick={() => setPage("factory")} style={{ display: "flex", alignItems: "center", gap: 12 }}><div style={{ width: 40, height: 40, borderRadius: 10, background: b.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{b.emoji}</div><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{b.name}</div><div style={{ fontSize: 11, color: t.txM }}>{b.industry}</div></div><Badge>Activa</Badge></Card>)}<Card onClick={() => setPage("branding")} style={{ display: "flex", alignItems: "center", justifyContent: "center", border: `2px dashed ${t.brd}`, minHeight: 70 }}><div style={{ textAlign: "center", color: t.txM }}><div style={{ fontSize: 24 }}>+</div><div style={{ fontSize: 12 }}>Nueva marca</div></div></Card></div> : <Card style={{ textAlign: "center", padding: 48 }}><div style={{ fontSize: 48, marginBottom: 12 }}>🚀</div><div style={{ fontSize: 18, fontWeight: 700, color: t.tx, marginBottom: 8 }}>¡Bienvenido!</div><div style={{ fontSize: 14, color: t.txM, marginBottom: 20 }}>Crea tu primera marca para empezar.</div><Btn primary onClick={() => setPage("branding")} style={{ margin: "0 auto" }}><Ic name="plus" size={14}/> Crear marca</Btn></Card>}</Section>; })(), factory: <Factory brands={brands} gemKey={gemKey} isAdmin={false} user={user}/>, branding: <BrandKit brands={brands} setBrands={setBrands} user={user}/>, settings: <ClientSettings user={user} setUser={setUser}/> };
+  const pages = isAdmin ? agPages : clPages;
 
   return (
     <ThemeCtx.Provider value={th}>
@@ -1824,7 +1487,7 @@ export default function App() {
           <div style={{ padding: "12px 24px", borderBottom: `1px solid ${th.brd}`, display: "flex", alignItems: "center", gap: 12, background: th.bgS }}>
             <div onClick={() => setSb(!sb)} style={{ cursor: "pointer", color: th.txS }}><Ic name={sb ? "x" : "menu"} size={20}/></div>
             <div style={{ fontSize: 14, fontWeight: 500, color: th.txS }}>{nav.find(n => n.id === page)?.label}</div>
-            <div style={{ marginLeft: "auto" }}><Badge color={(isAdmin || isTeamAdmin) ? "#8b5cf6" : isTeamEditor ? "#37c2eb" : isTeamViewer ? "#888" : "#37c2eb"}>{isAdmin ? "Agencia" : isTeamAdmin ? "Admin" : isTeamEditor ? "Editor" : isTeamViewer ? "Viewer" : "Cliente"}</Badge></div>
+            <div style={{ marginLeft: "auto" }}><Badge color={isAdmin ? "#8b5cf6" : "#37c2eb"}>{isAdmin ? "Agencia" : "Cliente"}</Badge></div>
           </div>
           <div style={{ flex: 1, overflow: "auto", padding: 28 }}>{pages[page] || pages.dashboard}</div>
         </div>
