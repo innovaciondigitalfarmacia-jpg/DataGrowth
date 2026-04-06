@@ -28,14 +28,13 @@ export default async function handler(req, res) {
           const d2 = await r2.json();
           const url = d2.video?.url;
           if (url) {
-            const vr = await fetch(url);
-            const buf = Buffer.from(await vr.arrayBuffer());
-            return res.status(200).json({ status: 'completed', video_base64: buf.toString('base64'), mime_type: 'video/mp4' });
+            // Return URL directly - don't download (Vercel timeout)
+            return res.status(200).json({ status: 'completed', video_url: url });
           }
           return res.status(200).json({ status: 'completed_no_url', debug: JSON.stringify(d2).substring(0, 500) });
         }
         if (d.status === 'FAILED') return res.status(200).json({ status: 'error', error: d.error || 'Video fallo en fal.ai' });
-        return res.status(200).json({ status: 'processing', fal_status: d.status, queue_position: d.queue_position });
+        return res.status(200).json({ status: 'processing', fal_status: d.status });
       } catch (e) {
         return res.status(200).json({ status: 'processing', debug: e.message });
       }
@@ -51,26 +50,19 @@ export default async function handler(req, res) {
       if (!prompt) return res.status(400).json({ error: 'No prompt' });
 
       let imageUrl = null;
-
-      // If image provided, upload to fal storage first
       if (image_base64) {
         try {
           const imgBuf = Buffer.from(image_base64, 'base64');
           const uploadRes = await fetch('https://rest.fal.run/storage/upload', {
             method: 'PUT',
-            headers: {
-              'Authorization': 'Key ' + FAL_KEY,
-              'Content-Type': 'image/jpeg',
-            },
+            headers: { 'Authorization': 'Key ' + FAL_KEY, 'Content-Type': 'image/jpeg' },
             body: imgBuf
           });
           if (uploadRes.ok) {
             const uploadData = await uploadRes.json();
             imageUrl = uploadData.url || uploadData.file_url;
           }
-        } catch (e) {
-          // If upload fails, skip image and do text-to-video
-        }
+        } catch (e) {}
       }
 
       const endpoint = imageUrl
@@ -87,13 +79,9 @@ export default async function handler(req, res) {
       });
       const text = await r.text();
       const d = JSON.parse(text);
-
-      // Check for errors (422, etc)
-      if (d.detail || d.error) {
-        return res.status(200).json({ status: 'error', error: d.detail || d.error || 'Error de fal.ai' });
-      }
+      if (d.detail || d.error) return res.status(200).json({ status: 'error', error: d.detail || d.error });
       if (d.request_id) return res.status(200).json({ status: 'started', operation: d.request_id, endpoint: endpoint });
-      return res.status(200).json({ status: 'error', error: 'Respuesta inesperada: ' + JSON.stringify(d).substring(0, 200) });
+      return res.status(200).json({ status: 'error', error: 'Respuesta inesperada' });
     } catch (e) {
       return res.status(500).json({ error: e.message });
     }
