@@ -1,4 +1,3 @@
-// v4 - fal.ai Kling video generation (faster than Veo)
 export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
 
 export default async function handler(req, res) {
@@ -8,109 +7,64 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const FAL_KEY = process.env.FAL_KEY;
-  if (!FAL_KEY) return res.status(500).json({ error: "No fal.ai API key configured" });
+  if (!FAL_KEY) return res.status(500).json({ error: "No FAL_KEY" });
 
-  const FAL_HEADERS = {
-    "Content-Type": "application/json",
-    "Authorization": "Key " + FAL_KEY
-  };
-
-  // ── GET: check status of a running job ──
   if (req.method === 'GET') {
-    const action = req.query.action;
-
-    if (action === "test") {
-      return res.status(200).json({ key: "SI", model: "kling-video/v2.1/standard/text-to-video", status: "ready" });
-    }
-
-    if (action === "check") {
-      const requestId = req.query.op;
-      if (!requestId) return res.status(400).json({ error: "No request ID" });
-
+    const { action, op } = req.query;
+    if (action === 'test') return res.status(200).json({ status: 'ready', model: 'kling' });
+    if (action === 'check' && op) {
       try {
-        // Check status
-        const statusRes = await fetch(
-          `https://queue.fal.run/fal-ai/kling-video/requests/${requestId}/status`,
-          { headers: FAL_HEADERS }
-        );
-        const statusData = await statusRes.json();
-
-        if (statusData.status === "COMPLETED") {
-          // Get result
-          const resultRes = await fetch(
-            `https://queue.fal.run/fal-ai/kling-video/requests/${requestId}`,
-            { headers: FAL_HEADERS }
-          );
-          const resultData = await resultRes.json();
-          const videoUrl = resultData.video?.url;
-
-          if (videoUrl) {
-            // Download and return as base64
-            const vr = await fetch(videoUrl);
-            if (vr.ok) {
-              const buf = Buffer.from(await vr.arrayBuffer());
-              const b64 = buf.toString("base64");
-              return res.status(200).json({ status: "completed", video_base64: b64, mime_type: "video/mp4" });
-            }
-            return res.status(200).json({ status: "completed_no_download", video_uri: videoUrl });
+        const r = await fetch('https://queue.fal.run/fal-ai/kling-video/v2/master/text-to-video/requests/' + op + '/status', {
+          headers: { 'Authorization': 'Key ' + FAL_KEY }
+        });
+        const d = await r.json();
+        if (d.status === 'COMPLETED') {
+          const r2 = await fetch('https://queue.fal.run/fal-ai/kling-video/v2/master/text-to-video/requests/' + op, {
+            headers: { 'Authorization': 'Key ' + FAL_KEY }
+          });
+          const d2 = await r2.json();
+          const url = d2.video && d2.video.url;
+          if (url) {
+            const vr = await fetch(url);
+            const buf = Buffer.from(await vr.arrayBuffer());
+            return res.status(200).json({ status: 'completed', video_base64: buf.toString('base64'), mime_type: 'video/mp4' });
           }
-          return res.status(200).json({ status: "completed_unknown", raw: JSON.stringify(resultData).substring(0, 500) });
-        } else if (statusData.status === "FAILED") {
-          return res.status(200).json({ status: "error", error: statusData.error || "Video generation failed" });
-        } else {
-          return res.status(200).json({ status: "processing" });
         }
+        if (d.status === 'FAILED') return res.status(200).json({ status: 'error', error: 'Video fallo' });
+        return res.status(200).json({ status: 'processing' });
       } catch (e) {
-        return res.status(200).json({ status: "error", error: e.message });
+        return res.status(200).json({ status: 'error', error: e.message });
       }
     }
-
-    return res.status(400).json({ error: "Unknown action" });
+    return res.status(400).json({ error: 'Unknown action' });
   }
 
-  // ── POST: Generate video ──
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+  if (req.method === 'POST') {
+    try {
+      const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+      const prompt = body && body.prompt;
+      const image_base64 = body && body.image_base64;
+      if (!prompt) return res.status(400).json({ error: 'No prompt' });
 
-  let body;
-  try {
-    body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-  } catch (e) {
-    return res.status(400).json({ error: "Invalid JSON body" });
-  }
+      const endpoint = image_base64
+        ? 'https://queue.fal.run/fal-ai/kling-video/v2/master/image-to-video'
+        : 'https://queue.fal.run/fal-ai/kling-video/v2/master/text-to-video';
 
-  const { prompt, aspect_ratio, image_base64 } = body || {};
-  if (!prompt) return res.status(400).json({ error: "No prompt provided" });
+      const payload = { prompt: prompt, duration: '5', aspect_ratio: '9:16' };
+      if (image_base64) payload.image_url = 'data:image/jpeg;base64,' + image_base64;
 
-  try {
-    // Choose model based on whether image is provided
-    const model = image_base64
-      ? "fal-ai/kling-video/v2.1/standard/image-to-video"
-      : "fal-ai/kling-video/v2.1/standard/text-to-video";
-
-    const falBody = {
-      prompt: prompt,
-      duration: "5",
-      aspect_ratio: aspect_ratio === "9:16" ? "9:16" : "16:9",
-    };
-
-    if (image_base64) {
-      falBody.image_url = `data:image/jpeg;base64,${image_base64}`;
+      const r = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Key ' + FAL_KEY },
+        body: JSON.stringify(payload)
+      });
+      const d = await r.json();
+      if (d.request_id) return res.status(200).json({ status: 'started', operation: d.request_id });
+      return res.status(200).json({ status: 'error', error: d.detail || d.error || 'Sin request_id' });
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
     }
-
-    const r = await fetch(`https://queue.fal.run/${model}`, {
-      method: "POST",
-      headers: FAL_HEADERS,
-      body: JSON.stringify(falBody)
-    });
-
-    const d = await r.json();
-
-    if (d.request_id) {
-      return res.status(200).json({ status: "started", operation: d.request_id });
-    }
-
-    return res.status(200).json({ status: "error", error: d.detail || d.error || "No request ID returned" });
-  } catch (e) {
-    return res.status(500).json({ status: "error", error: e.message });
   }
+
+  return res.status(405).json({ error: 'Method not allowed' });
 }
