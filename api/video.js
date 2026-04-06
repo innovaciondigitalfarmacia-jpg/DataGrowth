@@ -50,13 +50,35 @@ export default async function handler(req, res) {
       const image_base64 = body && body.image_base64;
       if (!prompt) return res.status(400).json({ error: 'No prompt' });
 
-      // Endpoints confirmados de fal.ai docs
-      const endpoint = image_base64
+      let imageUrl = null;
+
+      // If image provided, upload to fal storage first
+      if (image_base64) {
+        try {
+          const imgBuf = Buffer.from(image_base64, 'base64');
+          const uploadRes = await fetch('https://rest.fal.run/storage/upload', {
+            method: 'PUT',
+            headers: {
+              'Authorization': 'Key ' + FAL_KEY,
+              'Content-Type': 'image/jpeg',
+            },
+            body: imgBuf
+          });
+          if (uploadRes.ok) {
+            const uploadData = await uploadRes.json();
+            imageUrl = uploadData.url || uploadData.file_url;
+          }
+        } catch (e) {
+          // If upload fails, skip image and do text-to-video
+        }
+      }
+
+      const endpoint = imageUrl
         ? 'fal-ai/minimax/video-01-live/image-to-video'
         : 'fal-ai/minimax/video-01-live';
 
       const payload = { prompt: prompt, prompt_optimizer: true };
-      if (image_base64) payload.image_url = 'data:image/jpeg;base64,' + image_base64;
+      if (imageUrl) payload.image_url = imageUrl;
 
       const r = await fetch('https://queue.fal.run/' + endpoint, {
         method: 'POST',
@@ -65,8 +87,13 @@ export default async function handler(req, res) {
       });
       const text = await r.text();
       const d = JSON.parse(text);
+
+      // Check for errors (422, etc)
+      if (d.detail || d.error) {
+        return res.status(200).json({ status: 'error', error: d.detail || d.error || 'Error de fal.ai' });
+      }
       if (d.request_id) return res.status(200).json({ status: 'started', operation: d.request_id, endpoint: endpoint });
-      return res.status(200).json({ status: 'error', error: d.detail || d.error || JSON.stringify(d).substring(0, 200) });
+      return res.status(200).json({ status: 'error', error: 'Respuesta inesperada: ' + JSON.stringify(d).substring(0, 200) });
     } catch (e) {
       return res.status(500).json({ error: e.message });
     }
