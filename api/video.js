@@ -11,10 +11,10 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     const { action, op, endpoint } = req.query;
-    if (action === 'test') return res.status(200).json({ status: 'ready', model: 'hailuo-2.3' });
+    if (action === 'test') return res.status(200).json({ status: 'ready', model: 'minimax-video-01-live' });
     if (action === 'check' && op) {
       try {
-        const base = endpoint || 'fal-ai/minimax/hailuo-2.3-fast/standard/text-to-video';
+        const base = endpoint || 'fal-ai/minimax/video-01-live';
         const statusUrl = 'https://queue.fal.run/' + base + '/requests/' + op + '/status';
         const r = await fetch(statusUrl, {
           headers: { 'Authorization': 'Key ' + FAL_KEY }
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
           return res.status(200).json({ status: 'completed_no_url', debug: JSON.stringify(d2).substring(0, 500) });
         }
         if (d.status === 'FAILED') return res.status(200).json({ status: 'error', error: d.error || 'Video fallo en fal.ai' });
-        return res.status(200).json({ status: 'processing', fal_status: d.status, queue_position: d.queue_position, raw: JSON.stringify(d).substring(0, 300) });
+        return res.status(200).json({ status: 'processing', fal_status: d.status, queue_position: d.queue_position });
       } catch (e) {
         return res.status(200).json({ status: 'processing', debug: e.message });
       }
@@ -50,11 +50,12 @@ export default async function handler(req, res) {
       const image_base64 = body && body.image_base64;
       if (!prompt) return res.status(400).json({ error: 'No prompt' });
 
+      // Endpoints confirmados de fal.ai docs
       const endpoint = image_base64
-        ? 'fal-ai/minimax/hailuo-2.3-fast/standard/image-to-video'
-        : 'fal-ai/minimax/hailuo-2.3-fast/standard/text-to-video';
+        ? 'fal-ai/minimax/video-01-live/image-to-video'
+        : 'fal-ai/minimax/video-01-live';
 
-      const payload = { prompt: prompt, prompt_optimizer: true, duration: 4, resolution: "512P" };
+      const payload = { prompt: prompt, prompt_optimizer: true };
       if (image_base64) payload.image_url = 'data:image/jpeg;base64,' + image_base64;
 
       const r = await fetch('https://queue.fal.run/' + endpoint, {
@@ -65,7 +66,7 @@ export default async function handler(req, res) {
       const text = await r.text();
       const d = JSON.parse(text);
       if (d.request_id) return res.status(200).json({ status: 'started', operation: d.request_id, endpoint: endpoint });
-      return res.status(200).json({ status: 'error', error: d.detail || d.error || 'Sin request_id' });
+      return res.status(200).json({ status: 'error', error: d.detail || d.error || JSON.stringify(d).substring(0, 200) });
     } catch (e) {
       return res.status(500).json({ error: e.message });
     }
