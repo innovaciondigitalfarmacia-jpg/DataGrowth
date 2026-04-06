@@ -53,38 +53,43 @@ const Logo = ({ size = 32 }) => <img src="/logo.jpg" alt="DataGrowth" style={{ w
 
 // ══════ LANDING PAGE (Supabase-inspired) ══════
 const BLOG_POSTS = [
-  { id: 1, tag: "Marketing IA", emoji: "🤖", title: "Cómo generar contenido para redes sociales con IA en minutos", desc: "Aprende a usar inteligencia artificial para crear posts, carruseles y reels profesionales sin ser diseñador.", date: "4 Jun 2026", min: "5 min", body: "En DataGrowth hemos desarrollado una plataforma que permite a agencias digitales y emprendedores generar contenido profesional en segundos. La clave está en configurar correctamente la identidad de tu marca.\n\nCon nuestra Fábrica Creativa puedes generar posts con imagen, carruseles de 5 slides, reels de hasta 8 segundos, copys para redes sociales, anuncios y emails de marketing. Todo con el tono, colores y voz de tu marca.\n\nEl proceso es simple: describes lo que quieres en lenguaje natural y la IA genera imagen, texto y hashtags listos para publicar. Sin conocimientos de diseño ni redacción." },
-  { id: 2, tag: "Estrategia", emoji: "📈", title: "5 estrategias de marketing digital que toda agencia debe aplicar en 2026", desc: "El marketing digital evoluciona rápido. Estas son las estrategias que están dominando este año.", date: "1 Jun 2026", min: "7 min", body: "El marketing digital en 2026 está siendo transformado por la inteligencia artificial. Aquí las 5 estrategias más efectivas:\n\n1. Contenido hiperpersonalizado: ya no basta con contenido genérico. Las marcas que ganan son las que hablan directamente a su audiencia con el tono correcto.\n\n2. Video corto consistente: Instagram Reels y TikTok siguen dominando. La clave es la consistencia, no la perfección.\n\n3. Email marketing automatizado: el email tiene el ROI más alto de todos los canales. Con IA puedes personalizarlo a escala.\n\n4. Branding coherente en todos los canales: tu marca debe verse y sonar igual en Instagram, email y anuncios.\n\n5. Datos reales en el contenido: la IA que usa información real de tu marca genera contenido más creíble y convincente." },
-  { id: 3, tag: "Branding", emoji: "🎨", title: "Por qué tu marca necesita contenido consistente para crecer en redes", desc: "La consistencia es el secreto del crecimiento orgánico. Te explicamos cómo lograrlo con IA.", date: "28 May 2026", min: "4 min", body: "El algoritmo de Instagram y otras redes sociales favorece a las cuentas que publican consistentemente. No es sobre cantidad, es sobre regularidad.\n\nEl problema es que crear contenido de calidad todos los días es agotador y costoso. Ahí es donde entra DataGrowth.\n\nCon nuestra plataforma puedes configurar tu marca una sola vez y generar semanas de contenido en minutos. Mismo tono, mismos colores, misma voz de marca en cada pieza.\n\nLas marcas que mantienen consistencia durante 6 meses ven en promedio un 3x en su alcance orgánico." },
+  { id: 1, tag: "Marketing IA", emoji: "🤖", title: "Cómo generar contenido para redes sociales con IA en minutos", desc: "Aprende a usar IA para crear posts, carruseles y reels profesionales sin ser diseñador.", date: "4 Jun 2026", min: "5 min", body: "En DataGrowth hemos desarrollado una plataforma que permite a agencias digitales y emprendedores generar contenido profesional en segundos. La clave está en configurar correctamente la identidad de tu marca.\n\nCon nuestra Fábrica Creativa puedes generar posts con imagen, carruseles de 5 slides, reels de hasta 8 segundos, copys para redes sociales, anuncios y emails de marketing. Todo con el tono, colores y voz de tu marca.\n\nEl proceso es simple: describes lo que quieres en lenguaje natural y la IA genera imagen, texto y hashtags listos para publicar." },
+  { id: 2, tag: "Estrategia", emoji: "📈", title: "5 estrategias de marketing digital que toda agencia debe aplicar en 2026", desc: "El marketing digital evoluciona rápido. Estas son las estrategias que están dominando este año.", date: "1 Jun 2026", min: "7 min", body: "El marketing digital en 2026 está siendo transformado por la inteligencia artificial. Aquí las 5 estrategias más efectivas:\n\n1. Contenido hiperpersonalizado: ya no basta con contenido genérico. Las marcas que ganan hablan directamente a su audiencia.\n\n2. Video corto consistente: Instagram Reels y TikTok siguen dominando. La clave es la consistencia, no la perfección.\n\n3. Email marketing automatizado: el email tiene el ROI más alto de todos los canales.\n\n4. Branding coherente en todos los canales: tu marca debe verse y sonar igual en Instagram, email y anuncios.\n\n5. Datos reales en el contenido: la IA que usa información real de tu marca genera contenido más creíble." },
+  { id: 3, tag: "Branding", emoji: "🎨", title: "Por qué tu marca necesita contenido consistente para crecer en redes", desc: "La consistencia es el secreto del crecimiento orgánico. Te explicamos cómo lograrlo con IA.", date: "28 May 2026", min: "4 min", body: "El algoritmo de Instagram favorece a las cuentas que publican consistentemente. No es sobre cantidad, es sobre regularidad.\n\nEl problema es que crear contenido de calidad todos los días es agotador y costoso. Ahí es donde entra DataGrowth.\n\nCon nuestra plataforma puedes configurar tu marca una sola vez y generar semanas de contenido en minutos. Mismo tono, mismos colores, misma voz de marca en cada pieza." },
 ];
 
 const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }) => {
   const t = useT();
   const [customAmount, setCustomAmount] = useState(150);
   const [blogOpen, setBlogOpen] = useState(null);
+  const features = [
+    { icon: "🖼️", title: "Imagenes AI", desc: "Genera imagenes profesionales con Nano Banana de Google. Sube fotos reales de tu producto y la IA las transforma." },
+    { icon: "🎬", title: "Videos AI", desc: "Crea reels de 8 segundos con Veo 3.1. Videos realistas con audio, desde texto o animando tus propias fotos." },
+    { icon: "✍️", title: "Copy Profesional", desc: "Captions con emojis, ganchos que atrapan, CTAs que convierten. Texto listo para copiar y publicar." },
+    { icon: "🎠", title: "Carruseles", desc: "5 slides optimizados con estructura gancho-valor-CTA. Solo arma el diseno con los textos generados." },
+    { icon: "📧", title: "Email Marketing", desc: "Emails completos y persuasivos listos para enviar a tus clientes. Con CTA claro y tono de tu marca." },
+    { icon: "🏢", title: "Multi-marca", desc: "Gestiona multiples marcas desde un solo panel. Cada una con sus colores, tono, audiencia y voz unica." },
+    { icon: "🎨", title: "Branding Kit", desc: "Configura colores, tipografias, tono, audiencia y productos. La IA usa TODO para generar contenido fiel a tu marca." },
+    { icon: "🌐", title: "Info Real", desc: "Se conecta a tu pagina web y redes para usar informacion REAL. Nunca inventa precios ni datos falsos." },
+    { icon: "📢", title: "Anuncios", desc: "Genera imagenes y textos publicitarios listos para pauta en Meta Ads, Google Ads y mas." },
+  ];
 
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-
   const NAV_LINKS = [
     { label: "Inicio", id: "inicio" },
     { label: "Funciones", id: "funciones" },
-    { label: "Cómo funciona", id: "como" },
+    { label: "Quiénes somos", id: "quienes" },
     { label: "Planes", action: () => setShowPlans(true) },
     { label: "Blog", id: "blog" },
-    { label: "Contacto", id: "footer" },
   ];
 
   return (
     <div style={{ background: t.bg, minHeight: "100vh", fontFamily: "'Segoe UI',system-ui,sans-serif", color: t.tx }}>
-      <style>{`
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-        @keyframes glow{0%,100%{text-shadow:0 0 20px rgba(55,194,235,0.3)}50%{text-shadow:0 0 50px rgba(55,194,235,0.7),0 0 100px rgba(55,194,235,0.2)}}
-        .dg-glow{animation:glow 3s ease-in-out infinite}
-      `}</style>
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}} @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}} @keyframes glow{0%,100%{text-shadow:0 0 20px rgba(55,194,235,0.3)}50%{text-shadow:0 0 40px rgba(55,194,235,0.6),0 0 80px rgba(55,194,235,0.2)}} .dg-title{animation:glow 3s ease-in-out infinite}`}</style>
 
       {/* NAV */}
-      <nav style={{ height: 62, borderBottom: `1px solid ${t.brd}`, position: "sticky", top: 0, background: t.bg + "f2", backdropFilter: "blur(20px)", zIndex: 100, display: "flex", alignItems: "center" }}>
-        <div style={{ maxWidth: 1200, width: "100%", margin: "0 auto", padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <nav style={{ padding: "0", borderBottom: `1px solid ${t.brd}`, position: "sticky", top: 0, background: t.bg + "f2", backdropFilter: "blur(16px)", zIndex: 50, height: 62, display: "flex", alignItems: "center" }}>
+        <div style={{ maxWidth: 1100, width: "100%", margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 30, height: 30, borderRadius: 8, overflow: "hidden" }}><Logo size={30}/></div>
             <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.5 }}>DataGrowth</span>
@@ -92,7 +97,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
           <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
             {NAV_LINKS.map((l, i) => (
               <button key={i} onClick={l.action || (() => scrollTo(l.id))}
-                style={{ background: "transparent", border: "none", color: t.txS, fontSize: 13, fontWeight: 500, padding: "7px 14px", borderRadius: 7, cursor: "pointer", transition: "all .15s" }}
+                style={{ background: "transparent", border: "none", color: t.txS, fontSize: 13, fontWeight: 500, padding: "7px 13px", borderRadius: 7, cursor: "pointer", transition: "all .15s" }}
                 onMouseEnter={e => { e.currentTarget.style.color = t.ac; e.currentTarget.style.background = t.acS; }}
                 onMouseLeave={e => { e.currentTarget.style.color = t.txS; e.currentTarget.style.background = "transparent"; }}>
                 {l.label}
@@ -101,137 +106,77 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div onClick={() => setDark(!dark)} style={{ cursor: "pointer", color: t.txM, padding: 7, borderRadius: 7, background: t.bgI, display: "flex" }}><Ic name={dark ? "sun" : "moon"} size={15}/></div>
-            <button onClick={onLogin} style={{ background: "transparent", border: `1px solid ${t.brd}`, color: t.tx, fontSize: 13, fontWeight: 600, padding: "7px 16px", borderRadius: 8, cursor: "pointer" }}
-              onMouseEnter={e => e.currentTarget.style.borderColor = t.ac}
-              onMouseLeave={e => e.currentTarget.style.borderColor = t.brd}>
-              Iniciar sesión
-            </button>
-            <button onClick={() => onRegister()} style={{ background: t.gr, border: "none", color: "#fff", fontSize: 13, fontWeight: 700, padding: "8px 18px", borderRadius: 8, cursor: "pointer" }}>
-              Crear cuenta gratis
-            </button>
+            <Btn secondary onClick={onLogin} style={{ fontSize: 13, padding: "7px 16px" }}>Iniciar sesion</Btn>
+            <Btn primary onClick={() => onRegister()} style={{ fontSize: 13, padding: "7px 16px" }}>Crear cuenta gratis</Btn>
           </div>
         </div>
       </nav>
 
       {/* HERO */}
-      <div id="inicio" style={{ maxWidth: 1200, margin: "0 auto", padding: "90px 32px 70px", position: "relative" }}>
-        <div style={{ position: "absolute", top: 0, left: "35%", width: 700, height: 500, background: t.ac, borderRadius: "50%", filter: "blur(200px)", opacity: .04, pointerEvents: "none" }}/>
-        <div style={{ position: "relative" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, border: `1px solid ${t.ac}50`, borderRadius: 6, padding: "5px 14px 5px 10px", fontSize: 11, color: t.ac, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 36 }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: t.ac, animation: "pulse 2s infinite" }}/> Plataforma IA · Agencias Digitales
-          </div>
-          <h1 className="dg-glow" style={{ fontSize: "clamp(44px,7vw,88px)", fontWeight: 900, lineHeight: 1.0, letterSpacing: -3, marginBottom: 28, maxWidth: 820, color: t.tx }}>
-            Deja de crear<br/>contenido{" "}<span style={{ color: t.ac }}>a mano.</span>
-          </h1>
-          <p style={{ fontSize: 18, color: t.txS, maxWidth: 520, lineHeight: 1.75, marginBottom: 44 }}>
-            DataGrowth genera posts, imágenes, videos, carruseles y emails en segundos. Con el tono, colores e información real de tu marca.
-          </p>
-          <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 80 }}>
-            <button onClick={() => onRegister()} style={{ background: t.ac, border: "none", color: "#fff", fontSize: 16, fontWeight: 700, padding: "15px 36px", borderRadius: 10, cursor: "pointer", boxShadow: `0 0 30px ${t.ac}40` }}>
-              Empezar gratis →
-            </button>
-            <button onClick={() => setShowPlans(true)} style={{ background: "transparent", border: `1px solid ${t.brd}`, color: t.tx, fontSize: 15, fontWeight: 500, padding: "15px 30px", borderRadius: 10, cursor: "pointer" }}>
-              Ver planes
-            </button>
-          </div>
-          <div style={{ position: "relative", borderRadius: 18, overflow: "hidden", boxShadow: `0 40px 120px ${t.sh}, 0 0 0 1px ${t.brd}` }}>
-            <img src="/hero-image.png" alt="DataGrowth plataforma" style={{ width: "100%", display: "block" }}/>
-            <div style={{ position: "absolute", inset: 0, background: `linear-gradient(to bottom, transparent 55%, ${t.bg} 100%)`, pointerEvents: "none", opacity: dark ? 1 : 0.5 }}/>
-          </div>
+      <div id="inicio" style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px 60px", textAlign: "center", position: "relative" }}>
+        <div style={{ position: "absolute", top: -100, left: "50%", transform: "translateX(-50%)", width: 600, height: 400, background: t.ac, borderRadius: "50%", filter: "blur(180px)", opacity: .06, pointerEvents: "none" }}/>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, border: `1px solid ${t.ac}50`, borderRadius: 6, padding: "5px 16px 5px 10px", fontSize: 11, color: t.ac, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 32 }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: t.ac, animation: "pulse 2s infinite" }}/> Plataforma AI para agencias digitales
+        </div>
+        <h1 className="dg-title" style={{ fontSize: "clamp(40px,6vw,72px)", fontWeight: 900, lineHeight: 1.04, letterSpacing: -2.5, marginBottom: 24 }}>Crea contenido en minutos{" "}<span style={{ color: t.ac }}>Escala a miles</span></h1>
+        <p style={{ fontSize: 18, color: t.txS, maxWidth: 640, margin: "0 auto 36px", lineHeight: 1.6 }}>DataGrowth es la plataforma de inteligencia artificial que genera posts, imagenes, videos, carruseles, reels, copys y emails profesionales para tu marca o la de tus clientes. Configura tu identidad de marca una sola vez y genera contenido ilimitado con un clic.</p>
+        <div style={{ display: "flex", gap: 14, justifyContent: "center" }}>
+          <button onClick={() => setShowPlans(true)} style={{ background: t.ac, border: "none", color: "#fff", fontSize: 17, fontWeight: 700, padding: "16px 44px", borderRadius: 10, cursor: "pointer", boxShadow: `0 0 30px ${t.ac}40` }}>Ver planes</button>
+          <button onClick={() => onRegister()} style={{ background: "transparent", border: `1px solid ${t.brd}`, color: t.tx, fontSize: 16, fontWeight: 500, padding: "16px 32px", borderRadius: 10, cursor: "pointer" }}>Empezar gratis →</button>
+        </div>
+      </div>
+      <div id="funciones" style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px" }}>
+        <div style={{ textAlign: "center", marginBottom: 56 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Funcionalidades</div>
+          <h2 style={{ fontSize: 36, fontWeight: 700, letterSpacing: -1 }}>Todo lo que tu agencia necesita</h2>
+          <p style={{ fontSize: 15, color: t.txS, marginTop: 10, maxWidth: 500, margin: "10px auto 0" }}>Una sola plataforma para generar todo el contenido de tus marcas.</p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+          {features.map((f, i) => (
+            <div key={i} style={{ background: t.bgC, border: "1px solid " + t.brd, borderRadius: 16, padding: 28, transition: "all .3s", cursor: "default" }} onMouseEnter={e => { e.currentTarget.style.borderColor = t.ac + "50"; e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 40px " + t.sh; }} onMouseLeave={e => { e.currentTarget.style.borderColor = t.brd; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: t.acS, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, marginBottom: 16 }}>{f.icon}</div>
+              <div style={{ fontSize: 17, fontWeight: 600, color: t.tx, marginBottom: 8 }}>{f.title}</div>
+              <div style={{ fontSize: 14, color: t.txS, lineHeight: 1.6 }}>{f.desc}</div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* PROBLEMA */}
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "80px 32px" }}>
-        <div style={{ marginBottom: 52 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 16 }}>El problema</div>
-          <h2 style={{ fontSize: "clamp(28px,4vw,52px)", fontWeight: 900, letterSpacing: -2, marginBottom: 16, maxWidth: 620 }}>¿Te suena familiar?</h2>
-          <p style={{ fontSize: 16, color: t.txS, maxWidth: 540, lineHeight: 1.7 }}>Estas son las situaciones que viven la mayoría de agencias y marcas cada semana.</p>
+      {/* ABOUT US */}
+      <div id="quienes" style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px", position: "relative" }}>
+        <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 500, height: 300, background: t.ac, borderRadius: "50%", filter: "blur(160px)", opacity: .04, pointerEvents: "none" }}/>
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Quienes Somos</div>
+          <h2 style={{ fontSize: 36, fontWeight: 700, letterSpacing: -1 }}>La agencia digital que trabaja 24/7 para tu marca</h2>
+          <p style={{ fontSize: 16, color: t.txS, marginTop: 12, maxWidth: 700, margin: "12px auto 0", lineHeight: 1.7 }}>DataGrowth es una plataforma de inteligencia artificial disenada para agencias digitales, emprendedores y empresas que necesitan generar contenido profesional de forma rapida, consistente y alineado con su identidad de marca.</p>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 1, background: t.brd, borderRadius: 16, overflow: "hidden" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
           {[
-            { n: "01", title: "Horas perdidas cada semana", desc: "Tu equipo pasa más tiempo produciendo contenido que estrategizando. La IA puede hacer el trabajo pesado en segundos." },
-            { n: "02", title: "Tono inconsistente entre marcas", desc: "Sin un sistema centralizado, cada pieza suena diferente. La identidad de marca se pierde." },
-            { n: "03", title: "Escalar es demasiado costoso", desc: "Contratar más personas para producir más contenido no es sostenible. DataGrowth escala sin costo adicional." },
-          ].map((item, i) => (
-            <div key={i} style={{ padding: 36, background: t.bgC, transition: "background .2s" }}
-              onMouseEnter={e => e.currentTarget.style.background = t.bgI}
-              onMouseLeave={e => e.currentTarget.style.background = t.bgC}>
-              <div style={{ fontSize: 48, fontWeight: 900, color: t.ac + "25", marginBottom: 20, letterSpacing: -2, lineHeight: 1 }}>{item.n}</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: t.tx, marginBottom: 12, lineHeight: 1.3 }}>{item.title}</div>
-              <div style={{ fontSize: 14, color: t.txS, lineHeight: 1.7 }}>{item.desc}</div>
+            { icon: "🎯", title: "Que hacemos", desc: "Generamos contenido completo para redes sociales usando inteligencia artificial de ultima generacion. Desde imagenes y videos hasta copys, carruseles, reels, anuncios y emails de marketing. Todo personalizado con los colores, tono de voz, productos e informacion real de tu marca." },
+            { icon: "🚀", title: "Como funciona", desc: "1. Creas tu marca y configuras tu Brand Kit. 2. Conectas tu pagina web o redes sociales. 3. Seleccionas el tipo de contenido. 4. Describes lo que quieres. 5. La IA genera todo en segundos: imagen, texto, hashtags, listo para publicar." },
+            { icon: "💡", title: "Que nos diferencia", desc: "DataGrowth se conecta a tu pagina web y redes sociales para extraer informacion REAL. Nunca inventa precios, productos ni servicios. Cada pieza de contenido refleja tu marca tal como es. Sube fotos reales y la IA las transforma en contenido profesional." },
+            { icon: "🏢", title: "Para quien es", desc: "Para agencias digitales que manejan multiples marcas. Para emprendedores que necesitan contenido profesional. Para empresas que quieren mantener sus redes activas. Para cualquier negocio que quiera escalar su presencia digital." }
+          ].map((item, i) => <div key={i} style={{ background: t.bgC, border: "1px solid " + t.brd, borderRadius: 16, padding: 28, transition: "all .3s" }} onMouseEnter={e => { e.currentTarget.style.borderColor = t.ac + "50"; e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 40px " + t.sh; }} onMouseLeave={e => { e.currentTarget.style.borderColor = t.brd; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}>
+            <div style={{ width: 48, height: 48, borderRadius: 12, background: t.acS, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, marginBottom: 14 }}>{item.icon}</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: t.tx, marginBottom: 10 }}>{item.title}</div>
+            <div style={{ fontSize: 14, color: t.txS, lineHeight: 1.7 }}>{item.desc}</div>
+          </div>)}
+        </div>
+        <div style={{ marginTop: 24, background: t.bgC, border: "1px solid " + t.brd, borderRadius: 16, padding: 28 }}>
+          <div style={{ fontSize: 17, fontWeight: 700, color: t.tx, marginBottom: 16, textAlign: "center" }}>🛠️ Tecnologia que impulsa DataGrowth</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+              {[
+                { icon: "🤖", name: "Claude AI", desc: "Genera textos, copys y emails de nivel agencia" },
+                { icon: "🖼️", name: "Nano Banana", desc: "Crea imagenes profesionales con IA de Google" },
+                { icon: "🎬", name: "Veo 3.1", desc: "Genera videos de 8 segundos en alta calidad" },
+                { icon: "🌐", name: "Web Scraping", desc: "Extrae info real de tu pagina web y redes" }
+              ].map((t2, i) => <div key={i} style={{ textAlign: "center", padding: 16, background: t.bgI, borderRadius: 12, transition: "all .3s" }} onMouseEnter={e => { e.currentTarget.style.background = t.acS; e.currentTarget.style.transform = "translateY(-2px)"; }} onMouseLeave={e => { e.currentTarget.style.background = t.bgI; e.currentTarget.style.transform = "none"; }}><div style={{ fontSize: 24, marginBottom: 6 }}>{t2.icon}</div><div style={{ fontSize: 13, fontWeight: 600, color: t.tx, marginBottom: 4 }}>{t2.name}</div><div style={{ fontSize: 11, color: t.txS }}>{t2.desc}</div></div>)}
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* CÓMO FUNCIONA */}
-      <div id="como" style={{ maxWidth: 1200, margin: "0 auto", padding: "80px 32px" }}>
-        <div style={{ marginBottom: 52 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 16 }}>El proceso</div>
-          <h2 style={{ fontSize: "clamp(28px,4vw,52px)", fontWeight: 900, letterSpacing: -2, maxWidth: 500 }}>Del registro al contenido en 3 pasos</h2>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
-          {[
-            { n: "01", title: "Configura tu marca", desc: "Agrega nombre, colores, tono, audiencia y productos. La IA aprende todo sobre tu marca." },
-            { n: "02", title: "Elige el formato", desc: "Post con imagen, carrusel, reel, copy, anuncio o email. Tú decides qué necesitas hoy." },
-            { n: "03", title: "Genera y publica", desc: "La IA crea el contenido en segundos. Descarga, edita si quieres y publica directamente." },
-          ].map((step, i) => (
-            <div key={i} style={{ padding: 36, border: `1px solid ${t.brd}`, borderRadius: 16, background: t.bgC, transition: "all .3s" }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = t.ac + "60"; e.currentTarget.style.boxShadow = `0 8px 32px ${t.sh}`; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = t.brd; e.currentTarget.style.boxShadow = "none"; }}>
-              <div style={{ fontSize: 56, fontWeight: 900, color: t.ac, marginBottom: 24, lineHeight: 1, letterSpacing: -3, textShadow: `0 0 30px ${t.ac}60` }}>{step.n}</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: t.tx, marginBottom: 12 }}>{step.title}</div>
-              <div style={{ fontSize: 14, color: t.txS, lineHeight: 1.7 }}>{step.desc}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* FUNCIONES */}
-      <div id="funciones" style={{ maxWidth: 1200, margin: "0 auto", padding: "80px 32px" }}>
-        <div style={{ marginBottom: 52 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 16 }}>Funcionalidades</div>
-          <h2 style={{ fontSize: "clamp(28px,4vw,52px)", fontWeight: 900, letterSpacing: -2, maxWidth: 600 }}>Todo lo que tu agencia necesita</h2>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
-          {[
-            { icon: "🖼️", title: "Imágenes AI", desc: "Genera imágenes profesionales con Nano Banana de Google. Sube fotos reales y la IA las transforma." },
-            { icon: "🎬", title: "Videos AI", desc: "Crea reels de 8 segundos con Veo 3.1. Videos realistas con audio desde texto o animando tus fotos." },
-            { icon: "✍️", title: "Copy Profesional", desc: "Captions con emojis, ganchos que atrapan y CTAs que convierten. Listo para copiar y publicar." },
-            { icon: "🎠", title: "Carruseles", desc: "5 slides optimizados con estructura gancho-valor-CTA." },
-            { icon: "📧", title: "Email Marketing", desc: "Emails completos y persuasivos listos para enviar. Tono fiel a tu marca." },
-            { icon: "🏢", title: "Multi-marca", desc: "Gestiona múltiples marcas desde un panel. Colores, tono y voz únicos por marca." },
-            { icon: "🎨", title: "Branding Kit", desc: "Configura tu identidad. La IA la usa en cada pieza de contenido." },
-            { icon: "🌐", title: "Info Real", desc: "Se conecta a tu web. Nunca inventa precios ni datos falsos." },
-            { icon: "📢", title: "Anuncios", desc: "Imágenes y textos listos para pauta en Meta Ads y Google Ads." },
-          ].map((f, i) => (
-            <div key={i} style={{ padding: 26, border: `1px solid ${t.brd}`, borderRadius: 14, background: t.bgC, transition: "all .25s" }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = t.ac + "50"; e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = `0 10px 30px ${t.sh}`; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = t.brd; e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}>
-              <div style={{ fontSize: 26, marginBottom: 12 }}>{f.icon}</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: t.tx, marginBottom: 6 }}>{f.title}</div>
-              <div style={{ fontSize: 13, color: t.txS, lineHeight: 1.6 }}>{f.desc}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* TECH STRIP */}
-      <div style={{ borderTop: `1px solid ${t.brd}`, borderBottom: `1px solid ${t.brd}` }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "36px 32px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 24 }}>
-          <div style={{ fontSize: 12, color: t.txM, textTransform: "uppercase", letterSpacing: 2, fontWeight: 600 }}>Powered by</div>
-          {[{ icon: "🤖", name: "Claude AI" }, { icon: "🖼️", name: "Nano Banana" }, { icon: "🎬", name: "Veo 3.1" }, { icon: "🗄️", name: "Supabase" }, { icon: "⚡", name: "Vercel" }].map((tech, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, color: t.txS }}>
-              <span style={{ fontSize: 20 }}>{tech.icon}</span>
-              <span style={{ fontSize: 14, fontWeight: 600 }}>{tech.name}</span>
-            </div>
-          ))}
         </div>
       </div>
 
       {/* BLOG */}
-      <div id="blog" style={{ maxWidth: 1200, margin: "0 auto", padding: "80px 32px" }}>
+      <div id="blog" style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px" }}>
         {blogOpen ? (
           <div>
             <button onClick={() => setBlogOpen(null)} style={{ display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", color: t.txS, fontSize: 14, cursor: "pointer", marginBottom: 40, padding: 0, fontWeight: 500 }}>
@@ -239,11 +184,9 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
             </button>
             <div style={{ maxWidth: 680 }}>
               <div style={{ display: "inline-block", background: t.acS, color: t.ac, fontSize: 10, fontWeight: 700, padding: "4px 12px", borderRadius: 6, marginBottom: 24, textTransform: "uppercase", letterSpacing: 1.5 }}>{blogOpen.tag}</div>
-              <h1 style={{ fontSize: "clamp(28px,4vw,52px)", fontWeight: 900, letterSpacing: -2, marginBottom: 20, lineHeight: 1.05 }}>{blogOpen.title}</h1>
+              <h1 style={{ fontSize: "clamp(28px,4vw,48px)", fontWeight: 900, letterSpacing: -2, marginBottom: 20, lineHeight: 1.05 }}>{blogOpen.title}</h1>
               <div style={{ fontSize: 12, color: t.txM, marginBottom: 48, textTransform: "uppercase", letterSpacing: 1 }}>{blogOpen.date} · {blogOpen.min} de lectura</div>
-              {blogOpen.body.split("\n\n").map((p, i) => (
-                <p key={i} style={{ fontSize: 16, color: t.txS, lineHeight: 1.8, marginBottom: 24 }}>{p}</p>
-              ))}
+              {blogOpen.body.split("\n\n").map((p, i) => <p key={i} style={{ fontSize: 16, color: t.txS, lineHeight: 1.8, marginBottom: 24 }}>{p}</p>)}
               <div style={{ marginTop: 40, padding: 28, background: t.acS, border: `1px solid ${t.ac}40`, borderRadius: 14 }}>
                 <div style={{ fontSize: 16, fontWeight: 700, color: t.tx, marginBottom: 12 }}>¿Listo para escalar tu contenido?</div>
                 <button onClick={() => onRegister()} style={{ background: t.ac, border: "none", color: "#fff", fontSize: 14, fontWeight: 700, padding: "12px 28px", borderRadius: 8, cursor: "pointer" }}>Crear cuenta gratis →</button>
@@ -252,9 +195,10 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
           </div>
         ) : (
           <>
-            <div style={{ marginBottom: 48 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 16 }}>Blog</div>
-              <h2 style={{ fontSize: "clamp(28px,4vw,52px)", fontWeight: 900, letterSpacing: -2 }}>Recursos para tu agencia</h2>
+            <div style={{ textAlign: "center", marginBottom: 48 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Blog</div>
+              <h2 style={{ fontSize: 36, fontWeight: 800, letterSpacing: -1 }}>Recursos para tu agencia</h2>
+              <p style={{ fontSize: 15, color: t.txS, marginTop: 10, maxWidth: 500, margin: "10px auto 0" }}>Artículos sobre marketing digital, contenido con IA y estrategias para crecer.</p>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
               {BLOG_POSTS.map((post, i) => (
@@ -276,30 +220,29 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
       </div>
 
       {/* CTA */}
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 32px 80px" }}>
-        <div style={{ padding: "70px 48px", border: `1px solid ${t.brd}`, borderRadius: 20, background: t.bgC, textAlign: "center", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 600, height: 400, background: t.ac, borderRadius: "50%", filter: "blur(150px)", opacity: .06, pointerEvents: "none" }}/>
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px 80px" }}>
+        <div style={{ textAlign: "center", padding: "70px 40px", position: "relative", overflow: "hidden", background: t.bgC, border: "1px solid " + t.brd, borderRadius: 20 }}>
+          <div style={{ position: "absolute", top: -100, left: "50%", transform: "translateX(-50%)", width: 600, height: 400, background: t.ac, borderRadius: "50%", filter: "blur(150px)", opacity: .1, pointerEvents: "none" }}/>
           <div style={{ position: "relative" }}>
-            <div style={{ fontSize: 44, marginBottom: 20 }}>🚀</div>
-            <h2 style={{ fontSize: "clamp(28px,4vw,48px)", fontWeight: 900, letterSpacing: -2, marginBottom: 16 }}>Empieza a crear contenido <span style={{ color: t.ac }}>hoy</span></h2>
-            <p style={{ fontSize: 16, color: t.txS, marginBottom: 36, maxWidth: 500, margin: "0 auto 36px" }}>Únete a las agencias y emprendedores que ya generan contenido profesional con IA. Sin tarjeta de crédito.</p>
+            <div style={{ fontSize: 40, marginBottom: 16 }}>🚀</div>
+            <h2 style={{ fontSize: 34, fontWeight: 700, marginBottom: 14 }}>Empieza a crear contenido <span style={{ color: t.ac }}>hoy</span></h2>
+            <p style={{ fontSize: 16, color: t.txS, marginBottom: 32, maxWidth: 500, margin: "0 auto 32px" }}>Unete a las agencias y emprendedores que ya generan contenido profesional con IA. Sin tarjeta de credito.</p>
             <div style={{ display: "flex", gap: 14, justifyContent: "center" }}>
-              <button onClick={() => onRegister()} style={{ background: t.ac, border: "none", color: "#fff", fontSize: 16, fontWeight: 700, padding: "16px 40px", borderRadius: 10, cursor: "pointer", boxShadow: `0 0 30px ${t.ac}40` }}>Crear cuenta gratis</button>
-              <button onClick={() => setShowPlans(true)} style={{ background: "transparent", border: `1px solid ${t.brd}`, color: t.tx, fontSize: 16, fontWeight: 500, padding: "16px 32px", borderRadius: 10, cursor: "pointer" }}>Ver planes</button>
+              <Btn primary onClick={() => setShowPlans(true)} style={{ fontSize: 16, padding: "16px 40px", borderRadius: 50 }}>Ver planes</Btn>
             </div>
           </div>
         </div>
       </div>
 
       {/* FOOTER */}
-      <div id="footer" style={{ borderTop: `1px solid ${t.brd}`, padding: "40px 0 24px" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 32px" }}>
+      <div style={{ borderTop: `1px solid ${t.brd}`, padding: "40px 0 24px" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 20, marginBottom: 24 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{ width: 28, height: 28, borderRadius: 7, overflow: "hidden" }}><Logo size={28}/></div>
-              <span style={{ fontSize: 15, fontWeight: 800, color: t.tx }}>DataGrowth</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: t.tx }}>DataGrowth</span>
             </div>
-            <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
               <a href="https://instagram.com/datagrowth.agency" target="_blank" rel="noopener noreferrer" style={{ color: t.txS, textDecoration: "none", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500, transition: "color .2s" }} onMouseEnter={e => e.currentTarget.style.color = "#E1306C"} onMouseLeave={e => e.currentTarget.style.color = t.txS}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
                 @datagrowth.agency
@@ -307,10 +250,6 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
               <a href="https://x.com/DataGrowth_" target="_blank" rel="noopener noreferrer" style={{ color: t.txS, textDecoration: "none", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500, transition: "color .2s" }} onMouseEnter={e => e.currentTarget.style.color = t.tx} onMouseLeave={e => e.currentTarget.style.color = t.txS}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                 @DataGrowth_
-              </a>
-              <a href="mailto:soporte.datagrowth.agency@gmail.com" style={{ color: t.txS, textDecoration: "none", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500, transition: "color .2s" }} onMouseEnter={e => e.currentTarget.style.color = t.ac} onMouseLeave={e => e.currentTarget.style.color = t.txS}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-                soporte.datagrowth.agency@gmail.com
               </a>
             </div>
           </div>
@@ -321,78 +260,82 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
         </div>
       </div>
 
-      {/* PLANS OVERLAY */}
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}} @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}} nav,section,h1,h2,p{animation:fadeUp .6s ease-out}`}</style>
+
+      {/* PLANS PAGE OVERLAY */}
       {showPlans && <div style={{ position: "fixed", inset: 0, background: t.bg, zIndex: 200, overflow: "auto" }}>
-        <nav style={{ padding: "16px 0", borderBottom: `1px solid ${t.brd}`, background: t.bg + "ee", backdropFilter: "blur(12px)" }}>
-          <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <nav style={{ padding: "16px 0", borderBottom: "1px solid " + t.brd, background: t.bg + "ee", backdropFilter: "blur(12px)" }}>
+          <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => setShowPlans(false)}>
-              <Ic name="back" size={20}/><div style={{ width: 30, height: 30, borderRadius: 8, overflow: "hidden" }}><Logo size={30}/></div>
-              <span style={{ fontSize: 15, fontWeight: 800 }}>DataGrowth</span>
+              <Ic name="back" size={20}/>
+              <div style={{ width: 32, height: 32, borderRadius: 8, overflow: "hidden" }}><Logo size={32}/></div>
+              <span style={{ fontSize: 16, fontWeight: 700 }}>DataGrowth</span>
             </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={onLogin} style={{ background: "transparent", border: `1px solid ${t.brd}`, color: t.tx, fontSize: 13, fontWeight: 600, padding: "7px 16px", borderRadius: 8, cursor: "pointer" }}>Iniciar sesión</button>
-              <button onClick={() => onRegister()} style={{ background: t.ac, border: "none", color: "#fff", fontSize: 13, fontWeight: 700, padding: "8px 18px", borderRadius: 8, cursor: "pointer" }}>Crear cuenta gratis</button>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Btn secondary onClick={onLogin} style={{ fontSize: 13, padding: "8px 18px" }}>Iniciar sesion</Btn>
+              <Btn primary onClick={() => onRegister()} style={{ fontSize: 13, padding: "8px 18px" }}>Crear cuenta gratis</Btn>
             </div>
           </div>
         </nav>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "60px 32px 80px" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px 80px" }}>
           <div style={{ textAlign: "center", marginBottom: 56 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Precios</div>
-            <h2 style={{ fontSize: "clamp(32px,4vw,56px)", fontWeight: 900, letterSpacing: -2 }}>Elige el plan perfecto para ti</h2>
+            <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Precios</div>
+            <h2 style={{ fontSize: 40, fontWeight: 800, letterSpacing: -1 }}>Elige el plan perfecto para ti</h2>
             <p style={{ fontSize: 16, color: t.txS, marginTop: 12 }}>Empieza gratis. Escala cuando lo necesites. Cancela cuando quieras.</p>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24, alignItems: "start" }}>
             {PLANS.map(p => (
-              <div key={p.id} style={{ position: "relative", background: t.bgC, border: p.pop ? `2px solid ${p.color}` : `1px solid ${t.brd}`, borderRadius: 20, textAlign: "center", padding: 40, overflow: "visible", transition: "all .3s", transform: p.pop ? "scale(1.05)" : "none" }}
-                onMouseEnter={e => { e.currentTarget.style.transform = p.pop ? "scale(1.07)" : "translateY(-6px)"; e.currentTarget.style.boxShadow = `0 20px 60px ${t.sh}`; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = p.pop ? "scale(1.05)" : "none"; e.currentTarget.style.boxShadow = "none"; }}>
+              <div key={p.id} style={{ position: "relative", background: t.bgC, border: p.pop ? "2px solid " + p.color : "1px solid " + t.brd, borderRadius: 20, textAlign: "center", padding: 40, overflow: "visible", transition: "all .3s", transform: p.pop ? "scale(1.05)" : "none" }} onMouseEnter={e => { e.currentTarget.style.transform = p.pop ? "scale(1.07)" : "translateY(-6px)"; e.currentTarget.style.boxShadow = "0 20px 60px " + t.sh; }} onMouseLeave={e => { e.currentTarget.style.transform = p.pop ? "scale(1.05)" : "none"; e.currentTarget.style.boxShadow = "none"; }}>
                 {p.pop && <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: t.gr, color: "#fff", padding: "6px 28px", borderRadius: 20, fontSize: 12, fontWeight: 700, boxShadow: "0 4px 15px rgba(55,194,235,.3)" }}>Mas popular</div>}
                 <div style={{ fontSize: 22, fontWeight: 700, color: t.tx, marginBottom: 6, paddingTop: p.pop ? 10 : 0 }}>{p.name}</div>
                 <div style={{ fontSize: 14, color: t.txS, marginBottom: 20 }}>{p.desc}</div>
-                <div style={{ fontSize: 52, fontWeight: 900, color: p.color, marginBottom: 6 }}>{p.price}<span style={{ fontSize: 16, fontWeight: 400, color: t.txM }}>/mes</span></div>
-                <div style={{ borderTop: `1px solid ${t.brd}`, margin: "24px 0", paddingTop: 20 }}>
-                  {p.features.map((f, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", fontSize: 14, color: t.tx, textAlign: "left" }}><span style={{ color: t.ac, flexShrink: 0 }}>✓</span>{f}</div>)}
+                <div style={{ fontSize: 52, fontWeight: 800, color: p.color, marginBottom: 6 }}>{p.price}<span style={{ fontSize: 16, fontWeight: 400, color: t.txM }}>/mes</span></div>
+                <div style={{ borderTop: "1px solid " + t.brd, margin: "24px 0", paddingTop: 20 }}>
+                  {p.features.map((f, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", fontSize: 15, color: t.tx, textAlign: "left" }}><span style={{ color: t.ac, fontSize: 18, flexShrink: 0 }}>✓</span>{f}</div>)}
                 </div>
-                <Btn primary={p.pop} secondary={!p.pop} onClick={() => onRegister(p)} style={{ width: "100%", justifyContent: "center", padding: "14px 24px", borderRadius: 12, fontSize: 15 }}>{p.id === "free" ? "Crear cuenta gratis" : "Empezar con " + p.name}</Btn>
+                <Btn primary={p.pop} secondary={!p.pop} onClick={() => onRegister(p)} style={{ width: "100%", justifyContent: "center", padding: "16px 24px", borderRadius: 14, fontSize: 16 }}>{p.id === "free" ? "Crear cuenta gratis" : "Empezar con " + p.name}</Btn>
               </div>
             ))}
           </div>
-          <div style={{ marginTop: 40, background: t.bgC, border: `1px solid ${t.brd}`, borderRadius: 20, padding: 40, overflow: "hidden", position: "relative" }}>
+          {/* CUSTOM PLAN */}
+          <div style={{ marginTop: 40, background: t.bgC, border: "1px solid " + t.brd, borderRadius: 20, padding: 40, overflow: "hidden", position: "relative" }}>
             <div style={{ position: "absolute", top: -80, right: -80, width: 300, height: 300, background: t.ac, borderRadius: "50%", filter: "blur(120px)", opacity: .06, pointerEvents: "none" }}/>
-            <div style={{ position: "relative", textAlign: "center", marginBottom: 28 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 8 }}>Plan personalizado</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: t.tx }}>Tu defines cuánto invertir</div>
-              <div style={{ fontSize: 14, color: t.txS, marginTop: 6 }}>Mueve el slider o escribe el monto. Calculamos lo que recibes.</div>
-            </div>
-            <div style={{ maxWidth: 500, margin: "0 auto" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
-                <input type="range" min="150" max="500" value={customAmount} onChange={e => setCustomAmount(Number(e.target.value))} style={{ flex: 1, height: 6, borderRadius: 3, background: t.brd, cursor: "pointer", accentColor: t.ac }}/>
-                <div style={{ display: "flex", alignItems: "center", gap: 4, background: t.bgI, border: `1px solid ${t.brd}`, borderRadius: 12, padding: "8px 14px" }}>
-                  <span style={{ fontSize: 18, fontWeight: 700, color: t.ac }}>$</span>
-                  <input type="number" min="150" max="500" value={customAmount} onChange={e => setCustomAmount(Math.max(150, Math.min(500, Number(e.target.value))))} style={{ width: 60, fontSize: 22, fontWeight: 800, color: t.tx, background: "transparent", border: "none", outline: "none", textAlign: "center" }}/>
-                  <span style={{ fontSize: 13, color: t.txM }}>/mes</span>
+            <div style={{ position: "relative" }}>
+              <div style={{ textAlign: "center", marginBottom: 28 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 8 }}>Plan personalizado</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: t.tx }}>Tu defines cuanto invertir</div>
+                <div style={{ fontSize: 14, color: t.txS, marginTop: 6 }}>Mueve el slider o escribe el monto. Calculamos automaticamente lo que recibes.</div>
+              </div>
+              <div style={{ maxWidth: 500, margin: "0 auto" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
+                  <input type="range" min="150" max="500" value={customAmount} onChange={e => setCustomAmount(Number(e.target.value))} style={{ flex: 1, height: 6, borderRadius: 3, background: t.brd, cursor: "pointer", accentColor: "#37c2eb" }}/>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, background: t.bgI, border: "1px solid " + t.brd, borderRadius: 12, padding: "8px 14px" }}>
+                    <span style={{ fontSize: 18, fontWeight: 700, color: t.ac }}>$</span>
+                    <input type="number" min="150" max="500" value={customAmount} onChange={e => setCustomAmount(Math.max(150, Math.min(500, Number(e.target.value))))} style={{ width: 60, fontSize: 22, fontWeight: 800, color: t.tx, background: "transparent", border: "none", outline: "none", textAlign: "center" }}/>
+                    <span style={{ fontSize: 13, color: t.txM }}>/mes</span>
+                  </div>
                 </div>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
-                {[
-                  { label: "Posts/mes", value: 300 + Math.round((customAmount - 149) * 3), icon: "🖼️" },
-                  { label: "Videos/mes", value: 20 + Math.round(customAmount - 149), icon: "🎬" },
-                  { label: "Marcas", value: "Ilimitadas", icon: "🏢" },
-                  { label: "Formatos", value: "Todos", icon: "✨" }
-                ].map((item, i) => <div key={i} style={{ textAlign: "center", padding: 16, background: t.bgI, borderRadius: 14, border: `1px solid ${t.brd}` }}>
-                  <div style={{ fontSize: 20, marginBottom: 6 }}>{item.icon}</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: t.ac }}>{item.value}</div>
-                  <div style={{ fontSize: 11, color: t.txM, marginTop: 2 }}>{item.label}</div>
-                </div>)}
-              </div>
-              <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-                <Btn primary onClick={() => { const posts = 300 + Math.round((customAmount - 149) * 3); const vids = 20 + Math.round(customAmount - 149); onRegister({ id: "custom", name: "Custom", price: "$" + customAmount, desc: "Plan personalizado", color: t.ac, brands: 99, limits: { post_visual: posts, carousel: posts, post_text: posts, ad: posts, email: posts, reel: vids }, features: [posts + " posts/mes", vids + " videos/mes", "Marcas ilimitadas", "Todos los formatos", "Info real de la web", "Soporte dedicado"] }); }} style={{ padding: "16px 40px", borderRadius: 12, fontSize: 16 }}>Empezar con plan de ${customAmount}/mes</Btn>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
+                  {[
+                    { label: "Posts/mes", value: 300 + Math.round((customAmount - 149) * 3), icon: "🖼️" },
+                    { label: "Videos/mes", value: 20 + Math.round(customAmount - 149), icon: "🎬" },
+                    { label: "Marcas", value: "Ilimitadas", icon: "🏢" },
+                    { label: "Formatos", value: "Todos", icon: "✨" }
+                  ].map((item, i) => <div key={i} style={{ textAlign: "center", padding: 16, background: t.bgI, borderRadius: 14, border: "1px solid " + t.brd }}>
+                    <div style={{ fontSize: 20, marginBottom: 6 }}>{item.icon}</div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: t.ac }}>{item.value}</div>
+                    <div style={{ fontSize: 11, color: t.txM, marginTop: 2 }}>{item.label}</div>
+                  </div>)}
+                </div>
+                <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+                  <Btn primary onClick={() => { const posts = 300 + Math.round((customAmount - 149) * 3); const vids = 20 + Math.round(customAmount - 149); onRegister({ id: "custom", name: "Custom", price: "$" + customAmount, desc: "Plan personalizado", color: "#37c2eb", brands: 99, limits: { post_visual: posts, carousel: posts, post_text: posts, ad: posts, email: posts, reel: vids }, features: [posts + " posts/mes", vids + " videos/mes", "Marcas ilimitadas", "Todos los formatos", "Info real de la web", "Soporte dedicado"] }); }} style={{ padding: "16px 40px", borderRadius: 14, fontSize: 16 }}>Empezar con plan de ${customAmount}/mes</Btn>
+                </div>
               </div>
             </div>
           </div>
-          <div style={{ textAlign: "center", marginTop: 32 }}>
-            <p style={{ fontSize: 13, color: t.txM }}>Sin permanencia. Cancela cuando quieras.</p>
-            <button onClick={() => setShowPlans(false)} style={{ marginTop: 16, background: "transparent", border: "none", color: t.txS, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}><Ic name="back" size={16}/> Volver al inicio</button>
+          <div style={{ textAlign: "center", marginTop: 40 }}>
+            <p style={{ fontSize: 13, color: t.txM }}>Todos los planes incluyen acceso a la plataforma completa. Sin permanencia. Cancela cuando quieras.</p>
+            <Btn ghost onClick={() => setShowPlans(false)} style={{ marginTop: 16, fontSize: 14 }}><Ic name="back" size={16}/> Volver al inicio</Btn>
           </div>
         </div>
       </div>}
