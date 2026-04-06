@@ -11,17 +11,19 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     const { action, op } = req.query;
-    if (action === 'test') return res.status(200).json({ status: 'ready', model: 'kling' });
+    if (action === 'test') return res.status(200).json({ status: 'ready' });
     if (action === 'check' && op) {
       try {
-        const r = await fetch('https://queue.fal.run/fal-ai/kling-video/v2/master/text-to-video/requests/' + op + '/status', {
+        const statusUrl = 'https://queue.fal.run/fal-ai/kling-video/requests/' + op + '/status';
+        const r = await fetch(statusUrl, {
           headers: { 'Authorization': 'Key ' + FAL_KEY }
         });
-        const d = await r.json();
+        const text = await r.text();
+        if (!text) return res.status(200).json({ status: 'processing' });
+        const d = JSON.parse(text);
         if (d.status === 'COMPLETED') {
-          const r2 = await fetch('https://queue.fal.run/fal-ai/kling-video/v2/master/text-to-video/requests/' + op, {
-            headers: { 'Authorization': 'Key ' + FAL_KEY }
-          });
+          const resultUrl = 'https://queue.fal.run/fal-ai/kling-video/requests/' + op;
+          const r2 = await fetch(resultUrl, { headers: { 'Authorization': 'Key ' + FAL_KEY } });
           const d2 = await r2.json();
           const url = d2.video && d2.video.url;
           if (url) {
@@ -29,11 +31,12 @@ export default async function handler(req, res) {
             const buf = Buffer.from(await vr.arrayBuffer());
             return res.status(200).json({ status: 'completed', video_base64: buf.toString('base64'), mime_type: 'video/mp4' });
           }
+          return res.status(200).json({ status: 'completed_no_url' });
         }
-        if (d.status === 'FAILED') return res.status(200).json({ status: 'error', error: 'Video fallo' });
+        if (d.status === 'FAILED') return res.status(200).json({ status: 'error', error: 'Video fallo en fal.ai' });
         return res.status(200).json({ status: 'processing' });
       } catch (e) {
-        return res.status(200).json({ status: 'error', error: e.message });
+        return res.status(200).json({ status: 'processing' });
       }
     }
     return res.status(400).json({ error: 'Unknown action' });
@@ -58,7 +61,8 @@ export default async function handler(req, res) {
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Key ' + FAL_KEY },
         body: JSON.stringify(payload)
       });
-      const d = await r.json();
+      const text = await r.text();
+      const d = JSON.parse(text);
       if (d.request_id) return res.status(200).json({ status: 'started', operation: d.request_id });
       return res.status(200).json({ status: 'error', error: d.detail || d.error || 'Sin request_id' });
     } catch (e) {
