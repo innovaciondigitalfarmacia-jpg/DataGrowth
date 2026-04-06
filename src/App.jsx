@@ -1640,7 +1640,7 @@ export default function App() {
     let hash = "#";
     if (newView === "app") hash = `#${newPage}`;
     else if (newView === "auth") hash = `#auth-${newAuthMode}`;
-    else if (newView === "landing") hash = newLandingSubView === "plans" ? "#planes" : "#inicio";
+    else if (newView === "landing") hash = newLandingSubView === "plans" ? "#planes" : "/";
     window.history.pushState(state, "", hash);
     setView(newView);
     if (opts.page) setPage(opts.page);
@@ -1715,7 +1715,7 @@ export default function App() {
         await loadBrands(session.user.id, role);
       } else {
         setView("landing");
-        window.history.replaceState({ view: "landing", page: "dashboard", landingSubView: "home", authMode: "login" }, "", "#inicio");
+        window.history.replaceState({ view: "landing", page: "dashboard", landingSubView: "home", authMode: "login" }, "", "/");
       }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -1726,7 +1726,7 @@ export default function App() {
       }
       // Ignorar SIGNED_IN si estamos en modo reset-password
       if (event === "SIGNED_IN" && authMode === "reset-password") return;
-      if (event === "SIGNED_OUT") { setUser(null); setView("landing"); window.history.replaceState({ view: "landing", page: "dashboard", landingSubView: "home", authMode: "login" }, "", "#inicio"); }
+      if (event === "SIGNED_OUT") { setUser(null); setView("landing"); window.history.replaceState({ view: "landing", page: "dashboard", landingSubView: "home", authMode: "login" }, "", "/"); }
     });
     return () => subscription.unsubscribe();
   }, []);
