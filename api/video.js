@@ -20,7 +20,13 @@ export default async function handler(req, res) {
           headers: { 'Authorization': 'Key ' + FAL_KEY }
         });
         const text = await r.text();
-        if (!text) return res.status(200).json({ status: 'processing' });
+        
+        // Debug mode - add &debug=1 to URL to see raw response
+        if (req.query.debug) {
+          return res.status(200).json({ raw: text || '(empty)', httpStatus: r.status, url: statusUrl });
+        }
+        
+        if (!text) return res.status(200).json({ status: 'processing', note: 'empty_response', httpCode: r.status });
         const d = JSON.parse(text);
         if (d.status === 'COMPLETED') {
           const resultUrl = 'https://queue.fal.run/' + base + '/requests/' + op;
