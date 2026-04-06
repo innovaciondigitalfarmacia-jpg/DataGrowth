@@ -928,7 +928,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
   const pollVideo = async (opName) => {
     setVideoLoading(true); setVideoProgress("Generando video con IA... (1-3 min)");
     let attempts = 0;
-    const maxAttempts = 60;
+    const maxAttempts = 120;
     while (attempts < maxAttempts) {
       await new Promise(r => setTimeout(r, 5000));
       attempts++;
