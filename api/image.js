@@ -1,4 +1,4 @@
-// v6 - Nano Banana with image editing + increased body size
+// v7 - fal.ai Flux for better image generation
 export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
 
 export default async function handler(req, res) {
@@ -7,69 +7,86 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const K = process.env.GEMINI_API_KEY;
+  const FAL_KEY = process.env.FAL_KEY;
+  const GEMINI_KEY = process.env.GEMINI_API_KEY;
 
-  // ── GET: Normal image generation ──
+  // ── GET: Normal image generation with fal.ai Flux ──
   if (req.method === 'GET') {
     const { prompt, test } = req.query;
 
     if (test) {
-      const results = { key: K ? "SI" : "NO" };
-      try {
-        const r = await fetch(
-          "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=" + K,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: "Generate a simple blue circle on white background" }] }],
-              generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
-            })
-          }
-        );
-        const d = await r.json();
-        results.status = r.status;
-        results.works = r.ok && d.candidates?.[0]?.content?.parts?.some(p => p.inlineData) ? "YES" : "NO";
-      } catch (e) { results.error = e.message; }
-      return res.status(200).json(results);
+      return res.status(200).json({ key: FAL_KEY ? "SI" : "NO", model: "flux-pro" });
     }
 
     if (!prompt) return res.status(400).json({ error: "No prompt" });
-    if (!K) return res.redirect(302, "https://picsum.photos/768/768");
+    if (!FAL_KEY) return res.redirect(302, "https://picsum.photos/768/768");
 
     try {
-      const r = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=" + K,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
-          })
-        }
-      );
+      const r = await fetch("https://fal.run/fal-ai/flux/dev", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Key " + FAL_KEY
+        },
+        body: JSON.stringify({
+          prompt: prompt,
+          image_size: "square_hd",
+          num_images: 1,
+          output_format: "jpeg",
+          guidance_scale: 3.5,
+          num_inference_steps: 28,
+          enable_safety_checker: true
+        })
+      });
+
       if (r.ok) {
         const d = await r.json();
-        const parts = d.candidates?.[0]?.content?.parts || [];
-        for (const part of parts) {
-          if (part.inlineData && part.inlineData.data) {
-            const buf = Buffer.from(part.inlineData.data, "base64");
-            res.setHeader("Content-Type", part.inlineData.mimeType || "image/png");
+        const imageUrl = d.images?.[0]?.url;
+        if (imageUrl) {
+          const imgRes = await fetch(imageUrl);
+          if (imgRes.ok) {
+            const buf = Buffer.from(await imgRes.arrayBuffer());
+            res.setHeader("Content-Type", "image/jpeg");
             return res.send(buf);
           }
         }
       }
     } catch (e) {}
 
+    // Fallback to Gemini if fal.ai fails
+    if (GEMINI_KEY) {
+      try {
+        const r = await fetch(
+          "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=" + GEMINI_KEY,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
+            })
+          }
+        );
+        if (r.ok) {
+          const d = await r.json();
+          const parts = d.candidates?.[0]?.content?.parts || [];
+          for (const part of parts) {
+            if (part.inlineData?.data) {
+              const buf = Buffer.from(part.inlineData.data, "base64");
+              res.setHeader("Content-Type", part.inlineData.mimeType || "image/png");
+              return res.send(buf);
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
     const seed = Math.abs(prompt.split("").reduce((a, c) => a + c.charCodeAt(0), 0));
     return res.redirect(302, "https://picsum.photos/seed/" + seed + "/768/768");
   }
 
-  // ── POST: Image editing (user uploads a photo + prompt) ──
+  // ── POST: Image editing with fal.ai or Gemini ──
   if (req.method === 'POST') {
-    if (!K) return res.status(500).json({ error: "No API key" });
-
     let body;
     try {
       body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
@@ -80,8 +97,47 @@ export default async function handler(req, res) {
     const { prompt, image_base64, images } = body || {};
     if (!prompt) return res.status(400).json({ error: "No prompt" });
 
+    // If image is provided, use fal.ai flux with image input
+    if ((image_base64 || images) && FAL_KEY) {
+      try {
+        const imgData = image_base64 || images?.[0];
+        const r = await fetch("https://fal.run/fal-ai/flux/dev/image-to-image", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Key " + FAL_KEY
+          },
+          body: JSON.stringify({
+            prompt: prompt,
+            image_url: `data:image/jpeg;base64,${imgData}`,
+            strength: 0.85,
+            num_images: 1,
+            output_format: "jpeg",
+            guidance_scale: 3.5,
+            num_inference_steps: 28,
+            enable_safety_checker: true
+          })
+        });
+
+        if (r.ok) {
+          const d = await r.json();
+          const imageUrl = d.images?.[0]?.url;
+          if (imageUrl) {
+            const imgRes = await fetch(imageUrl);
+            if (imgRes.ok) {
+              const buf = Buffer.from(await imgRes.arrayBuffer());
+              res.setHeader("Content-Type", "image/jpeg");
+              return res.send(buf);
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    // Fallback to Gemini for image editing
+    if (!GEMINI_KEY) return res.status(500).json({ error: "No API key" });
+
     const parts = [];
-    // Support multiple images (array) or single image (string)
     if (images && Array.isArray(images)) {
       for (const img of images) {
         parts.push({ inlineData: { mimeType: "image/jpeg", data: img } });
@@ -93,12 +149,12 @@ export default async function handler(req, res) {
 
     try {
       const r = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=" + K,
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=" + GEMINI_KEY,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            contents: [{ parts: parts }],
+            contents: [{ parts }],
             generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
           })
         }
@@ -107,16 +163,14 @@ export default async function handler(req, res) {
         const d = await r.json();
         const resParts = d.candidates?.[0]?.content?.parts || [];
         for (const part of resParts) {
-          if (part.inlineData && part.inlineData.data) {
+          if (part.inlineData?.data) {
             const buf = Buffer.from(part.inlineData.data, "base64");
             res.setHeader("Content-Type", part.inlineData.mimeType || "image/png");
             return res.send(buf);
           }
         }
-        return res.status(500).json({ error: "No image in response", raw: JSON.stringify(d).substring(0, 300) });
       }
-      const errData = await r.text();
-      return res.status(500).json({ error: "API error " + r.status, detail: errData.substring(0, 300) });
+      return res.status(500).json({ error: "No image in response" });
     } catch (e) {
       return res.status(500).json({ error: e.message });
     }
