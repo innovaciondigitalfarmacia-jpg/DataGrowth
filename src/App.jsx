@@ -926,11 +926,11 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
     });
   };
   const pollVideo = async (opName) => {
-    setVideoLoading(true); setVideoProgress("Generando video con IA... (3-10 min)");
+    setVideoLoading(true); setVideoProgress("Generando video con IA... (1-3 min)");
     let attempts = 0;
-    const maxAttempts = 110;
+    const maxAttempts = 60;
     while (attempts < maxAttempts) {
-      await new Promise(r => setTimeout(r, 8000));
+      await new Promise(r => setTimeout(r, 5000));
       attempts++;
       setVideoProgress("Generando video... " + Math.min(Math.round((attempts/maxAttempts)*100), 95) + "%");
       try {
