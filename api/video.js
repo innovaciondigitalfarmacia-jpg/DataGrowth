@@ -1,4 +1,4 @@
-// v3 - Veo 3.1 Video Generation with image-to-video support
+// v4 - fal.ai Kling video generation (faster than Veo)
 export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
 
 export default async function handler(req, res) {
@@ -7,38 +7,56 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const K = process.env.GEMINI_API_KEY;
-  if (!K) return res.status(500).json({ error: "No API key configured" });
+  const FAL_KEY = process.env.FAL_KEY;
+  if (!FAL_KEY) return res.status(500).json({ error: "No fal.ai API key configured" });
 
-  const BASE = "https://generativelanguage.googleapis.com/v1beta";
-  const HEADERS = { "Content-Type": "application/json", "x-goog-api-key": K };
+  const FAL_HEADERS = {
+    "Content-Type": "application/json",
+    "Authorization": "Key " + FAL_KEY
+  };
 
-  // ── GET actions: test and check ──
+  // ── GET: check status of a running job ──
   if (req.method === 'GET') {
     const action = req.query.action;
 
     if (action === "test") {
-      return res.status(200).json({ key: "SI", model: "veo-3.1-generate-preview", status: "ready" });
+      return res.status(200).json({ key: "SI", model: "kling-video/v2.1/standard/text-to-video", status: "ready" });
     }
 
     if (action === "check") {
-      const op = req.query.op;
-      if (!op) return res.status(400).json({ error: "No operation name" });
+      const requestId = req.query.op;
+      if (!requestId) return res.status(400).json({ error: "No request ID" });
+
       try {
-        const r = await fetch(BASE + "/" + op, { headers: { "x-goog-api-key": K } });
-        const d = await r.json();
-        if (d.done) {
-          const videoUri = d.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri;
-          if (videoUri) {
-            const vr = await fetch(videoUri, { headers: { "x-goog-api-key": K }, redirect: "follow" });
+        // Check status
+        const statusRes = await fetch(
+          `https://queue.fal.run/fal-ai/kling-video/requests/${requestId}/status`,
+          { headers: FAL_HEADERS }
+        );
+        const statusData = await statusRes.json();
+
+        if (statusData.status === "COMPLETED") {
+          // Get result
+          const resultRes = await fetch(
+            `https://queue.fal.run/fal-ai/kling-video/requests/${requestId}`,
+            { headers: FAL_HEADERS }
+          );
+          const resultData = await resultRes.json();
+          const videoUrl = resultData.video?.url;
+
+          if (videoUrl) {
+            // Download and return as base64
+            const vr = await fetch(videoUrl);
             if (vr.ok) {
               const buf = Buffer.from(await vr.arrayBuffer());
               const b64 = buf.toString("base64");
               return res.status(200).json({ status: "completed", video_base64: b64, mime_type: "video/mp4" });
             }
-            return res.status(200).json({ status: "completed_no_download", video_uri: videoUri });
+            return res.status(200).json({ status: "completed_no_download", video_uri: videoUrl });
           }
-          return res.status(200).json({ status: "completed_unknown", raw: JSON.stringify(d.response || d).substring(0, 800) });
+          return res.status(200).json({ status: "completed_unknown", raw: JSON.stringify(resultData).substring(0, 500) });
+        } else if (statusData.status === "FAILED") {
+          return res.status(200).json({ status: "error", error: statusData.error || "Video generation failed" });
         } else {
           return res.status(200).json({ status: "processing" });
         }
@@ -63,43 +81,35 @@ export default async function handler(req, res) {
   const { prompt, aspect_ratio, image_base64 } = body || {};
   if (!prompt) return res.status(400).json({ error: "No prompt provided" });
 
-  // Build request body
-  const instance = { prompt: prompt };
-
-  // If image provided, add it as first frame for image-to-video
-  if (image_base64) {
-    instance.image = {
-      bytesBase64Encoded: image_base64,
-      mimeType: "image/jpeg"
-    };
-  }
-
   try {
-    const r = await fetch(
-      BASE + "/models/veo-3.1-generate-preview:predictLongRunning",
-      {
-        method: "POST",
-        headers: HEADERS,
-        body: JSON.stringify({
-          instances: [instance],
-          parameters: { aspectRatio: aspect_ratio || "9:16" }
-        })
-      }
-    );
-    const text = await r.text();
-    let d;
-    try { d = JSON.parse(text); } catch { return res.status(200).json({ status: "error", error: "Invalid response from Veo", raw: text.substring(0, 500) }); }
+    // Choose model based on whether image is provided
+    const model = image_base64
+      ? "fal-ai/kling-video/v2.1/standard/image-to-video"
+      : "fal-ai/kling-video/v2.1/standard/text-to-video";
 
-    if (d.error) {
-      return res.status(200).json({ status: "error", error: d.error.message || JSON.stringify(d.error).substring(0, 300) });
+    const falBody = {
+      prompt: prompt,
+      duration: "5",
+      aspect_ratio: aspect_ratio === "9:16" ? "9:16" : "16:9",
+    };
+
+    if (image_base64) {
+      falBody.image_url = `data:image/jpeg;base64,${image_base64}`;
     }
 
-    const opName = d.name;
-    if (opName) {
-      return res.status(200).json({ status: "started", operation: opName });
+    const r = await fetch(`https://queue.fal.run/${model}`, {
+      method: "POST",
+      headers: FAL_HEADERS,
+      body: JSON.stringify(falBody)
+    });
+
+    const d = await r.json();
+
+    if (d.request_id) {
+      return res.status(200).json({ status: "started", operation: d.request_id });
     }
 
-    return res.status(200).json({ status: "error", error: "No operation returned", raw: JSON.stringify(d).substring(0, 500) });
+    return res.status(200).json({ status: "error", error: d.detail || d.error || "No request ID returned" });
   } catch (e) {
     return res.status(500).json({ status: "error", error: e.message });
   }
