@@ -35,7 +35,7 @@ export default async function handler(req, res) {
           return res.status(200).json({ status: 'completed_no_url', debug: JSON.stringify(d2).substring(0, 500) });
         }
         if (d.status === 'FAILED') return res.status(200).json({ status: 'error', error: d.error || 'Video fallo en fal.ai' });
-        return res.status(200).json({ status: 'processing' });
+        return res.status(200).json({ status: 'processing', fal_status: d.status, queue_position: d.queue_position, raw: JSON.stringify(d).substring(0, 300) });
       } catch (e) {
         return res.status(200).json({ status: 'processing', debug: e.message });
       }
@@ -54,7 +54,7 @@ export default async function handler(req, res) {
         ? 'fal-ai/minimax/hailuo-2.3-fast/standard/image-to-video'
         : 'fal-ai/minimax/hailuo-2.3-fast/standard/text-to-video';
 
-      const payload = { prompt: prompt, prompt_optimizer: true };
+      const payload = { prompt: prompt, prompt_optimizer: true, duration: 4, resolution: "512P" };
       if (image_base64) payload.image_url = 'data:image/jpeg;base64,' + image_base64;
 
       const r = await fetch('https://queue.fal.run/' + endpoint, {
