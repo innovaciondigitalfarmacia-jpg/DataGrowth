@@ -62,6 +62,21 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
   const t = useT();
   const [customAmount, setCustomAmount] = useState(150);
   const [blogOpen, setBlogOpen] = useState(null);
+
+  const openBlog = (post) => {
+    setBlogOpen(post);
+    window.history.pushState({ blog: post.id }, "", "#blog-" + post.id);
+  };
+  const closeBlog = () => {
+    setBlogOpen(null);
+    window.history.back();
+  };
+
+  useEffect(() => {
+    const handlePop = (e) => { if (!e.state?.blog) setBlogOpen(null); };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, []);
   const features = [
     { icon: "🖼️", title: "Imagenes AI", desc: "Genera imagenes profesionales con Nano Banana de Google. Sube fotos reales de tu producto y la IA las transforma." },
     { icon: "🎬", title: "Videos AI", desc: "Crea reels de 8 segundos con Veo 3.1. Videos realistas con audio, desde texto o animando tus propias fotos." },
@@ -179,7 +194,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
       <div id="blog" style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px" }}>
         {blogOpen ? (
           <div>
-            <button onClick={() => setBlogOpen(null)} style={{ display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", color: t.txS, fontSize: 14, cursor: "pointer", marginBottom: 40, padding: 0, fontWeight: 500 }}>
+            <button onClick={closeBlog} style={{ display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", color: t.txS, fontSize: 14, cursor: "pointer", marginBottom: 40, padding: 0, fontWeight: 500 }}>
               <Ic name="back" size={16}/> Volver al blog
             </button>
             <div style={{ maxWidth: 680 }}>
@@ -202,7 +217,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
               {BLOG_POSTS.map((post, i) => (
-                <div key={i} onClick={() => setBlogOpen(post)} style={{ border: `1px solid ${t.brd}`, borderRadius: 16, overflow: "hidden", cursor: "pointer", background: t.bgC, transition: "all .25s" }}
+                <div key={i} onClick={() => openBlog(post)} style={{ border: `1px solid ${t.brd}`, borderRadius: 16, overflow: "hidden", cursor: "pointer", background: t.bgC, transition: "all .25s" }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = t.ac + "50"; e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = `0 12px 40px ${t.sh}`; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = t.brd; e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}>
                   <div style={{ height: 140, background: `linear-gradient(135deg, ${t.ac}15, ${t.ac}03)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 52, borderBottom: `1px solid ${t.brd}` }}>{post.emoji}</div>
@@ -280,17 +295,17 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
             <h2 style={{ fontSize: 40, fontWeight: 800, letterSpacing: -1 }}>Elige el plan perfecto para ti</h2>
             <p style={{ fontSize: 16, color: t.txS, marginTop: 12 }}>Empieza gratis. Escala cuando lo necesites. Cancela cuando quieras.</p>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24, alignItems: "stretch" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
             {PLANS.map(p => (
-              <div key={p.id} style={{ position: "relative", background: t.bgC, border: p.pop ? "2px solid " + p.color : "1px solid " + t.brd, borderRadius: 20, textAlign: "center", padding: 40, overflow: "visible", transition: "all .3s", transform: p.pop ? "scale(1.05)" : "none" }} onMouseEnter={e => { e.currentTarget.style.transform = p.pop ? "scale(1.07)" : "translateY(-6px)"; e.currentTarget.style.boxShadow = "0 20px 60px " + t.sh; }} onMouseLeave={e => { e.currentTarget.style.transform = p.pop ? "scale(1.05)" : "none"; e.currentTarget.style.boxShadow = "none"; }}>
+              <div key={p.id} style={{ position: "relative", background: t.bgC, border: p.pop ? "2px solid " + p.color : "1px solid " + t.brd, borderRadius: 20, textAlign: "center", padding: 40, overflow: "visible", transition: "all .3s", transform: p.pop ? "scale(1.05)" : "none", display: "flex", flexDirection: "column" }} onMouseEnter={e => { e.currentTarget.style.transform = p.pop ? "scale(1.07)" : "translateY(-6px)"; e.currentTarget.style.boxShadow = "0 20px 60px " + t.sh; }} onMouseLeave={e => { e.currentTarget.style.transform = p.pop ? "scale(1.05)" : "none"; e.currentTarget.style.boxShadow = "none"; }}>
                 {p.pop && <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: t.gr, color: "#fff", padding: "6px 28px", borderRadius: 20, fontSize: 12, fontWeight: 700, boxShadow: "0 4px 15px rgba(55,194,235,.3)" }}>Mas popular</div>}
                 <div style={{ fontSize: 22, fontWeight: 700, color: t.tx, marginBottom: 6, paddingTop: p.pop ? 10 : 0 }}>{p.name}</div>
                 <div style={{ fontSize: 14, color: t.txS, marginBottom: 20 }}>{p.desc}</div>
                 <div style={{ fontSize: 52, fontWeight: 800, color: p.color, marginBottom: 6 }}>{p.price}<span style={{ fontSize: 16, fontWeight: 400, color: t.txM }}>/mes</span></div>
-                <div style={{ borderTop: "1px solid " + t.brd, margin: "24px 0", paddingTop: 20 }}>
+                <div style={{ borderTop: "1px solid " + t.brd, margin: "24px 0", paddingTop: 20, flex: 1 }}>
                   {p.features.map((f, i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", fontSize: 15, color: t.tx, textAlign: "left" }}><span style={{ color: t.ac, fontSize: 18, flexShrink: 0 }}>✓</span>{f}</div>)}
                 </div>
-                <Btn primary={p.pop} secondary={!p.pop} onClick={() => onRegister(p)} style={{ width: "100%", justifyContent: "center", padding: "16px 24px", borderRadius: 14, fontSize: 16 }}>{p.id === "free" ? "Crear cuenta gratis" : "Empezar con " + p.name}</Btn>
+                <Btn primary={p.pop} secondary={!p.pop} onClick={() => onRegister(p)} style={{ width: "100%", justifyContent: "center", padding: "16px 24px", borderRadius: 14, fontSize: 16, marginTop: "auto" }}>{p.id === "free" ? "Crear cuenta gratis" : "Empezar con " + p.name}</Btn>
               </div>
             ))}
           </div>
