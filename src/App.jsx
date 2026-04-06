@@ -928,11 +928,12 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
   const pollVideo = async (opName, ep) => {
     setVideoLoading(true); setVideoProgress("Generando video con IA... (1-3 min)");
     let attempts = 0;
-    const maxAttempts = 120;
+    const maxAttempts = 240;
+    let falInfo = "";
     while (attempts < maxAttempts) {
       await new Promise(r => setTimeout(r, 5000));
       attempts++;
-      setVideoProgress("Generando video... " + Math.min(Math.round((attempts/maxAttempts)*100), 95) + "%");
+      setVideoProgress("Generando video... " + Math.min(Math.round((attempts/maxAttempts)*100), 95) + "%" + falInfo);
       try {
         const r = await fetch("/api/video?action=check&op=" + encodeURIComponent(opName) + (ep ? "&endpoint=" + encodeURIComponent(ep) : "") + "&t=" + Date.now());
         const d = await r.json();
@@ -949,6 +950,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
         }
         if (d.status === "error") { setVideoProgress("Error: " + (d.error || "fallo")); setVideoLoading(false); return; }
         if (d.status === "completed_no_url") { setVideoProgress("Video completo pero sin URL. Debug: " + (d.debug || "sin info")); setVideoLoading(false); return; }
+        if (d.fal_status) falInfo = " [" + d.fal_status + (d.queue_position ? " pos:" + d.queue_position : "") + "]";
       } catch (e) { /* keep polling */ }
     }
     setVideoProgress("El video tardo demasiado. Intenta de nuevo con una instruccion mas corta o sin foto."); setVideoLoading(false);
@@ -1160,7 +1162,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       {result&&!loading&&result.t==="carousel"&&result.d?.slides&&<Card>{result.d.slides.map((sl,i)=><div key={i} style={{padding:"12px 0",borderBottom:i<result.d.slides.length-1?`1px solid ${t.brd}`:"none"}}><div style={{fontSize:14,fontWeight:600,color:t.tx}}>{sl.emoji} Slide {i+1}: {sl.title}</div><div style={{fontSize:13,color:t.txS,marginTop:3}}>{sl.body}</div></div>)}{result.d.caption&&<div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${t.brd}`,fontSize:14,color:t.tx,whiteSpace:"pre-wrap"}}>{result.d.caption}</div>}<div style={{marginTop:12}}><CopyBtn text={result.d.slides.map((s,i)=>`${s.emoji} Slide ${i+1}: ${s.title}\n${s.body}`).join("\n\n")+`\n\n${result.d.caption||""}\n${result.d.hashtags||""}`} label="📋 Todo"/></div></Card>}
       {result&&!loading&&result.t==="reel"&&result.d?.scenes&&<Card>
         {videoUrl&&<div style={{marginBottom:16,borderRadius:14,overflow:"hidden"}}><video src={videoUrl} controls style={{width:"100%",maxHeight:400,borderRadius:14,display:"block"}}/></div>}
-        {videoLoading&&<div style={{marginBottom:16,padding:24,textAlign:"center",background:t.bgI,borderRadius:14,border:"1px solid "+t.brd}}><div style={{width:40,height:40,border:"3px solid "+t.brd,borderTop:"3px solid "+(brand?.color||t.ac),borderRadius:"50%",animation:"spin .8s linear infinite",margin:"0 auto 12px"}}/><div style={{color:t.ac,fontSize:14,fontWeight:600}}>{videoProgress}</div><div style={{color:t.txM,fontSize:12,marginTop:4}}>El video se esta generando con Veo AI (puede tardar hasta 10 min). No cierres esta pagina.</div></div>}
+        {videoLoading&&<div style={{marginBottom:16,padding:24,textAlign:"center",background:t.bgI,borderRadius:14,border:"1px solid "+t.brd}}><div style={{width:40,height:40,border:"3px solid "+t.brd,borderTop:"3px solid "+(brand?.color||t.ac),borderRadius:"50%",animation:"spin .8s linear infinite",margin:"0 auto 12px"}}/><div style={{color:t.ac,fontSize:14,fontWeight:600}}>{videoProgress}</div><div style={{color:t.txM,fontSize:12,marginTop:4}}>El video se esta generando con Veo AI (puede tardar hasta 20 min). No cierres esta pagina.</div></div>}
         {videoUrl&&<div style={{marginBottom:14,display:"flex",gap:8}}><button onClick={()=>{const a=document.createElement("a");a.href=videoUrl;a.download=(brand?.short||"reel")+"_"+Date.now()+".mp4";a.click();}} style={{display:"flex",alignItems:"center",gap:6,padding:"10px 20px",background:t.gr,border:"none",borderRadius:10,color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer"}}>⬇️ Descargar video</button></div>}
         {!videoUrl&&!videoLoading&&videoProgress&&<div style={{marginBottom:14,padding:12,background:"rgba(239,68,68,.1)",borderRadius:10,color:"#ef4444",fontSize:13}}>{videoProgress}</div>}
         {result.d.scenes.map((sc,i)=><div key={i} style={{padding:"14px 0",borderBottom:i<result.d.scenes.length-1?"1px solid "+t.brd:"none"}}><div style={{fontSize:15,fontWeight:700,color:t.tx,marginBottom:4}}>🎬 Escena {i+1}: {sc.title} <span style={{fontSize:12,color:t.txM}}>({sc.duration})</span></div><div style={{fontSize:13,color:t.txS,marginBottom:4}}>📹 {sc.visual}</div><div style={{fontSize:14,fontWeight:700,color:brand?.color}}>📝 {sc.text_overlay}</div>{sc.audio&&<div style={{fontSize:12,color:t.txM,marginTop:4}}>🎵 {sc.audio}</div>}</div>)}
