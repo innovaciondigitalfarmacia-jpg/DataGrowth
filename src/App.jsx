@@ -227,9 +227,6 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
             <div style={{ fontSize: 40, marginBottom: 16 }}>🚀</div>
             <h2 style={{ fontSize: 34, fontWeight: 700, marginBottom: 14 }}>Empieza a crear contenido <span style={{ color: t.ac }}>hoy</span></h2>
             <p style={{ fontSize: 16, color: t.txS, marginBottom: 32, maxWidth: 500, margin: "0 auto 32px" }}>Unete a las agencias y emprendedores que ya generan contenido profesional con IA. Sin tarjeta de credito.</p>
-            <div style={{ display: "flex", gap: 14, justifyContent: "center" }}>
-              <Btn primary onClick={() => setShowPlans(true)} style={{ fontSize: 16, padding: "16px 40px", borderRadius: 50 }}>Ver planes</Btn>
-            </div>
           </div>
         </div>
       </div>
