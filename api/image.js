@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     if (GEMINI_KEY) {
       try {
         const r = await fetch(
-          "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=" + GEMINI_KEY,
+          "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=" + GEMINI_KEY,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -97,7 +97,7 @@ export default async function handler(req, res) {
 
       try {
         const r = await fetch(
-          "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=" + GEMINI_KEY,
+          "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=" + GEMINI_KEY,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
