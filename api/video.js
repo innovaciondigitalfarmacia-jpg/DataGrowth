@@ -11,31 +11,27 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     const { action, op, endpoint } = req.query;
-    if (action === 'test') return res.status(200).json({ status: 'ready' });
+    if (action === 'test') return res.status(200).json({ status: 'ready', model: 'hailuo-2.3' });
     if (action === 'check' && op) {
       try {
-        // Use the same endpoint base that was used for submission
-        const base = endpoint || 'fal-ai/kling-video/v2/master/text-to-video';
+        const base = endpoint || 'fal-ai/minimax/hailuo-2.3/standard/text-to-video';
         const statusUrl = 'https://queue.fal.run/' + base + '/requests/' + op + '/status';
         const r = await fetch(statusUrl, {
           headers: { 'Authorization': 'Key ' + FAL_KEY }
         });
         const text = await r.text();
-        console.log('Status response:', text);
         if (!text) return res.status(200).json({ status: 'processing' });
         const d = JSON.parse(text);
         if (d.status === 'COMPLETED') {
           const resultUrl = 'https://queue.fal.run/' + base + '/requests/' + op;
           const r2 = await fetch(resultUrl, { headers: { 'Authorization': 'Key ' + FAL_KEY } });
           const d2 = await r2.json();
-          console.log('Result keys:', JSON.stringify(Object.keys(d2)));
-          const url = d2.video?.url || d2.data?.video?.url;
+          const url = d2.video?.url;
           if (url) {
             const vr = await fetch(url);
             const buf = Buffer.from(await vr.arrayBuffer());
             return res.status(200).json({ status: 'completed', video_base64: buf.toString('base64'), mime_type: 'video/mp4' });
           }
-          // Debug: return the actual response so we can see what's there
           return res.status(200).json({ status: 'completed_no_url', debug: JSON.stringify(d2).substring(0, 500) });
         }
         if (d.status === 'FAILED') return res.status(200).json({ status: 'error', error: d.error || 'Video fallo en fal.ai' });
@@ -55,10 +51,10 @@ export default async function handler(req, res) {
       if (!prompt) return res.status(400).json({ error: 'No prompt' });
 
       const endpoint = image_base64
-        ? 'fal-ai/kling-video/v2/master/image-to-video'
-        : 'fal-ai/kling-video/v2/master/text-to-video';
+        ? 'fal-ai/minimax/hailuo-2.3/standard/image-to-video'
+        : 'fal-ai/minimax/hailuo-2.3/standard/text-to-video';
 
-      const payload = { prompt: prompt, duration: '5', aspect_ratio: '9:16' };
+      const payload = { prompt: prompt, prompt_optimizer: true };
       if (image_base64) payload.image_url = 'data:image/jpeg;base64,' + image_base64;
 
       const r = await fetch('https://queue.fal.run/' + endpoint, {
