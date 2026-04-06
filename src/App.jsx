@@ -925,7 +925,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       img.src = imgUrl;
     });
   };
-  const pollVideo = async (opName) => {
+  const pollVideo = async (opName, ep) => {
     setVideoLoading(true); setVideoProgress("Generando video con IA... (1-3 min)");
     let attempts = 0;
     const maxAttempts = 120;
@@ -934,7 +934,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       attempts++;
       setVideoProgress("Generando video... " + Math.min(Math.round((attempts/maxAttempts)*100), 95) + "%");
       try {
-        const r = await fetch("/api/video?action=check&op=" + encodeURIComponent(opName) + "&t=" + Date.now());
+        const r = await fetch("/api/video?action=check&op=" + encodeURIComponent(opName) + (ep ? "&endpoint=" + encodeURIComponent(ep) : "") + "&t=" + Date.now());
         const d = await r.json();
         if (d.status === "completed" && d.video_base64) {
           const byteChars = atob(d.video_base64);
@@ -948,6 +948,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
           return;
         }
         if (d.status === "error") { setVideoProgress("Error: " + (d.error || "fallo")); setVideoLoading(false); return; }
+        if (d.status === "completed_no_url") { setVideoProgress("Video completo pero sin URL. Debug: " + (d.debug || "sin info")); setVideoLoading(false); return; }
       } catch (e) { /* keep polling */ }
     }
     setVideoProgress("El video tardo demasiado. Intenta de nuevo con una instruccion mas corta o sin foto."); setVideoLoading(false);
@@ -1031,7 +1032,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       const videoBody = { prompt: directVideoPrompt.substring(0, 500), aspect_ratio: "9:16" };
       if (currentImages[0]) { videoBody.image_base64 = currentImages[0]; }
       fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(videoBody) })
-        .then(r => r.json()).then(d => { if (d.operation) { pollVideo(d.operation); } else { setVideoProgress("Error: " + (d.error || "no se pudo iniciar")); } })
+        .then(r => r.json()).then(d => { if (d.operation) { pollVideo(d.operation, d.endpoint); } else { setVideoProgress("Error: " + (d.error || "no se pudo iniciar")); } })
         .catch(() => setVideoProgress("Error al conectar con API de video"));
     }
     const brandCtx = "MARCA:" + brand.name + "|INDUSTRIA:" + brand.industry + "|TONO:" + brand.tone + "|AUDIENCIA:" + brand.audience + "|VOZ:" + (brand.brandVoice || "Profesional") + "|PRODUCTOS:" + (brand.products || "N/A") + "|COLORES:" + brandColors + "|ESTILO_VISUAL:" + brandStyle;
