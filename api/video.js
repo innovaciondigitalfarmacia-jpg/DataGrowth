@@ -14,7 +14,7 @@ export default async function handler(req, res) {
     if (action === 'test') return res.status(200).json({ status: 'ready', model: 'hailuo-2.3' });
     if (action === 'check' && op) {
       try {
-        const base = endpoint || 'fal-ai/minimax/hailuo-2.3/standard/text-to-video';
+        const base = endpoint || 'fal-ai/minimax/hailuo-2.3-fast/standard/text-to-video';
         const statusUrl = 'https://queue.fal.run/' + base + '/requests/' + op + '/status';
         const r = await fetch(statusUrl, {
           headers: { 'Authorization': 'Key ' + FAL_KEY }
@@ -51,8 +51,8 @@ export default async function handler(req, res) {
       if (!prompt) return res.status(400).json({ error: 'No prompt' });
 
       const endpoint = image_base64
-        ? 'fal-ai/minimax/hailuo-2.3/standard/image-to-video'
-        : 'fal-ai/minimax/hailuo-2.3/standard/text-to-video';
+        ? 'fal-ai/minimax/hailuo-2.3-fast/standard/image-to-video'
+        : 'fal-ai/minimax/hailuo-2.3-fast/standard/text-to-video';
 
       const payload = { prompt: prompt, prompt_optimizer: true };
       if (image_base64) payload.image_url = 'data:image/jpeg;base64,' + image_base64;
