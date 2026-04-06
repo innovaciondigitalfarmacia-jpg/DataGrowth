@@ -114,3 +114,9 @@ export default async function handler(req, res) {
     return res.status(500).json({ status: "error", error: e.message });
   }
 }
+
+    return res.status(200).json({ status: "error", error: d.detail || d.error || "No request ID returned" });
+  } catch (e) {
+    return res.status(500).json({ status: "error", error: e.message });
+  }
+}
