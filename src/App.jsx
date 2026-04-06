@@ -98,7 +98,6 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
         {/* HERO IMAGE */}
         <div style={{ position: "relative", borderRadius: 20, overflow: "hidden", boxShadow: `0 40px 120px ${t.sh}, 0 0 0 1px ${t.brd}`, maxWidth: 900, margin: "0 auto" }}>
           <img src="/hero-image.png" alt="DataGrowth plataforma" style={{ width: "100%", display: "block", borderRadius: 20 }}/>
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 60%, " + t.bg + ")", borderRadius: 20, pointerEvents: "none" }}/>
         </div>
       </div>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px" }}>
