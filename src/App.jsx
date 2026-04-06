@@ -280,7 +280,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
             <h2 style={{ fontSize: 40, fontWeight: 800, letterSpacing: -1 }}>Elige el plan perfecto para ti</h2>
             <p style={{ fontSize: 16, color: t.txS, marginTop: 12 }}>Empieza gratis. Escala cuando lo necesites. Cancela cuando quieras.</p>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24, alignItems: "start" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24, alignItems: "stretch" }}>
             {PLANS.map(p => (
               <div key={p.id} style={{ position: "relative", background: t.bgC, border: p.pop ? "2px solid " + p.color : "1px solid " + t.brd, borderRadius: 20, textAlign: "center", padding: 40, overflow: "visible", transition: "all .3s", transform: p.pop ? "scale(1.05)" : "none" }} onMouseEnter={e => { e.currentTarget.style.transform = p.pop ? "scale(1.07)" : "translateY(-6px)"; e.currentTarget.style.boxShadow = "0 20px 60px " + t.sh; }} onMouseLeave={e => { e.currentTarget.style.transform = p.pop ? "scale(1.05)" : "none"; e.currentTarget.style.boxShadow = "none"; }}>
                 {p.pop && <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: t.gr, color: "#fff", padding: "6px 28px", borderRadius: 20, fontSize: 12, fontWeight: 700, boxShadow: "0 4px 15px rgba(55,194,235,.3)" }}>Mas popular</div>}
