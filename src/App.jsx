@@ -1041,8 +1041,8 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
     // Start video generation for reels: Gemini image first, then fal.ai animates it
     const fmt = ct.fmt;
     if (fmt === "reel") {
-      const imgPrompt = "Cinematic wide shot photo for " + brand.name + " (" + brand.industry + "). Topic: " + topic + ". Style: " + brandStyle + ". IMPORTANT: If people appear, show them from medium or wide angle, never extreme close-ups. Any visible text must be in Spanish. Do NOT include any logo. Photorealistic, high quality, 9:16 vertical format.";
-      const motionPrompt = "Animate this image with gentle cinematic motion: slow camera pan, subtle movement in the scene, light breeze, atmospheric effects. Keep all people, faces, and TEXT stable and unchanged. Do NOT add, modify, or regenerate any text. Only add motion to the scene. Smooth and professional. Context: " + topic + ". Brand: " + brand.name + ".";
+      const imgPrompt = "Cinematic wide shot photo for " + brand.name + " (" + brand.industry + "). Topic: " + topic + ". Style: " + brandStyle + ". IMPORTANT: 1) If reference photos are provided, keep ALL buildings and structures exactly as they appear. 2) You CAN freely create beautiful natural landscapes around them (trees, sky, mountains, sunset, clouds, nature). 3) Do NOT add objects, pools, furniture, vehicles, or structures UNLESS the user explicitly asks for them in the instructions. 4) If people appear, show them from medium or wide angle, never extreme close-ups. 5) Any visible text must be in Spanish. 6) Do NOT include any logo. Photorealistic, high quality, 9:16 vertical format.";
+      const motionPrompt = "Animate this image with cinematic motion: camera slowly pans, people move naturally (breathing, hair blowing, subtle gestures, looking around). Add atmospheric effects like light breeze in trees, moving clouds, flickering lights, steam from water. Keep any TEXT and LOGOS stable and unchanged. Smooth and professional.";
       
       setVideoLoading(true); setVideoProgress("Generando imagen base con IA...");
       
