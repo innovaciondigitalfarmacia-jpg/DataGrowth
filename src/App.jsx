@@ -986,7 +986,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
 
     // ── DIRECT EDIT: user uploaded a photo, send instruction directly to image API ──
     if (isDirectEdit) {
-      const editPrompt = "Edit the provided image following these instructions: " + currentTopic + ". IMPORTANT: 1) Keep the SAME base image - do NOT regenerate from scratch. 2) Apply ONLY the changes the user requested on top of the existing image. 3) Preserve everything the user did NOT mention (scene, people, background, colors, layout). 4) If the user mentions hex color codes (like #FF0000), use those EXACT colors. 5) Any visible text must be in Spanish.";
+      const editPrompt = "You have this reference image uploaded by the user. Apply these changes: " + currentTopic + ". INSTRUCTIONS: 1) If the user asks to MOVE, REPOSITION, or REARRANGE elements: recreate the ENTIRE image with the new layout but keep the SAME style, colors, atmosphere, and overall look. 2) If the user asks to CHANGE colors, ADD text, ADD elements, or MODIFY details: edit the existing image and preserve everything else. 3) If the user mentions hex color codes (like #FF0000), use those EXACT colors. 4) Any visible text must be in Spanish. 5) Match the quality and style of the reference image as closely as possible.";
       setChatHistory(prev => [...prev, { role: "ai", text: "", headline: "", loading: true }]);
       try {
         const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: editPrompt, images: currentImages }) });
@@ -1006,7 +1006,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
 
     // ── DIRECT REFINEMENT: skip text gen, send instruction directly to image API ──
     if (isRefining) {
-      const editPrompt = "Edit this image following these instructions: " + currentTopic + ". IMPORTANT: 1) Keep the SAME base image - do NOT regenerate from scratch. 2) Apply ONLY the changes the user requested on top of the existing image. 3) Preserve everything the user did NOT mention (scene, people, background, colors, layout). 4) If the user mentions hex color codes (like #FF0000), use those EXACT colors. 5) Any visible text must be in Spanish.";
+      const editPrompt = "You have this reference image. The user wants these changes: " + currentTopic + ". INSTRUCTIONS: 1) If the user asks to MOVE, REPOSITION, or REARRANGE elements: recreate the ENTIRE image with the new layout but keep the SAME style, colors, atmosphere, and overall look. 2) If the user asks to CHANGE colors, ADD text, ADD elements, or MODIFY details: edit the existing image and preserve everything else. 3) If the user mentions hex color codes (like #FF0000), use those EXACT colors. 4) Any visible text must be in Spanish. 5) Match the quality and style of the reference image as closely as possible.";
       setChatHistory(prev => [...prev, { role: "ai", text: "", headline: "", loading: true }]);
       try {
         const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: editPrompt, image_base64: lastAiImage }) });
@@ -1503,4 +1503,4 @@ export default function App() {
       </div>
     </ThemeCtx.Provider>
   );
-}
+};
