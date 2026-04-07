@@ -15,32 +15,43 @@ export default async function handler(req, res) {
     if (action === 'check' && op) {
       try {
         const base = endpoint || 'fal-ai/minimax/video-01-live';
-        const statusUrl = 'https://queue.fal.run/' + base + '/requests/' + op + '/status';
-        const r = await fetch(statusUrl, {
+        // Try to get result directly (skip status check)
+        const resultUrl = 'https://queue.fal.run/' + base + '/requests/' + op;
+        const r = await fetch(resultUrl, {
           headers: { 'Authorization': 'Key ' + FAL_KEY }
         });
+        
+        if (r.status === 202) {
+          // 202 = still processing
+          return res.status(200).json({ status: 'processing' });
+        }
+        
         const text = await r.text();
         
-        // Debug mode - add &debug=1 to URL to see raw response
         if (req.query.debug) {
-          return res.status(200).json({ raw: text || '(empty)', httpStatus: r.status, url: statusUrl });
+          return res.status(200).json({ raw: text.substring(0, 500), httpStatus: r.status });
         }
         
-        if (!text) return res.status(200).json({ status: 'processing', note: 'empty_response', httpCode: r.status });
+        if (!text) return res.status(200).json({ status: 'processing' });
+        
         const d = JSON.parse(text);
-        if (d.status === 'COMPLETED') {
-          const resultUrl = 'https://queue.fal.run/' + base + '/requests/' + op;
-          const r2 = await fetch(resultUrl, { headers: { 'Authorization': 'Key ' + FAL_KEY } });
-          const d2 = await r2.json();
-          const url = d2.video?.url;
-          if (url) {
-            // Return URL directly - don't download (Vercel timeout)
-            return res.status(200).json({ status: 'completed', video_url: url });
-          }
-          return res.status(200).json({ status: 'completed_no_url', debug: JSON.stringify(d2).substring(0, 500) });
+        
+        // Check if it's a completed result with video
+        if (d.video?.url) {
+          return res.status(200).json({ status: 'completed', video_url: d.video.url });
         }
-        if (d.status === 'FAILED') return res.status(200).json({ status: 'error', error: d.error || 'Video fallo en fal.ai' });
-        return res.status(200).json({ status: 'processing', fal_status: d.status });
+        
+        // Check if status field indicates still processing
+        if (d.status === 'IN_QUEUE' || d.status === 'IN_PROGRESS') {
+          return res.status(200).json({ status: 'processing', fal_status: d.status });
+        }
+        
+        if (d.status === 'FAILED' || d.detail) {
+          return res.status(200).json({ status: 'error', error: d.detail || d.error || 'Video fallo' });
+        }
+        
+        // Unknown response - return as debug
+        return res.status(200).json({ status: 'processing', debug: text.substring(0, 300) });
       } catch (e) {
         return res.status(200).json({ status: 'processing', debug: e.message });
       }
