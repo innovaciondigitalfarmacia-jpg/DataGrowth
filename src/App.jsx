@@ -911,13 +911,13 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.onload = () => {
-        const maxW = 512;
+        const maxW = 1024;
         const scale = img.width > maxW ? maxW / img.width : 1;
         const c = document.createElement("canvas");
         c.width = Math.round(img.width * scale);
         c.height = Math.round(img.height * scale);
         c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        const b64 = c.toDataURL("image/jpeg", 0.7).split(",")[1];
+        const b64 = c.toDataURL("image/jpeg", 0.9).split(",")[1];
         setLastAiImage(b64);
         resolve(b64);
       };
