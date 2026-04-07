@@ -1038,15 +1038,55 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
         if (wd.text) realInfo = wd.text.substring(0, 1500);
       } catch (e) { /* continue without web info */ }
     }
-    // Start video generation IMMEDIATELY for reels (in parallel)
+    // Start video generation for reels: Gemini image first, then fal.ai animates it
     const fmt = ct.fmt;
     if (fmt === "reel") {
-      const directVideoPrompt = "Create a vertical 9:16 promotional video for " + brand.name + " (" + brand.industry + "). IMPORTANT: ALL voiceover and narration MUST be in SPANISH (Latin American Spanish). Topic: " + topic + ". Brand colors: " + brandColors + ". Style: " + brandStyle + ". Make it professional, eye-catching and designed to attract customers on social media. Include any discounts or promotions mentioned. Do NOT include any logo. Make it realistic and high quality.";
-      const videoBody = { prompt: directVideoPrompt.substring(0, 500), aspect_ratio: "9:16" };
-      if (currentImages[0]) { videoBody.image_base64 = currentImages[0]; }
-      fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(videoBody) })
-        .then(r => r.json()).then(d => { if (d.operation) { pollVideo(d.operation, d.endpoint, d.response_url, d.status_url); } else { setVideoProgress("Error: " + (d.error || "no se pudo iniciar")); } })
-        .catch(() => setVideoProgress("Error al conectar con API de video"));
+      const imgPrompt = "Cinematic wide shot photo for " + brand.name + " (" + brand.industry + "). Topic: " + topic + ". Style: " + brandStyle + ". IMPORTANT: If people appear, show them from medium or wide angle, never extreme close-ups. Any visible text must be in Spanish. Do NOT include any logo. Photorealistic, high quality, 9:16 vertical format.";
+      const motionPrompt = "Gentle cinematic motion: slow camera pan, subtle movement in the scene, light breeze, atmospheric effects. Keep all people and faces stable. Smooth and professional.";
+      
+      setVideoLoading(true); setVideoProgress("Generando imagen base con IA...");
+      
+      // Step 1: Generate image with Gemini
+      const generateAndAnimate = async () => {
+        try {
+          let imageBase64 = null;
+          
+          // If user uploaded images, use those
+          if (currentImages[0]) {
+            imageBase64 = currentImages[0];
+          } else {
+            // Generate image with Gemini
+            const imgRes = await fetch("/api/image?prompt=" + encodeURIComponent(imgPrompt));
+            if (imgRes.ok && imgRes.headers.get("content-type")?.includes("image")) {
+              const blob = await imgRes.blob();
+              imageBase64 = await new Promise(resolve => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(",")[1]);
+                reader.readAsDataURL(blob);
+              });
+            }
+          }
+          
+          if (!imageBase64) {
+            // Fallback: text-to-video without image
+            const videoBody = { prompt: imgPrompt.substring(0, 500) };
+            const r = await fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(videoBody) });
+            const d = await r.json();
+            if (d.operation) { pollVideo(d.operation, d.endpoint, d.response_url, d.status_url); } else { setVideoProgress("Error: " + (d.error || "no se pudo iniciar")); }
+            return;
+          }
+          
+          // Step 2: Send image to fal.ai to animate
+          setVideoProgress("Animando video con IA...");
+          const videoBody = { prompt: motionPrompt, image_base64: imageBase64 };
+          const r = await fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(videoBody) });
+          const d = await r.json();
+          if (d.operation) { pollVideo(d.operation, d.endpoint, d.response_url, d.status_url); } else { setVideoProgress("Error: " + (d.error || "no se pudo iniciar")); setVideoLoading(false); }
+        } catch (e) {
+          setVideoProgress("Error: " + e.message); setVideoLoading(false);
+        }
+      };
+      generateAndAnimate();
     }
     const brandCtx = "MARCA:" + brand.name + "|INDUSTRIA:" + brand.industry + "|TONO:" + brand.tone + "|AUDIENCIA:" + brand.audience + "|VOZ:" + (brand.brandVoice || "Profesional") + "|PRODUCTOS:" + (brand.products || "N/A") + "|COLORES:" + brandColors + "|ESTILO_VISUAL:" + brandStyle;
     const realInfoBlock = realInfo ? "\n\nINFORMACION REAL DE LA PAGINA WEB DE " + brand.name + " (USA SOLO ESTA INFORMACION REAL, NO INVENTES DATOS):\n" + realInfo : "";
@@ -1059,7 +1099,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
     } else if (fmt === "carousel") {
       msg = 'Carrusel 5 slides: "' + currentTopic + '". JSON:{"slides":[{"title":"..","body":"emojis","emoji":".."}],"caption":"CTA","hashtags":"8"}';
     } else if (fmt === "reel") {
-      msg = 'Reel 5 escenas: "' + topic + '". Responde SOLO JSON:{"scenes":[{"title":"..","duration":"3s","emoji":"..","visual":"camara","text_overlay":"texto+emoji","audio":"musica","transition":"tipo"}],"caption":"CTA","hashtags":"8","video_prompt":"Create a vertical 9:16 promotional video in SPANISH language. ALL voiceover, narration and spoken words MUST be in SPANISH (Latin American). The video is about: ' + currentTopic + '. Brand: ' + brand.name + ' (' + brand.industry + '). Use brand colors: ' + brandColors + '. Visual style: ' + brandStyle + '. Make it eye-catching, professional, and designed to attract customers on social media. Include any discounts, promotions or text mentioned by the user VISUALLY in the video. Do NOT include any logo."}';
+      msg = 'Reel 5 escenas: "' + topic + '". Responde SOLO JSON:{"scenes":[{"title":"..","duration":"3s","emoji":"..","visual":"camara","text_overlay":"texto+emoji","audio":"musica","transition":"tipo"}],"caption":"CTA","hashtags":"8","video_prompt":"Cinematic promotional video. Any visible text MUST be in Spanish. NO close-up shots of human faces, show people from medium or wide angles only. Focus on scenery, products, atmosphere. Topic: ' + currentTopic + '. Brand: ' + brand.name + ' (' + brand.industry + '). Visual style: ' + brandStyle + '. Professional, eye-catching, social media ready. Do NOT include any logo."}';
     } else if (fmt === "text" && ct.id === "email") {
       msg = 'Escribe un email marketing completo para ' + brand.name + ' sobre: "' + currentTopic + '". Escribe el email de corrido, natural, como si fueras el equipo de ' + brand.name + ' escribiendole al cliente. Incluye saludo, cuerpo persuasivo con emojis, CTA claro, y despedida. NO pongas etiquetas como "asunto:" o "cuerpo:" ni JSON. Solo el email completo listo para copiar y enviar. Al final agrega una linea con 8 hashtags relevantes.';
     } else {
@@ -1095,7 +1135,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
         setResult({t:fmt,d:pd,img:imgUrl,imgLoading:!!imgUrl});
         if(imgUrl){const testImg=new Image();testImg.onload=()=>setResult(prev=>({...prev,imgLoading:false}));testImg.onerror=()=>setResult(prev=>({...prev,imgLoading:false}));testImg.src=imgUrl;}
       }
-      if(fmt==="reel"){/* video already started in parallel above */}}catch{if(fmt==="visual"){setChatHistory(prev=>[...prev,{role:"ai",text:raw}]);}else{setTxt(raw);setResult({t:"text"});}}} } catch(err){const errMsg=err.name==="AbortError"?"La generacion tardo demasiado. Intenta con una instruccion mas corta.":"Error al generar. Intenta de nuevo.";if(fmt==="visual"){setChatHistory(prev=>[...prev,{role:"ai",text:errMsg}]);}else{setTxt(errMsg);setResult({t:"text"});}} if(!isAdmin){addUsage(ct.id);} setLoading(false);
+      if(fmt==="reel"){/* video already started in parallel above */}}catch{if(fmt==="visual"){setChatHistory(prev=>[...prev,{role:"ai",text:raw}]);}else{setTxt(raw);setResult({t:"text"});}}} } catch(err){const errMsg=err.name==="AbortError"?"La generacion tardo demasiado. Intenta con una instruccion mas corta.":"Error al generar. Intenta de nuevo.";if(fmt==="visual"){setChatHistory(prev=>[...prev,{role:"ai",text:errMsg}]);}else{setTxt(errMsg);setResult({t:"text"});}} if(!isAdmin && fmt !== "reel"){addUsage(ct.id);} setLoading(false);
   };
   const [showGuide, setShowGuide] = useState(false);
   if(!brands.length) return <Section title="Crear Contenido"><Card style={{textAlign:"center",padding:48}}><div style={{fontSize:48,marginBottom:12}}>🏢</div><div style={{fontSize:16,fontWeight:600,color:t.tx}}>Primero crea una marca en "Mis Marcas"</div></Card></Section>;
@@ -1172,9 +1212,9 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       {result&&!loading&&result.t==="visual"&&result.d&&chatHistory.length===0&&<Card>{(result.img||result.imgLoading)&&<div style={{marginBottom:16,borderRadius:14,overflow:"hidden"}}>{result.img?<img id="ai-generated-img" crossOrigin="anonymous" src={result.img} alt="AI Generated" style={{width:"100%",maxHeight:500,objectFit:"contain",display:"block",borderRadius:14}}/>:<div style={{width:"100%",height:280,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:t.bgI,borderRadius:14,border:"1px solid "+t.brd}}><div style={{width:40,height:40,border:"3px solid "+t.brd,borderTop:"3px solid "+(brand?.color||t.ac),borderRadius:"50%",animation:"spin .8s linear infinite",marginBottom:12}}/><div style={{color:t.txS,fontSize:13,fontWeight:500}}>Generando imagen con IA...</div></div>}</div>}<div style={{fontSize:22,fontWeight:800,color:t.tx,marginBottom:6}}>{result.d.headline}</div>{result.d.subtext&&<div style={{color:t.txS,marginBottom:12}}>{result.d.subtext}</div>}<div style={{fontSize:14,color:t.tx,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{result.d.caption}</div>{result.d.hashtags&&<div style={{fontSize:12,color:brand?.color,marginTop:10}}>{result.d.hashtags}</div>}<div style={{marginTop:12,display:"flex",gap:8}}><CopyBtn text={`${result.d.caption}\n\n${result.d.hashtags||""}`} label="📱 Copiar"/>{result.img&&<button onClick={()=>{const img=document.getElementById("ai-generated-img");if(!img)return;const c=document.createElement("canvas");c.width=img.naturalWidth;c.height=img.naturalHeight;c.getContext("2d").drawImage(img,0,0);c.toBlob(b=>{const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=(brand?.short||"img")+"_"+Date.now()+".png";a.click();URL.revokeObjectURL(u);},"image/png");}} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",background:"rgba(55,194,235,.08)",border:"1px solid rgba(55,194,235,.2)",borderRadius:10,color:"#37c2eb",fontSize:12,fontWeight:600,cursor:"pointer"}}>⬇️ Descargar imagen</button>}</div></Card>}
       {result&&!loading&&result.t==="carousel"&&result.d?.slides&&<Card>{result.d.slides.map((sl,i)=><div key={i} style={{padding:"12px 0",borderBottom:i<result.d.slides.length-1?`1px solid ${t.brd}`:"none"}}><div style={{fontSize:14,fontWeight:600,color:t.tx}}>{sl.emoji} Slide {i+1}: {sl.title}</div><div style={{fontSize:13,color:t.txS,marginTop:3}}>{sl.body}</div></div>)}{result.d.caption&&<div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${t.brd}`,fontSize:14,color:t.tx,whiteSpace:"pre-wrap"}}>{result.d.caption}</div>}<div style={{marginTop:12}}><CopyBtn text={result.d.slides.map((s,i)=>`${s.emoji} Slide ${i+1}: ${s.title}\n${s.body}`).join("\n\n")+`\n\n${result.d.caption||""}\n${result.d.hashtags||""}`} label="📋 Todo"/></div></Card>}
       {result&&!loading&&result.t==="reel"&&result.d?.scenes&&<Card>
-        {videoUrl&&<div style={{marginBottom:16,borderRadius:14,overflow:"hidden"}}><video src={videoUrl} controls style={{width:"100%",maxHeight:400,borderRadius:14,display:"block"}}/></div>}
+        {videoUrl&&<div style={{marginBottom:16,borderRadius:14,overflow:"hidden"}}><video src={videoUrl} controls controlsList="nodownload" onContextMenu={(e)=>e.preventDefault()} style={{width:"100%",maxHeight:400,borderRadius:14,display:"block"}}/></div>}
         {videoLoading&&<div style={{marginBottom:16,padding:24,textAlign:"center",background:t.bgI,borderRadius:14,border:"1px solid "+t.brd}}><div style={{width:40,height:40,border:"3px solid "+t.brd,borderTop:"3px solid "+(brand?.color||t.ac),borderRadius:"50%",animation:"spin .8s linear infinite",margin:"0 auto 12px"}}/><div style={{color:t.ac,fontSize:14,fontWeight:600}}>{videoProgress}</div><div style={{color:t.txM,fontSize:12,marginTop:4}}>El video se esta generando con IA (puede tardar 2-4 min). No cierres esta pagina.</div></div>}
-        {videoUrl&&<div style={{marginBottom:14,display:"flex",gap:8}}><button onClick={async()=>{try{const r=await fetch(videoUrl);const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=(brand?.short||"reel")+"_"+Date.now()+".mp4";a.click();URL.revokeObjectURL(u);}catch(e){window.open(videoUrl,"_blank");}}} style={{display:"flex",alignItems:"center",gap:6,padding:"10px 20px",background:t.gr,border:"none",borderRadius:10,color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer"}}>⬇️ Descargar video</button></div>}
+        {videoUrl&&<div style={{marginBottom:14,display:"flex",gap:8}}><button onClick={async()=>{try{const r=await fetch(videoUrl);const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=(brand?.short||"reel")+"_"+Date.now()+".mp4";a.click();URL.revokeObjectURL(u);if(!isAdmin) addUsage("reel");}catch(e){window.open(videoUrl,"_blank");}}} style={{display:"flex",alignItems:"center",gap:6,padding:"10px 20px",background:t.gr,border:"none",borderRadius:10,color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer"}}>⬇️ Descargar video</button></div>}
         {!videoUrl&&!videoLoading&&videoProgress&&<div style={{marginBottom:14,padding:12,background:"rgba(239,68,68,.1)",borderRadius:10,color:"#ef4444",fontSize:13}}>{videoProgress}</div>}
         {result.d.scenes.map((sc,i)=><div key={i} style={{padding:"14px 0",borderBottom:i<result.d.scenes.length-1?"1px solid "+t.brd:"none"}}><div style={{fontSize:15,fontWeight:700,color:t.tx,marginBottom:4}}>🎬 Escena {i+1}: {sc.title} <span style={{fontSize:12,color:t.txM}}>({sc.duration})</span></div><div style={{fontSize:13,color:t.txS,marginBottom:4}}>📹 {sc.visual}</div><div style={{fontSize:14,fontWeight:700,color:brand?.color}}>📝 {sc.text_overlay}</div>{sc.audio&&<div style={{fontSize:12,color:t.txM,marginTop:4}}>🎵 {sc.audio}</div>}</div>)}
         {result.d.caption&&<div style={{marginTop:14,paddingTop:14,borderTop:"1px solid "+t.brd,fontSize:14,color:t.tx,whiteSpace:"pre-wrap"}}>{result.d.caption}</div>}
