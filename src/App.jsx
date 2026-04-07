@@ -889,13 +889,13 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       setUploadedPreviews(prev => [...prev, preview]);
       const img = new Image();
       img.onload = () => {
-        const maxW = 512;
+        const maxW = 1024;
         const scale = img.width > maxW ? maxW / img.width : 1;
         const c = document.createElement("canvas");
-        c.width = img.width * scale;
-        c.height = img.height * scale;
+        c.width = Math.round(img.width * scale);
+        c.height = Math.round(img.height * scale);
         c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        const b64 = c.toDataURL("image/jpeg", 0.7).split(",")[1];
+        const b64 = c.toDataURL("image/jpeg", 0.9).split(",")[1];
         setUploadedImages(prev => [...prev, b64]);
       };
       img.src = preview;
