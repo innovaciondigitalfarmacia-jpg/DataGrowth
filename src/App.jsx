@@ -1051,11 +1051,26 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
         try {
           let imageBase64 = null;
           
-          // If user uploaded images, use those
+          // Always generate through Gemini first (even with uploaded images as reference)
           if (currentImages[0]) {
-            imageBase64 = currentImages[0];
+            // Send uploaded images as reference to Gemini
+            setVideoProgress("Generando imagen base usando tus fotos como referencia...");
+            const imgRes = await fetch("/api/image", { 
+              method: "POST", 
+              headers: { "Content-Type": "application/json" }, 
+              body: JSON.stringify({ prompt: imgPrompt + " Use the uploaded images as visual reference for style and content.", images: currentImages }) 
+            });
+            if (imgRes.ok && imgRes.headers.get("content-type")?.includes("image")) {
+              const blob = await imgRes.blob();
+              imageBase64 = await new Promise(resolve => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(",")[1]);
+                reader.readAsDataURL(blob);
+              });
+            }
           } else {
-            // Generate image with Gemini via POST (GET truncates long prompts)
+            // Generate image with Gemini from scratch
+            setVideoProgress("Generando imagen base con IA...");
             const imgRes = await fetch("/api/image", { 
               method: "POST", 
               headers: { "Content-Type": "application/json" }, 
