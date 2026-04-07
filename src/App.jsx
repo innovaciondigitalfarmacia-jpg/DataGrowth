@@ -1042,7 +1042,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
     const fmt = ct.fmt;
     if (fmt === "reel") {
       const imgPrompt = "Cinematic wide shot photo for " + brand.name + " (" + brand.industry + "). Topic: " + topic + ". Style: " + brandStyle + ". IMPORTANT: If people appear, show them from medium or wide angle, never extreme close-ups. Any visible text must be in Spanish. Do NOT include any logo. Photorealistic, high quality, 9:16 vertical format.";
-      const motionPrompt = "Animate this image with gentle cinematic motion: slow camera pan, subtle movement in the scene, light breeze, atmospheric effects. Keep all people, faces, and TEXT stable and unchanged. Do NOT add, modify, or regenerate any text. Only add motion to the scene. Smooth and professional.";
+      const motionPrompt = "Animate this image with gentle cinematic motion: slow camera pan, subtle movement in the scene, light breeze, atmospheric effects. Keep all people, faces, and TEXT stable and unchanged. Do NOT add, modify, or regenerate any text. Only add motion to the scene. Smooth and professional. Context: " + topic + ". Brand: " + brand.name + ".";
       
       setVideoLoading(true); setVideoProgress("Generando imagen base con IA...");
       
