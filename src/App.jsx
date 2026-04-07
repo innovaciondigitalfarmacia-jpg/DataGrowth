@@ -1042,7 +1042,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
     const fmt = ct.fmt;
     if (fmt === "reel") {
       const imgPrompt = "Cinematic wide shot photo for " + brand.name + " (" + brand.industry + "). Topic: " + topic + ". Style: " + brandStyle + ". IMPORTANT: If people appear, show them from medium or wide angle, never extreme close-ups. Any visible text must be in Spanish. Do NOT include any logo. Photorealistic, high quality, 9:16 vertical format.";
-      const motionPrompt = "Gentle cinematic motion: slow camera pan, subtle movement in the scene, light breeze, atmospheric effects. Keep all people and faces stable. Smooth and professional.";
+      const motionPrompt = "Create a cinematic video about: " + topic + ". Style: " + brandStyle + ". Add gentle cinematic motion: slow camera pan, subtle movement, light breeze, atmospheric effects. Keep all people and faces stable. Any visible text must be in Spanish. Smooth and professional. Brand: " + brand.name + ".";
       
       setVideoLoading(true); setVideoProgress("Generando imagen base con IA...");
       
@@ -1055,8 +1055,12 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
           if (currentImages[0]) {
             imageBase64 = currentImages[0];
           } else {
-            // Generate image with Gemini
-            const imgRes = await fetch("/api/image?prompt=" + encodeURIComponent(imgPrompt));
+            // Generate image with Gemini via POST (GET truncates long prompts)
+            const imgRes = await fetch("/api/image", { 
+              method: "POST", 
+              headers: { "Content-Type": "application/json" }, 
+              body: JSON.stringify({ prompt: imgPrompt }) 
+            });
             if (imgRes.ok && imgRes.headers.get("content-type")?.includes("image")) {
               const blob = await imgRes.blob();
               imageBase64 = await new Promise(resolve => {
@@ -1503,4 +1507,4 @@ export default function App() {
       </div>
     </ThemeCtx.Provider>
   );
-};
+}
