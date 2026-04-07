@@ -986,7 +986,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
 
     // ── DIRECT EDIT: user uploaded a photo, send instruction directly to image API ──
     if (isDirectEdit) {
-      const editPrompt = "You are an IMAGE EDITOR, not an image generator. You have been given reference images. Follow these instructions EXACTLY: " + currentTopic + ". RULES: 1) Do NOT regenerate or recreate the image. EDIT the existing image. 2) Keep the EXACT same scene, background, people, objects, lighting, colors, and composition. 3) ONLY add or modify what the user explicitly asked for. 4) If the user says 'add logo', place the provided logo image on the photo without changing anything else. 5) If the user asks to improve faces, improve ONLY the faces. 6) Any text must be in Spanish. 7) Do NOT add any brand name, watermark or text that was not asked for.";
+      const editPrompt = "Edit the provided image following these instructions: " + currentTopic + ". IMPORTANT: 1) Keep the SAME base image - do NOT regenerate from scratch. 2) Apply ONLY the changes the user requested on top of the existing image. 3) Preserve everything the user did NOT mention (scene, people, background, colors, layout). 4) If the user mentions hex color codes (like #FF0000), use those EXACT colors. 5) Any visible text must be in Spanish.";
       setChatHistory(prev => [...prev, { role: "ai", text: "", headline: "", loading: true }]);
       try {
         const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: editPrompt, images: currentImages }) });
@@ -1006,7 +1006,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
 
     // ── DIRECT REFINEMENT: skip text gen, send instruction directly to image API ──
     if (isRefining) {
-      const editPrompt = "You are an IMAGE EDITOR. This is the SAME image from before. The user wants these SPECIFIC changes: " + currentTopic + ". RULES: 1) This is NOT a new image. EDIT the existing one. 2) Keep the EXACT same scene, people, objects, background, lighting. 3) ONLY modify what the user asked. Everything else stays IDENTICAL. 4) Do NOT regenerate the image from scratch. 5) Do NOT add any text, brand name or watermark unless specifically asked. 6) If asked to remove something, remove ONLY that thing.";
+      const editPrompt = "Edit this image following these instructions: " + currentTopic + ". IMPORTANT: 1) Keep the SAME base image - do NOT regenerate from scratch. 2) Apply ONLY the changes the user requested on top of the existing image. 3) Preserve everything the user did NOT mention (scene, people, background, colors, layout). 4) If the user mentions hex color codes (like #FF0000), use those EXACT colors. 5) Any visible text must be in Spanish.";
       setChatHistory(prev => [...prev, { role: "ai", text: "", headline: "", loading: true }]);
       try {
         const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: editPrompt, image_base64: lastAiImage }) });
