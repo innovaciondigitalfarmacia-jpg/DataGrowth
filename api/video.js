@@ -11,10 +11,10 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     const { action, op, endpoint, response_url, status_url } = req.query;
-    if (action === 'test') return res.status(200).json({ status: 'ready', model: 'minimax-video-01-live', v: '13' });
+    if (action === 'test') return res.status(200).json({ status: 'ready', model: 'hailuo-02', v: '14' });
     if (action === 'check') {
       try {
-        const base = endpoint || 'fal-ai/minimax/video-01-live';
+        const base = endpoint || 'fal-ai/minimax/hailuo-02/standard/text-to-video';
         const urls = [];
         if (response_url) urls.push(decodeURIComponent(response_url));
         if (status_url) urls.push(decodeURIComponent(status_url));
@@ -127,10 +127,10 @@ export default async function handler(req, res) {
       }
 
       const endpoint = (image_base64 && imageUrl)
-        ? 'fal-ai/minimax/video-01-live/image-to-video'
-        : 'fal-ai/minimax/video-01-live';
+        ? 'fal-ai/minimax/hailuo-02/standard/image-to-video'
+        : 'fal-ai/minimax/hailuo-02/standard/text-to-video';
 
-      const payload = { prompt: prompt, prompt_optimizer: true };
+      const payload = { prompt: prompt, prompt_optimizer: true, duration: 10, resolution: "768P" };
       if (imageUrl) payload.image_url = imageUrl;
 
       const r = await fetch('https://queue.fal.run/' + endpoint, {
