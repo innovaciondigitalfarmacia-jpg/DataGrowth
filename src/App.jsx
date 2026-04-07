@@ -925,7 +925,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       img.src = imgUrl;
     });
   };
-  const pollVideo = async (opName, ep) => {
+  const pollVideo = async (opName, ep, respUrl, statUrl) => {
     setVideoLoading(true); setVideoProgress("Generando video con IA... (1-3 min)");
     let attempts = 0;
     const maxAttempts = 60;
@@ -935,7 +935,12 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       attempts++;
       setVideoProgress("Generando video... " + Math.min(Math.round((attempts/maxAttempts)*100), 95) + "%" + falInfo);
       try {
-        const r = await fetch("/api/video?action=check&op=" + encodeURIComponent(opName) + (ep ? "&endpoint=" + encodeURIComponent(ep) : "") + "&t=" + Date.now());
+        let url = "/api/video?action=check&op=" + encodeURIComponent(opName);
+        if (ep) url += "&endpoint=" + encodeURIComponent(ep);
+        if (respUrl) url += "&response_url=" + encodeURIComponent(respUrl);
+        if (statUrl) url += "&status_url=" + encodeURIComponent(statUrl);
+        url += "&t=" + Date.now();
+        const r = await fetch(url);
         const d = await r.json();
         if (d.status === "completed" && d.video_url) {
           setVideoUrl(d.video_url);
@@ -1040,7 +1045,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       const videoBody = { prompt: directVideoPrompt.substring(0, 500), aspect_ratio: "9:16" };
       if (currentImages[0]) { videoBody.image_base64 = currentImages[0]; }
       fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(videoBody) })
-        .then(r => r.json()).then(d => { if (d.operation) { pollVideo(d.operation, d.endpoint); } else { setVideoProgress("Error: " + (d.error || "no se pudo iniciar")); } })
+        .then(r => r.json()).then(d => { if (d.operation) { pollVideo(d.operation, d.endpoint, d.response_url, d.status_url); } else { setVideoProgress("Error: " + (d.error || "no se pudo iniciar")); } })
         .catch(() => setVideoProgress("Error al conectar con API de video"));
     }
     const brandCtx = "MARCA:" + brand.name + "|INDUSTRIA:" + brand.industry + "|TONO:" + brand.tone + "|AUDIENCIA:" + brand.audience + "|VOZ:" + (brand.brandVoice || "Profesional") + "|PRODUCTOS:" + (brand.products || "N/A") + "|COLORES:" + brandColors + "|ESTILO_VISUAL:" + brandStyle;
