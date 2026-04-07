@@ -10,48 +10,81 @@ export default async function handler(req, res) {
   if (!FAL_KEY) return res.status(500).json({ error: "No FAL_KEY" });
 
   if (req.method === 'GET') {
-    const { action, op, endpoint } = req.query;
-    if (action === 'test') return res.status(200).json({ status: 'ready', model: 'minimax-video-01-live' });
-    if (action === 'check' && op) {
+    const { action, op, endpoint, response_url, status_url } = req.query;
+    if (action === 'test') return res.status(200).json({ status: 'ready', model: 'minimax-video-01-live', v: '12' });
+    if (action === 'check') {
       try {
+        // Try multiple URL patterns to find which one works
         const base = endpoint || 'fal-ai/minimax/video-01-live';
-        // Try to get result directly (skip status check)
-        const resultUrl = 'https://queue.fal.run/' + base + '/requests/' + op;
-        const r = await fetch(resultUrl, {
-          headers: { 'Authorization': 'Key ' + FAL_KEY }
-        });
+        const urls = [];
         
-        if (r.status === 202) {
-          // 202 = still processing
-          return res.status(200).json({ status: 'processing' });
+        // If we have explicit URLs from the POST response, use those first
+        if (response_url) urls.push(decodeURIComponent(response_url));
+        if (status_url) urls.push(decodeURIComponent(status_url));
+        
+        // Standard queue API patterns
+        if (op) {
+          urls.push('https://queue.fal.run/' + base + '/requests/' + op + '/status');
+          urls.push('https://queue.fal.run/' + base + '/requests/' + op);
         }
         
-        const text = await r.text();
-        
+        // Debug mode
         if (req.query.debug) {
-          return res.status(200).json({ raw: text.substring(0, 500), httpStatus: r.status });
+          const results = [];
+          for (const url of urls) {
+            try {
+              const r = await fetch(url, { headers: { 'Authorization': 'Key ' + FAL_KEY } });
+              const t = await r.text();
+              results.push({ url, status: r.status, body: t.substring(0, 200) });
+            } catch (e) {
+              results.push({ url, error: e.message });
+            }
+          }
+          return res.status(200).json({ results });
         }
         
-        if (!text) return res.status(200).json({ status: 'processing' });
-        
-        const d = JSON.parse(text);
-        
-        // Check if it's a completed result with video
-        if (d.video?.url) {
-          return res.status(200).json({ status: 'completed', video_url: d.video.url });
+        // Try each URL until we get a valid response
+        for (const url of urls) {
+          try {
+            const r = await fetch(url, { headers: { 'Authorization': 'Key ' + FAL_KEY } });
+            
+            if (r.status === 200) {
+              const text = await r.text();
+              if (!text) continue;
+              const d = JSON.parse(text);
+              
+              // Has video URL = completed
+              if (d.video?.url) {
+                return res.status(200).json({ status: 'completed', video_url: d.video.url });
+              }
+              // Status field says completed
+              if (d.status === 'COMPLETED') {
+                // Try to get result
+                if (d.response_url) {
+                  const r2 = await fetch(d.response_url, { headers: { 'Authorization': 'Key ' + FAL_KEY } });
+                  const d2 = await r2.json();
+                  if (d2.video?.url) return res.status(200).json({ status: 'completed', video_url: d2.video.url });
+                }
+                return res.status(200).json({ status: 'completed_no_url', debug: JSON.stringify(d).substring(0, 500) });
+              }
+              if (d.status === 'FAILED') {
+                return res.status(200).json({ status: 'error', error: d.detail || d.error || 'Video fallo' });
+              }
+              // IN_QUEUE or IN_PROGRESS
+              if (d.status === 'IN_QUEUE' || d.status === 'IN_PROGRESS') {
+                return res.status(200).json({ status: 'processing', fal_status: d.status });
+              }
+            }
+            
+            if (r.status === 202) {
+              return res.status(200).json({ status: 'processing', note: '202' });
+            }
+            
+            // 405 = wrong URL, try next
+          } catch (e) { continue; }
         }
         
-        // Check if status field indicates still processing
-        if (d.status === 'IN_QUEUE' || d.status === 'IN_PROGRESS') {
-          return res.status(200).json({ status: 'processing', fal_status: d.status });
-        }
-        
-        if (d.status === 'FAILED' || d.detail) {
-          return res.status(200).json({ status: 'error', error: d.detail || d.error || 'Video fallo' });
-        }
-        
-        // Unknown response - return as debug
-        return res.status(200).json({ status: 'processing', debug: text.substring(0, 300) });
+        return res.status(200).json({ status: 'processing' });
       } catch (e) {
         return res.status(200).json({ status: 'processing', debug: e.message });
       }
@@ -97,8 +130,19 @@ export default async function handler(req, res) {
       const text = await r.text();
       const d = JSON.parse(text);
       if (d.detail || d.error) return res.status(200).json({ status: 'error', error: d.detail || d.error });
-      if (d.request_id) return res.status(200).json({ status: 'started', operation: d.request_id, endpoint: endpoint });
-      return res.status(200).json({ status: 'error', error: 'Respuesta inesperada' });
+      if (d.request_id) {
+        // Return ALL URLs from fal.ai response for polling
+        return res.status(200).json({ 
+          status: 'started', 
+          operation: d.request_id, 
+          endpoint: endpoint,
+          response_url: d.response_url || '',
+          status_url: d.status_url || '',
+          cancel_url: d.cancel_url || '',
+          raw_keys: Object.keys(d).join(',')
+        });
+      }
+      return res.status(200).json({ status: 'error', error: 'Respuesta: ' + text.substring(0, 200) });
     } catch (e) {
       return res.status(500).json({ error: e.message });
     }
