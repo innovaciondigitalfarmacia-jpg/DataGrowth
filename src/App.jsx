@@ -174,6 +174,10 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
   const [blogOpen, setBlogOpen] = useState(null);
   const [landingPage, setLandingPage] = useState("home");
   const [showPlans, setShowPlans] = useState(false);
+  const [mobileMenu, setMobileMenu] = useState(false);
+  const [w, setW] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
+  useEffect(() => { const h = () => setW(window.innerWidth); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
+  const mob = w < 768;
 
   const openBlog = (post) => {
     setBlogOpen(post);
@@ -227,12 +231,12 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
 
       {/* NAV */}
       <nav style={{ padding: "0", borderBottom: `1px solid ${t.brd}`, position: "sticky", top: 0, background: t.bg + "f2", backdropFilter: "blur(16px)", zIndex: 50, height: 62, display: "flex", alignItems: "center" }}>
-        <div style={{ maxWidth: 1100, width: "100%", margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ maxWidth: 1100, width: "100%", margin: "0 auto", padding: "0 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 30, height: 30, borderRadius: 8, overflow: "hidden" }}><Logo size={30}/></div>
             <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.5 }}>DataGrowth</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+          {!mob && <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
             {NAV_LINKS.map((l, i) => (
               <button key={i} onClick={l.action}
                 style={{ background: "transparent", border: "none", color: t.txS, fontSize: 13, fontWeight: 500, padding: "7px 13px", borderRadius: 7, cursor: "pointer", transition: "all .15s" }}
@@ -241,37 +245,46 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
                 {l.label}
               </button>
             ))}
-          </div>
+          </div>}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div onClick={() => setDark(!dark)} style={{ cursor: "pointer", color: t.txM, padding: 7, borderRadius: 7, background: t.bgI, display: "flex" }}><Ic name={dark ? "sun" : "moon"} size={15}/></div>
-            <Btn secondary onClick={onLogin} style={{ fontSize: 13, padding: "7px 16px" }}>Iniciar sesion</Btn>
-            <Btn primary onClick={() => onRegister()} style={{ fontSize: 13, padding: "7px 16px" }}>Crear cuenta gratis</Btn>
+            {!mob && <Btn secondary onClick={onLogin} style={{ fontSize: 13, padding: "7px 16px" }}>Iniciar sesion</Btn>}
+            {!mob && <Btn primary onClick={() => onRegister()} style={{ fontSize: 13, padding: "7px 16px" }}>Crear cuenta gratis</Btn>}
+            {mob && <div onClick={() => setMobileMenu(!mobileMenu)} style={{ cursor: "pointer", color: t.txS, padding: 7 }}><Ic name={mobileMenu ? "x" : "menu"} size={22}/></div>}
           </div>
         </div>
       </nav>
+      {/* MOBILE MENU */}
+      {mob && mobileMenu && <div style={{ position: "fixed", top: 62, left: 0, right: 0, bottom: 0, background: t.bg, zIndex: 49, padding: "20px 16px", display: "flex", flexDirection: "column", gap: 4 }}>
+        {NAV_LINKS.map((l, i) => <button key={i} onClick={() => { l.action(); setMobileMenu(false); }} style={{ background: "transparent", border: "none", color: t.tx, fontSize: 18, fontWeight: 600, padding: "14px 16px", borderRadius: 10, cursor: "pointer", textAlign: "left", borderBottom: "1px solid " + t.brd }}>{l.label}</button>)}
+        <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+          <Btn secondary onClick={() => { onLogin(); setMobileMenu(false); }} style={{ width: "100%", justifyContent: "center", fontSize: 15, padding: "14px" }}>Iniciar sesion</Btn>
+          <Btn primary onClick={() => { onRegister(); setMobileMenu(false); }} style={{ width: "100%", justifyContent: "center", fontSize: 15, padding: "14px" }}>Crear cuenta gratis</Btn>
+        </div>
+      </div>}
 
       {landingPage === "home" && <>
       {/* HERO */}
-      <div id="inicio" style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px 60px", textAlign: "center", position: "relative" }}>
+      <div id="inicio" style={{ maxWidth: 1100, margin: "0 auto", padding: mob?"40px 16px 30px":"80px 24px 60px", textAlign: "center", position: "relative" }}>
         <div style={{ position: "absolute", top: -100, left: "50%", transform: "translateX(-50%)", width: 600, height: 400, background: t.ac, borderRadius: "50%", filter: "blur(180px)", opacity: dark ? .06 : .03, pointerEvents: "none" }}/>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, border: `1px solid ${t.ac}50`, borderRadius: 6, padding: "5px 16px 5px 10px", fontSize: 11, color: t.ac, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 32 }}>
           <span style={{ width: 6, height: 6, borderRadius: "50%", background: t.ac, animation: "pulse 2s infinite" }}/> Plataforma AI para agencias digitales
         </div>
         <h1 className="dg-title" style={{ fontSize: "clamp(40px,6vw,72px)", fontWeight: 900, lineHeight: 1.04, letterSpacing: -2.5, marginBottom: 24 }}>Crea contenido en minutos{" "}<span style={{ color: t.ac }}>Escala a miles</span></h1>
         <p style={{ fontSize: 18, color: t.txS, maxWidth: 640, margin: "0 auto 36px", lineHeight: 1.6 }}>DataGrowth es la plataforma de inteligencia artificial que genera posts, imagenes, videos, carruseles, reels, copys y emails profesionales para tu marca o la de tus clientes. Configura tu identidad de marca una sola vez y genera contenido ilimitado con un clic.</p>
-        <div style={{ display: "flex", gap: 14, justifyContent: "center" }}>
+        <div style={{ display: "flex", gap: 14, justifyContent: "center", flexDirection: mob ? "column" : "row", alignItems: "center" }}>
           <button onClick={() => { setShowPlans(true); window.history.pushState({ lp: "planes", view: "landing" }, "", "#planes"); }} style={{ background: t.ac, border: "none", color: "#fff", fontSize: 17, fontWeight: 700, padding: "16px 44px", borderRadius: 10, cursor: "pointer", boxShadow: `0 0 30px ${t.ac}40` }}>Ver planes</button>
           <button onClick={() => onRegister()} style={{ background: "transparent", border: `1px solid ${t.brd}`, color: t.tx, fontSize: 16, fontWeight: 500, padding: "16px 32px", borderRadius: 10, cursor: "pointer" }}>Empezar gratis →</button>
         </div>
       </div>
       {/* FEATURES SUMMARY */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: mob?"40px 16px":"80px 24px" }}>
         <div style={{ textAlign: "center", marginBottom: 56 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Funcionalidades</div>
           <h2 style={{ fontSize: 36, fontWeight: 700, letterSpacing: -1 }}>Todo lo que tu agencia necesita</h2>
           <p style={{ fontSize: 15, color: t.txS, marginTop: 10, maxWidth: 500, margin: "10px auto 0" }}>Una sola plataforma para generar todo el contenido de tus marcas.</p>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: mob?"1fr":"repeat(3, 1fr)", gap: 16 }}>
           {features.map((f, i) => (
             <div key={i} style={{ background: t.bgC, border: "1px solid " + t.brd, borderRadius: 16, padding: 28, transition: "all .3s", cursor: "default" }} onMouseEnter={e => { e.currentTarget.style.borderColor = t.ac + "50"; e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 40px " + t.sh; }} onMouseLeave={e => { e.currentTarget.style.borderColor = t.brd; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}>
               <div style={{ width: 48, height: 48, borderRadius: 12, background: t.acS, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, marginBottom: 16 }}>{f.icon}</div>
@@ -284,13 +297,13 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
       </div>
 
       {/* ABOUT SUMMARY */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: mob?"30px 16px":"60px 24px" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Quienes Somos</div>
           <h2 style={{ fontSize: 36, fontWeight: 700, letterSpacing: -1 }}>La agencia digital que trabaja 24/7 para tu marca</h2>
           <p style={{ fontSize: 16, color: t.txS, marginTop: 12, maxWidth: 700, margin: "12px auto 0", lineHeight: 1.7 }}>DataGrowth es una plataforma de inteligencia artificial disenada para agencias digitales, emprendedores y empresas.</p>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: mob?"1fr":"1fr 1fr", gap: mob?12:20 }}>
           {[
             { icon: "🎯", title: "Que hacemos", desc: "Generamos contenido completo para redes sociales usando inteligencia artificial de ultima generacion." },
             { icon: "🚀", title: "Como funciona", desc: "Configura tu marca, describe lo que quieres, y la IA genera todo en segundos." },
@@ -306,12 +319,12 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
       </div>
 
       {/* BLOG SUMMARY */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: mob?"40px 16px":"80px 24px" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Blog</div>
           <h2 style={{ fontSize: 36, fontWeight: 800, letterSpacing: -1 }}>Recursos para tu agencia</h2>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: mob?"1fr":"repeat(3,1fr)", gap: mob?12:20 }}>
           {BLOG_POSTS.map((post, i) => (
             <div key={i} onClick={() => { goPage("blog"); setTimeout(() => openBlog(post), 100); }} style={{ border: `1px solid ${t.brd}`, borderRadius: 16, overflow: "hidden", cursor: "pointer", background: t.bgC, transition: "all .25s" }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = t.ac + "50"; e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = `0 12px 40px ${t.sh}`; }}
@@ -328,7 +341,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
       </div>
 
       {/* CTA */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px 80px" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: mob?"0 16px 40px":"0 24px 80px" }}>
         <div style={{ textAlign: "center", padding: "70px 40px", position: "relative", overflow: "hidden", background: t.bgC, border: "1px solid " + t.brd, borderRadius: 20 }}>
           <div style={{ position: "absolute", top: -100, left: "50%", transform: "translateX(-50%)", width: 600, height: 400, background: t.ac, borderRadius: "50%", filter: "blur(150px)", opacity: .1, pointerEvents: "none" }}/>
           <RocketCanvas />
@@ -341,7 +354,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
       </>}
 
       {/* ═══ FUNCIONES PAGE ═══ */}
-      {landingPage === "funciones" && <div style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px" }}>
+      {landingPage === "funciones" && <div style={{ maxWidth: 1100, margin: "0 auto", padding: mob?"30px 16px":"60px 24px" }}>
         <div style={{ textAlign: "center", marginBottom: 56 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Funcionalidades</div>
           <h1 style={{ fontSize: 42, fontWeight: 900, letterSpacing: -2, marginBottom: 16 }}>Todo lo que tu agencia necesita en un solo lugar</h1>
@@ -358,13 +371,13 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
           { icon: "🎨", title: "Branding Kit", sub: "Identidad completa", desc: "Configura la identidad visual y verbal de cada marca. La IA usa TODO para generar contenido fiel.", details: ["Colores primarios y secundarios (hasta 5)", "Tono de voz y personalidad de marca", "Audiencia objetivo detallada", "Productos y servicios", "Diferenciador único", "Conexión a página web para info real"] },
           { icon: "🌐", title: "Info Real", sub: "Web Scraping inteligente", desc: "Se conecta a tu página web y redes sociales para extraer información REAL. Nunca inventa datos.", details: ["Extrae precios, productos y servicios reales", "Conecta con cualquier página web", "Actualización en cada generación", "Nunca inventa ni alucina datos", "Información verificable y precisa", "Soporte para múltiples URLs por marca"] },
         ].map((f, i) => <div key={i} style={{ background: t.bgC, border: "1px solid " + t.brd, borderRadius: 20, padding: 36, marginBottom: 20, transition: "all .3s" }} onMouseEnter={e => { e.currentTarget.style.borderColor = t.ac + "40"; }} onMouseLeave={e => { e.currentTarget.style.borderColor = t.brd; }}>
-          <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+          <div style={{ display: "flex", gap: mob ? 16 : 24, alignItems: "flex-start", flexDirection: mob ? "column" : "row" }}>
             <div style={{ width: 64, height: 64, borderRadius: 16, background: t.acS, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, flexShrink: 0 }}>{f.icon}</div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 22, fontWeight: 800, color: t.tx, marginBottom: 4 }}>{f.title}</div>
               <div style={{ fontSize: 13, color: t.ac, fontWeight: 600, marginBottom: 12 }}>{f.sub}</div>
               <div style={{ fontSize: 15, color: t.txS, lineHeight: 1.7, marginBottom: 16 }}>{f.desc}</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <div style={{ display: "grid", gridTemplateColumns: mob ? "1fr" : "1fr 1fr", gap: 8 }}>
                 {f.details.map((d, j) => <div key={j} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: t.txS }}><span style={{ color: t.ac, fontWeight: 700 }}>✓</span> {d}</div>)}
               </div>
             </div>
@@ -374,14 +387,14 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
       </div>}
 
       {/* ═══ QUIÉNES SOMOS PAGE ═══ */}
-      {landingPage === "quienes" && <div style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px" }}>
+      {landingPage === "quienes" && <div style={{ maxWidth: 1100, margin: "0 auto", padding: mob?"30px 16px":"60px 24px" }}>
         <div style={{ textAlign: "center", marginBottom: 56 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Quienes Somos</div>
           <h1 style={{ fontSize: 42, fontWeight: 900, letterSpacing: -2, marginBottom: 16 }}>La agencia digital que trabaja 24/7 para tu marca</h1>
           <p style={{ fontSize: 17, color: t.txS, maxWidth: 700, margin: "0 auto", lineHeight: 1.7 }}>DataGrowth es una plataforma de inteligencia artificial diseñada para agencias digitales, emprendedores y empresas que necesitan generar contenido profesional de forma rápida, consistente y alineado con su identidad de marca.</p>
         </div>
         {/* Mission */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 40 }}>
+        <div style={{ display: "grid", gridTemplateColumns: mob?"1fr":"1fr 1fr", gap: mob?14:24, marginBottom: 40 }}>
           <div style={{ background: t.bgC, border: "1px solid " + t.brd, borderRadius: 20, padding: 36 }}>
             <div style={{ fontSize: 32, marginBottom: 16 }}>🎯</div>
             <div style={{ fontSize: 22, fontWeight: 800, color: t.tx, marginBottom: 12 }}>Nuestra misión</div>
@@ -396,7 +409,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
         {/* How it works */}
         <div style={{ background: t.bgC, border: "1px solid " + t.brd, borderRadius: 20, padding: 40, marginBottom: 40 }}>
           <div style={{ fontSize: 22, fontWeight: 800, color: t.tx, marginBottom: 24, textAlign: "center" }}>🚀 Cómo funciona DataGrowth</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: mob?"1fr":"repeat(5, 1fr)", gap: mob?12:16 }}>
             {[
               { step: "1", icon: "🎨", title: "Crea tu marca", desc: "Configura tu Brand Kit con colores, tono de voz, audiencia y productos." },
               { step: "2", icon: "🌐", title: "Conecta tu web", desc: "Vincula tu página web para que la IA use información real de tu negocio." },
@@ -414,7 +427,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
         {/* What makes us different */}
         <div style={{ marginBottom: 40 }}>
           <div style={{ fontSize: 22, fontWeight: 800, color: t.tx, marginBottom: 24, textAlign: "center" }}>💡 Qué nos diferencia</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: mob?"1fr":"1fr 1fr", gap: mob?12:20 }}>
             {[
               { icon: "🔒", title: "Información real, nunca inventada", desc: "DataGrowth se conecta a tu página web y redes sociales para extraer información REAL. Nunca inventa precios, productos ni servicios. Cada pieza de contenido refleja tu marca tal como es." },
               { icon: "📸", title: "Fotos reales transformadas", desc: "Sube fotos reales de tu producto o servicio y la IA las transforma en contenido profesional. No son fotos genéricas de stock, son TUS fotos mejoradas con IA." },
@@ -430,7 +443,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
         {/* Tech */}
         <div style={{ background: t.bgC, border: "1px solid " + t.brd, borderRadius: 20, padding: 40, marginBottom: 40 }}>
           <div style={{ fontSize: 22, fontWeight: 800, color: t.tx, marginBottom: 24, textAlign: "center" }}>🛠️ Tecnología que impulsa DataGrowth</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: mob?"1fr 1fr":"repeat(4, 1fr)", gap: mob?10:16 }}>
             {[
               { icon: "🤖", name: "Claude AI", desc: "Motor de texto de Anthropic. Genera copys, captions y emails con calidad de agencia profesional. Entiende contexto, tono y audiencia." },
               { icon: "🖼️", name: "Nano Banana 2", desc: "El modelo de generación de imágenes más avanzado de Google. Crea imágenes fotorrealistas con texto legible y caras naturales." },
@@ -446,7 +459,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
         {/* For who */}
         <div style={{ marginBottom: 40 }}>
           <div style={{ fontSize: 22, fontWeight: 800, color: t.tx, marginBottom: 24, textAlign: "center" }}>🏢 Para quién es DataGrowth</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: mob?"1fr 1fr":"repeat(4, 1fr)", gap: mob?10:16 }}>
             {[
               { icon: "📊", title: "Agencias digitales", desc: "Maneja múltiples marcas desde un solo panel. Genera contenido para todos tus clientes en minutos." },
               { icon: "💼", title: "Emprendedores", desc: "Contenido profesional sin contratar diseñador ni community manager. Tu marca se ve como las grandes." },
@@ -463,7 +476,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
       </div>}
 
       {/* ═══ BLOG PAGE ═══ */}
-      {landingPage === "blog" && <div style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px" }}>
+      {landingPage === "blog" && <div style={{ maxWidth: 1100, margin: "0 auto", padding: mob?"30px 16px":"60px 24px" }}>
         {blogOpen ? (
           <div>
             <div style={{ maxWidth: 680 }}>
@@ -484,7 +497,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
               <h1 style={{ fontSize: 42, fontWeight: 900, letterSpacing: -2, marginBottom: 16 }}>Recursos para tu agencia</h1>
               <p style={{ fontSize: 17, color: t.txS, maxWidth: 600, margin: "0 auto", lineHeight: 1.7 }}>Artículos sobre marketing digital, contenido con IA y estrategias para crecer tu agencia y la de tus clientes.</p>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
+            <div style={{ display: "grid", gridTemplateColumns: mob?"1fr":"repeat(3,1fr)", gap: mob?12:20 }}>
               {BLOG_POSTS.map((post, i) => (
                 <div key={i} onClick={() => openBlog(post)} style={{ border: `1px solid ${t.brd}`, borderRadius: 16, overflow: "hidden", cursor: "pointer", background: t.bgC, transition: "all .25s" }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = t.ac + "50"; e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = `0 12px 40px ${t.sh}`; }}
@@ -511,7 +524,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
               <div style={{ width: 28, height: 28, borderRadius: 7, overflow: "hidden" }}><Logo size={28}/></div>
               <span style={{ fontSize: 15, fontWeight: 700, color: t.tx }}>DataGrowth</span>
             </div>
-            <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+            <div style={{ display: "flex", gap: mob ? 10 : 16, alignItems: "center", flexWrap: "wrap" }}>
               <a href="https://instagram.com/datagrowth.agency" target="_blank" rel="noopener noreferrer" style={{ color: t.txS, textDecoration: "none", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500, transition: "color .2s" }} onMouseEnter={e => e.currentTarget.style.color = "#E1306C"} onMouseLeave={e => e.currentTarget.style.color = t.txS}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
                 @datagrowth.agency
@@ -555,7 +568,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
             <h2 style={{ fontSize: 40, fontWeight: 800, letterSpacing: -1 }}>Elige el plan perfecto para ti</h2>
             <p style={{ fontSize: 16, color: t.txS, marginTop: 12 }}>Empieza gratis. Escala cuando lo necesites. Cancela cuando quieras.</p>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: mob?"1fr":"repeat(3, 1fr)", gap: mob?14:24 }}>
             {PLANS.map(p => (
               <div key={p.id} style={{ position: "relative", background: t.bgC, border: p.pop ? "2px solid " + p.color : "1px solid " + t.brd, borderRadius: 20, textAlign: "center", padding: 40, overflow: "visible", transition: "all .3s", display: "flex", flexDirection: "column" }} onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-6px)"; e.currentTarget.style.boxShadow = "0 20px 60px " + t.sh; }} onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}>
                 {p.pop && <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: t.gr, color: "#fff", padding: "6px 28px", borderRadius: 20, fontSize: 12, fontWeight: 700, boxShadow: "0 4px 15px rgba(55,194,235,.3)" }}>Mas popular</div>}
