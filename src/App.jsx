@@ -239,7 +239,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
         <div style={{ textAlign: "center", padding: "70px 40px", position: "relative", overflow: "hidden", background: t.bgC, border: "1px solid " + t.brd, borderRadius: 20 }}>
           <div style={{ position: "absolute", top: -100, left: "50%", transform: "translateX(-50%)", width: 600, height: 400, background: t.ac, borderRadius: "50%", filter: "blur(150px)", opacity: .1, pointerEvents: "none" }}/>
           <div style={{ position: "relative" }}>
-            <div style={{ fontSize: 40, marginBottom: 16 }}>🚀</div>
+            <div style={{ fontSize: 40, marginBottom: 16, animation: "rocketFloat 3s ease-in-out infinite", display: "inline-block" }}>🚀</div>
             <h2 style={{ fontSize: 34, fontWeight: 700, marginBottom: 14 }}>Empieza a crear contenido <span style={{ color: t.ac }}>hoy</span></h2>
             <p style={{ fontSize: 16, color: t.txS, marginBottom: 32, maxWidth: 500, margin: "0 auto 32px" }}>Unete a las agencias y emprendedores que ya generan contenido profesional con IA. Sin tarjeta de credito.</p>
           </div>
@@ -276,7 +276,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
         </div>
       </div>
 
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}} @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}} nav,section,h1,h2,p{animation:fadeUp .6s ease-out}`}</style>
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}} @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}} @keyframes rocketFloat{0%,100%{transform:translateY(0) rotate(-45deg)}50%{transform:translateY(-15px) rotate(-45deg)}} nav,section,h1,h2,p{animation:fadeUp .6s ease-out}`}</style>
 
       {/* PLANS PAGE OVERLAY */}
       {showPlans && <div style={{ position: "fixed", inset: 0, background: t.bg, zIndex: 200, overflow: "auto" }}>
