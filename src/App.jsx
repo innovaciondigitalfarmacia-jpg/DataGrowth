@@ -93,19 +93,21 @@ const RocketCanvas = () => {
       while (diff < -Math.PI) diff += Math.PI * 2;
       prevAngle += diff * 0.08;
       const angle = prevAngle;
-      // Spawn fire particles behind rocket
+      // Spawn fire particles from rocket exhaust (behind the emoji flame)
       for (let i = 0; i < 6; i++) {
-        const spread = (Math.random() - 0.5) * 0.5;
+        const spread = (Math.random() - 0.5) * 0.4;
         const fireAngle = angle + Math.PI + spread;
-        const speed = 2 + Math.random() * 4;
-        const dist = 26 + Math.random() * 8;
+        const speed = 1.5 + Math.random() * 3;
+        // Spawn at the tail of the rocket emoji (opposite of nose)
+        const spawnDist = 30 + Math.random() * 6;
+        const ox = pos.x - Math.cos(angle) * spawnDist + (Math.random() - 0.5) * 4;
+        const oy = pos.y - Math.sin(angle) * spawnDist + (Math.random() - 0.5) * 4;
         particles.push({
-          x: pos.x - Math.cos(angle) * dist,
-          y: pos.y - Math.sin(angle) * dist,
+          x: ox, y: oy,
           vx: Math.cos(fireAngle) * speed,
           vy: Math.sin(fireAngle) * speed,
           life: 1,
-          size: 5 + Math.random() * 12,
+          size: 4 + Math.random() * 10,
         });
       }
       // Draw fire trail
@@ -141,8 +143,8 @@ const RocketCanvas = () => {
         ctx.fill();
         ctx.restore();
       }
-      // Glow behind rocket
-      const gx = pos.x - Math.cos(angle) * 24, gy = pos.y - Math.sin(angle) * 24;
+      // Glow at rocket exhaust
+      const gx = pos.x - Math.cos(angle) * 30, gy = pos.y - Math.sin(angle) * 30;
       const glowGrad = ctx.createRadialGradient(gx, gy, 0, gx, gy, 50);
       glowGrad.addColorStop(0, "rgba(255,160,60,0.5)");
       glowGrad.addColorStop(0.5, "rgba(255,100,20,0.15)");
