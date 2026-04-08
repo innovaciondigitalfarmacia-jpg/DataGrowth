@@ -176,7 +176,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
 
   const openBlog = (post) => {
     setBlogOpen(post);
-    window.history.pushState({ blog: post.id }, "", "#blog-" + post.id);
+    window.history.pushState({ blog: post.id, lp: "blog" }, "", "#blog-" + post.id);
   };
   const closeBlog = () => {
     setBlogOpen(null);
@@ -184,7 +184,10 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
   };
 
   useEffect(() => {
-    const handlePop = (e) => { if (!e.state?.blog) setBlogOpen(null); };
+    const handlePop = (e) => {
+      if (e.state?.lp) { setLandingPage(e.state.lp); setBlogOpen(null); }
+      else if (!e.state?.blog) { setLandingPage("home"); setBlogOpen(null); }
+    };
     window.addEventListener("popstate", handlePop);
     return () => window.removeEventListener("popstate", handlePop);
   }, []);
@@ -201,9 +204,9 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
   ];
 
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-  const goPage = (pg) => { setLandingPage(pg); window.scrollTo(0, 0); };
+  const goPage = (pg) => { setLandingPage(pg); setBlogOpen(null); window.scrollTo(0, 0); window.history.pushState({ lp: pg }, "", "#" + pg); };
   const NAV_LINKS = [
-    { label: "Inicio", action: () => { setLandingPage("home"); window.scrollTo(0, 0); } },
+    { label: "Inicio", action: () => { setLandingPage("home"); setBlogOpen(null); window.scrollTo(0, 0); window.history.pushState({ lp: "home" }, "", "#inicio"); } },
     { label: "Funciones", action: () => goPage("funciones") },
     { label: "Quiénes somos", action: () => goPage("quienes") },
     { label: "Planes", action: () => setShowPlans(true) },
@@ -331,7 +334,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
 
       {/* ═══ FUNCIONES PAGE ═══ */}
       {landingPage === "funciones" && <div style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px" }}>
-        <button onClick={() => goPage("home")} style={{ display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", color: t.txS, fontSize: 14, cursor: "pointer", marginBottom: 40, padding: 0 }}><Ic name="back" size={16}/> Volver al inicio</button>
+        <button onClick={() => window.history.back()} style={{ display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", color: t.txS, fontSize: 14, cursor: "pointer", marginBottom: 40, padding: 0 }}><Ic name="back" size={16}/> Volver al inicio</button>
         <div style={{ textAlign: "center", marginBottom: 56 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Funcionalidades</div>
           <h1 style={{ fontSize: 42, fontWeight: 900, letterSpacing: -2, marginBottom: 16 }}>Todo lo que tu agencia necesita en un solo lugar</h1>
@@ -365,7 +368,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
 
       {/* ═══ QUIÉNES SOMOS PAGE ═══ */}
       {landingPage === "quienes" && <div style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px" }}>
-        <button onClick={() => goPage("home")} style={{ display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", color: t.txS, fontSize: 14, cursor: "pointer", marginBottom: 40, padding: 0 }}><Ic name="back" size={16}/> Volver al inicio</button>
+        <button onClick={() => window.history.back()} style={{ display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", color: t.txS, fontSize: 14, cursor: "pointer", marginBottom: 40, padding: 0 }}><Ic name="back" size={16}/> Volver al inicio</button>
         <div style={{ textAlign: "center", marginBottom: 56 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Quienes Somos</div>
           <h1 style={{ fontSize: 42, fontWeight: 900, letterSpacing: -2, marginBottom: 16 }}>La agencia digital que trabaja 24/7 para tu marca</h1>
@@ -473,7 +476,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
           </div>
         ) : (
           <>
-            <button onClick={() => goPage("home")} style={{ display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", color: t.txS, fontSize: 14, cursor: "pointer", marginBottom: 40, padding: 0 }}><Ic name="back" size={16}/> Volver al inicio</button>
+            <button onClick={() => window.history.back()} style={{ display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", color: t.txS, fontSize: 14, cursor: "pointer", marginBottom: 40, padding: 0 }}><Ic name="back" size={16}/> Volver al inicio</button>
             <div style={{ textAlign: "center", marginBottom: 56 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Blog</div>
               <h1 style={{ fontSize: 42, fontWeight: 900, letterSpacing: -2, marginBottom: 16 }}>Recursos para tu agencia</h1>
