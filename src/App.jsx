@@ -73,61 +73,67 @@ const RocketCanvas = () => {
     const getPos = (time) => {
       const w = canvas.width, h = canvas.height;
       const cx = w / 2, cy = h / 2;
-      const rx = w * 0.38, ry = h * 0.32;
-      const x = cx + Math.cos(time) * rx + Math.sin(time * 0.7) * rx * 0.12;
-      const y = cy + Math.sin(time * 0.8) * ry + Math.cos(time * 1.3) * ry * 0.08;
+      const rx = w * 0.4, ry = h * 0.35;
+      // Multiple sine waves for organic, unpredictable movement
+      const x = cx + Math.cos(time * 0.9) * rx + Math.sin(time * 0.4) * rx * 0.2 + Math.cos(time * 1.7) * rx * 0.08;
+      const y = cy + Math.sin(time * 0.7) * ry + Math.cos(time * 1.1) * ry * 0.15 + Math.sin(time * 2.1) * ry * 0.05;
       return { x, y };
     };
+    let prevAngle = 0;
     const draw = () => {
-      t += 0.006;
+      t += 0.005;
       const w = canvas.width, h = canvas.height;
       ctx.clearRect(0, 0, w, h);
       const pos = getPos(t);
-      const next = getPos(t + 0.015);
-      const angle = Math.atan2(next.y - pos.y, next.x - pos.x);
+      const next = getPos(t + 0.012);
+      let targetAngle = Math.atan2(next.y - pos.y, next.x - pos.x);
+      // Smooth angle transition for natural turns
+      let diff = targetAngle - prevAngle;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      prevAngle += diff * 0.08;
+      const angle = prevAngle;
       // Spawn fire particles behind rocket
-      for (let i = 0; i < 5; i++) {
-        const spread = (Math.random() - 0.5) * 0.6;
+      for (let i = 0; i < 6; i++) {
+        const spread = (Math.random() - 0.5) * 0.5;
         const fireAngle = angle + Math.PI + spread;
-        const speed = 3 + Math.random() * 5;
+        const speed = 2 + Math.random() * 4;
+        const dist = 26 + Math.random() * 8;
         particles.push({
-          x: pos.x - Math.cos(angle) * 28,
-          y: pos.y - Math.sin(angle) * 28,
+          x: pos.x - Math.cos(angle) * dist,
+          y: pos.y - Math.sin(angle) * dist,
           vx: Math.cos(fireAngle) * speed,
           vy: Math.sin(fireAngle) * speed,
           life: 1,
-          maxLife: 1,
-          size: 6 + Math.random() * 10,
-          type: Math.random()
+          size: 5 + Math.random() * 12,
         });
       }
-      // Draw particles (fire trail)
+      // Draw fire trail
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
         p.x += p.vx; p.y += p.vy;
-        p.vx *= 0.96; p.vy *= 0.96;
-        p.life -= 0.02;
-        p.size *= 0.985;
-        if (p.life <= 0 || p.size < 0.5) { particles.splice(i, 1); continue; }
+        p.vx *= 0.97; p.vy *= 0.97;
+        p.life -= 0.015;
+        p.size *= 0.99;
+        if (p.life <= 0 || p.size < 0.3) { particles.splice(i, 1); continue; }
         ctx.save();
-        const alpha = Math.pow(p.life, 0.5) * 0.9;
-        // Fire gradient per particle
+        const alpha = Math.pow(p.life, 0.6) * 0.85;
         const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
-        if (p.life > 0.7) {
-          // Hot core - white/blue
+        if (p.life > 0.75) {
           grad.addColorStop(0, `rgba(255,255,255,${alpha})`);
-          grad.addColorStop(0.3, `rgba(100,180,255,${alpha * 0.8})`);
+          grad.addColorStop(0.3, `rgba(120,190,255,${alpha * 0.9})`);
           grad.addColorStop(1, `rgba(59,130,246,0)`);
-        } else if (p.life > 0.4) {
-          // Middle - orange/yellow
-          grad.addColorStop(0, `rgba(255,230,100,${alpha})`);
-          grad.addColorStop(0.4, `rgba(255,160,30,${alpha * 0.7})`);
+        } else if (p.life > 0.45) {
+          grad.addColorStop(0, `rgba(255,240,120,${alpha})`);
+          grad.addColorStop(0.35, `rgba(255,170,40,${alpha * 0.8})`);
           grad.addColorStop(1, `rgba(249,115,22,0)`);
+        } else if (p.life > 0.2) {
+          grad.addColorStop(0, `rgba(239,80,50,${alpha * 0.7})`);
+          grad.addColorStop(0.5, `rgba(180,40,20,${alpha * 0.4})`);
+          grad.addColorStop(1, `rgba(80,20,10,0)`);
         } else {
-          // Outer - red/smoke
-          grad.addColorStop(0, `rgba(239,68,68,${alpha * 0.6})`);
-          grad.addColorStop(0.5, `rgba(200,50,20,${alpha * 0.3})`);
-          grad.addColorStop(1, `rgba(100,30,10,0)`);
+          grad.addColorStop(0, `rgba(80,80,80,${alpha * 0.3})`);
+          grad.addColorStop(1, `rgba(40,40,40,0)`);
         }
         ctx.fillStyle = grad;
         ctx.beginPath();
@@ -136,14 +142,16 @@ const RocketCanvas = () => {
         ctx.restore();
       }
       // Glow behind rocket
-      const glowGrad = ctx.createRadialGradient(pos.x - Math.cos(angle) * 20, pos.y - Math.sin(angle) * 20, 0, pos.x - Math.cos(angle) * 20, pos.y - Math.sin(angle) * 20, 40);
-      glowGrad.addColorStop(0, "rgba(255,150,50,0.4)");
-      glowGrad.addColorStop(1, "rgba(255,100,0,0)");
+      const gx = pos.x - Math.cos(angle) * 24, gy = pos.y - Math.sin(angle) * 24;
+      const glowGrad = ctx.createRadialGradient(gx, gy, 0, gx, gy, 50);
+      glowGrad.addColorStop(0, "rgba(255,160,60,0.5)");
+      glowGrad.addColorStop(0.5, "rgba(255,100,20,0.15)");
+      glowGrad.addColorStop(1, "rgba(255,80,0,0)");
       ctx.fillStyle = glowGrad;
       ctx.beginPath();
-      ctx.arc(pos.x - Math.cos(angle) * 20, pos.y - Math.sin(angle) * 20, 40, 0, Math.PI * 2);
+      ctx.arc(gx, gy, 50, 0, Math.PI * 2);
       ctx.fill();
-      // Draw rocket emoji BIG
+      // Draw rocket
       ctx.save();
       ctx.translate(pos.x, pos.y);
       ctx.rotate(angle - Math.PI / 4);
@@ -152,6 +160,8 @@ const RocketCanvas = () => {
       ctx.textBaseline = "middle";
       ctx.fillText("🚀", 0, 0);
       ctx.restore();
+      // Cap particles
+      if (particles.length > 300) particles.splice(0, particles.length - 300);
       animId = requestAnimationFrame(draw);
     };
     draw();
