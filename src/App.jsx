@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from "react";
+import React, { useState, useEffect, createContext, useContext, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient("https://wmonacfzxjpndbhwsdsf.supabase.co", "sb_publishable_TT6jl9XE1oQmHRPeuT68wg_KMy2106J");
@@ -57,6 +57,92 @@ const BLOG_POSTS = [
   { id: 2, tag: "Estrategia", emoji: "📈", title: "5 estrategias de marketing digital que toda agencia debe aplicar en 2026", desc: "El marketing digital evoluciona rápido. Estas son las estrategias que están dominando este año.", date: "1 Jun 2026", min: "7 min", body: "El marketing digital en 2026 está siendo transformado por la inteligencia artificial. Aquí las 5 estrategias más efectivas:\n\n1. Contenido hiperpersonalizado: ya no basta con contenido genérico. Las marcas que ganan hablan directamente a su audiencia.\n\n2. Video corto consistente: Instagram Reels y TikTok siguen dominando. La clave es la consistencia, no la perfección.\n\n3. Email marketing automatizado: el email tiene el ROI más alto de todos los canales.\n\n4. Branding coherente en todos los canales: tu marca debe verse y sonar igual en Instagram, email y anuncios.\n\n5. Datos reales en el contenido: la IA que usa información real de tu marca genera contenido más creíble." },
   { id: 3, tag: "Branding", emoji: "🎨", title: "Por qué tu marca necesita contenido consistente para crecer en redes", desc: "La consistencia es el secreto del crecimiento orgánico. Te explicamos cómo lograrlo con IA.", date: "28 May 2026", min: "4 min", body: "El algoritmo de Instagram favorece a las cuentas que publican consistentemente. No es sobre cantidad, es sobre regularidad.\n\nEl problema es que crear contenido de calidad todos los días es agotador y costoso. Ahí es donde entra DataGrowth.\n\nCon nuestra plataforma puedes configurar tu marca una sola vez y generar semanas de contenido en minutos. Mismo tono, mismos colores, misma voz de marca en cada pieza." },
 ];
+
+const RocketCanvas = () => {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    let animId;
+    let t = 0;
+    const particles = [];
+    const resize = () => { canvas.width = canvas.offsetWidth * 2; canvas.height = canvas.offsetHeight * 2; ctx.scale(2, 2); };
+    resize();
+    window.addEventListener("resize", resize);
+    const getPos = (time) => {
+      const w = canvas.offsetWidth, h = canvas.offsetHeight;
+      const cx = w / 2, cy = h / 2;
+      const rx = w * 0.4, ry = h * 0.35;
+      const x = cx + Math.cos(time) * rx + Math.sin(time * 0.7) * rx * 0.15;
+      const y = cy + Math.sin(time * 0.8) * ry + Math.cos(time * 1.3) * ry * 0.1;
+      return { x, y };
+    };
+    const draw = () => {
+      t += 0.008;
+      const w = canvas.offsetWidth, h = canvas.offsetHeight;
+      ctx.clearRect(0, 0, w, h);
+      const pos = getPos(t);
+      const next = getPos(t + 0.02);
+      const angle = Math.atan2(next.y - pos.y, next.x - pos.x);
+      // Add fire particles
+      for (let i = 0; i < 3; i++) {
+        particles.push({
+          x: pos.x - Math.cos(angle) * 14,
+          y: pos.y - Math.sin(angle) * 14,
+          vx: -Math.cos(angle) * (2 + Math.random() * 3) + (Math.random() - 0.5) * 2,
+          vy: -Math.sin(angle) * (2 + Math.random() * 3) + (Math.random() - 0.5) * 2,
+          life: 1,
+          size: 3 + Math.random() * 5,
+          type: Math.random()
+        });
+      }
+      // Update and draw particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx; p.y += p.vy;
+        p.life -= 0.025;
+        p.size *= 0.97;
+        if (p.life <= 0) { particles.splice(i, 1); continue; }
+        const alpha = p.life * 0.8;
+        if (p.type < 0.3) {
+          ctx.fillStyle = `rgba(59,130,246,${alpha})`; // blue core
+        } else if (p.type < 0.6) {
+          ctx.fillStyle = `rgba(251,191,36,${alpha})`; // orange
+        } else {
+          ctx.fillStyle = `rgba(249,115,22,${alpha * 0.7})`; // red-orange
+        }
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        // Glow
+        if (p.life > 0.5) {
+          ctx.fillStyle = `rgba(255,255,255,${alpha * 0.3})`;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size * 0.4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      // Draw rocket emoji
+      ctx.save();
+      ctx.translate(pos.x, pos.y);
+      ctx.rotate(angle - Math.PI / 4);
+      ctx.font = "28px serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("🚀", 0, 0);
+      // Glow around rocket
+      ctx.shadowColor = "rgba(255,150,0,0.4)";
+      ctx.shadowBlur = 15;
+      ctx.fillText("🚀", 0, 0);
+      ctx.restore();
+      animId = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", resize); };
+  }, []);
+  return <canvas ref={canvasRef} style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1 }} />;
+};
 
 const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }) => {
   const t = useT();
@@ -238,20 +324,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px 80px" }}>
         <div style={{ textAlign: "center", padding: "70px 40px", position: "relative", overflow: "hidden", background: t.bgC, border: "1px solid " + t.brd, borderRadius: 20 }}>
           <div style={{ position: "absolute", top: -100, left: "50%", transform: "translateX(-50%)", width: 600, height: 400, background: t.ac, borderRadius: "50%", filter: "blur(150px)", opacity: .1, pointerEvents: "none" }}/>
-          <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, pointerEvents: "none", overflow: "hidden" }}>
-            <div className="rocket-fly" style={{ position: "absolute", width: 50, height: 50 }}>
-              <div style={{ fontSize: 32, transform: "rotate(-45deg)", filter: "drop-shadow(0 0 8px rgba(255,100,0,0.5))" }}>🚀</div>
-              <div style={{ position: "absolute", bottom: 2, left: -6, transform: "rotate(45deg)", transformOrigin: "top right" }}>
-                <div className="flame1" style={{ width: 10, height: 22, background: "linear-gradient(to bottom, #3b82f6, #60a5fa, transparent)", borderRadius: "50% 50% 50% 50%", filter: "blur(2px)", opacity: 0.9 }}/>
-              </div>
-              <div style={{ position: "absolute", bottom: -2, left: -10, transform: "rotate(45deg)", transformOrigin: "top right" }}>
-                <div className="flame2" style={{ width: 14, height: 30, background: "linear-gradient(to bottom, #fff, #fbbf24, #f97316, #ef4444, transparent)", borderRadius: "40% 40% 50% 50%", filter: "blur(2px)", opacity: 0.85 }}/>
-              </div>
-              <div style={{ position: "absolute", bottom: -6, left: -14, transform: "rotate(45deg)", transformOrigin: "top right" }}>
-                <div className="flame3" style={{ width: 8, height: 18, background: "linear-gradient(to bottom, #fbbf24, #f97316, transparent)", borderRadius: "50%", filter: "blur(3px)", opacity: 0.7 }}/>
-              </div>
-            </div>
-          </div>
+          <RocketCanvas />
           <div style={{ position: "relative" }}>
             <h2 style={{ fontSize: 34, fontWeight: 700, marginBottom: 14 }}>Empieza a crear contenido <span style={{ color: t.ac }}>hoy</span></h2>
             <p style={{ fontSize: 16, color: t.txS, marginBottom: 32, maxWidth: 500, margin: "0 auto 32px" }}>Unete a las agencias y emprendedores que ya generan contenido profesional con IA. Sin tarjeta de credito.</p>
@@ -289,7 +362,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
         </div>
       </div>
 
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}} @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}} @keyframes rocketPath{0%{top:85%;left:0%;transform:rotate(-45deg)}8%{top:50%;left:10%;transform:rotate(-50deg)}16%{top:15%;left:25%;transform:rotate(-35deg)}24%{top:5%;left:40%;transform:rotate(-10deg)}32%{top:8%;left:55%;transform:rotate(10deg)}40%{top:15%;left:70%;transform:rotate(35deg)}48%{top:40%;left:82%;transform:rotate(60deg)}56%{top:70%;left:88%;transform:rotate(100deg)}64%{top:85%;left:78%;transform:rotate(150deg)}72%{top:80%;left:60%;transform:rotate(190deg)}80%{top:75%;left:40%;transform:rotate(210deg)}88%{top:82%;left:20%;transform:rotate(230deg)}96%{top:88%;left:8%;transform:rotate(270deg)}100%{top:85%;left:0%;transform:rotate(-45deg)}} @keyframes flame1{0%{height:22px;opacity:.9}50%{height:28px;opacity:1}100%{height:20px;opacity:.8}} @keyframes flame2{0%{height:30px;opacity:.85}33%{height:38px;opacity:1}66%{height:26px;opacity:.7}100%{height:32px;opacity:.9}} @keyframes flame3{0%{height:18px;opacity:.7}50%{height:24px;opacity:.9}100%{height:16px;opacity:.6}} .rocket-fly{animation:rocketPath 12s cubic-bezier(.45,.05,.55,.95) infinite} .flame1{animation:flame1 .12s infinite alternate} .flame2{animation:flame2 .1s infinite alternate} .flame3{animation:flame3 .15s infinite alternate} nav,section,h1,h2,p{animation:fadeUp .6s ease-out}`}</style>
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}} @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}} nav,section,h1,h2,p{animation:fadeUp .6s ease-out}`}</style>
 
       {/* PLANS PAGE OVERLAY */}
       {showPlans && <div style={{ position: "fixed", inset: 0, background: t.bg, zIndex: 200, overflow: "auto" }}>
