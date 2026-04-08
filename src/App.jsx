@@ -184,9 +184,14 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
   };
 
   useEffect(() => {
+    // Handle initial hash
+    const hash = window.location.hash.replace("#", "");
+    if (hash === "funciones" || hash === "quienes" || hash === "blog") setLandingPage(hash);
+    
     const handlePop = (e) => {
+      setShowPlans(false);
       if (e.state?.lp) { setLandingPage(e.state.lp); setBlogOpen(null); }
-      else if (!e.state?.blog) { setLandingPage("home"); setBlogOpen(null); }
+      else { setLandingPage("home"); setBlogOpen(null); }
     };
     window.addEventListener("popstate", handlePop);
     return () => window.removeEventListener("popstate", handlePop);
@@ -209,7 +214,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
     { label: "Inicio", action: () => { setLandingPage("home"); setBlogOpen(null); window.scrollTo(0, 0); window.history.pushState({ lp: "home" }, "", "#inicio"); } },
     { label: "Funciones", action: () => goPage("funciones") },
     { label: "Quiénes somos", action: () => goPage("quienes") },
-    { label: "Planes", action: () => setShowPlans(true) },
+    { label: "Planes", action: () => { setShowPlans(true); window.history.pushState({ lp: "planes" }, "", "#planes"); } },
     { label: "Blog", action: () => goPage("blog") },
   ];
 
@@ -458,9 +463,6 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
       {landingPage === "blog" && <div style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px" }}>
         {blogOpen ? (
           <div>
-            <button onClick={() => { setBlogOpen(null); }} style={{ display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", color: t.txS, fontSize: 14, cursor: "pointer", marginBottom: 40, padding: 0, fontWeight: 500 }}>
-              <Ic name="back" size={16}/> Volver al blog
-            </button>
             <div style={{ maxWidth: 680 }}>
               <div style={{ display: "inline-block", background: t.acS, color: t.ac, fontSize: 10, fontWeight: 700, padding: "4px 12px", borderRadius: 6, marginBottom: 24, textTransform: "uppercase", letterSpacing: 1.5 }}>{blogOpen.tag}</div>
               <h1 style={{ fontSize: "clamp(28px,4vw,48px)", fontWeight: 900, letterSpacing: -2, marginBottom: 20, lineHeight: 1.05 }}>{blogOpen.title}</h1>
@@ -534,8 +536,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
       {showPlans && <div style={{ position: "fixed", inset: 0, background: t.bg, zIndex: 200, overflow: "auto" }}>
         <nav style={{ padding: "16px 0", borderBottom: "1px solid " + t.brd, background: t.bg + "ee", backdropFilter: "blur(12px)" }}>
           <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => setShowPlans(false)}>
-              <Ic name="back" size={20}/>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => { setShowPlans(false); window.history.back(); }}>
               <div style={{ width: 32, height: 32, borderRadius: 8, overflow: "hidden" }}><Logo size={32}/></div>
               <span style={{ fontSize: 16, fontWeight: 700 }}>DataGrowth</span>
             </div>
@@ -603,7 +604,6 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
           </div>
           <div style={{ textAlign: "center", marginTop: 40 }}>
             <p style={{ fontSize: 13, color: t.txM }}>Todos los planes incluyen acceso a la plataforma completa. Sin permanencia. Cancela cuando quieras.</p>
-            <Btn ghost onClick={() => setShowPlans(false)} style={{ marginTop: 16, fontSize: 14 }}><Ic name="back" size={16}/> Volver al inicio</Btn>
           </div>
         </div>
       </div>}
