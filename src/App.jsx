@@ -168,11 +168,12 @@ const RocketCanvas = () => {
   return <canvas ref={canvasRef} style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1 }} />;
 };
 
-const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }) => {
+const Landing = ({ onLogin, onRegister, dark, setDark }) => {
   const t = useT();
   const [customAmount, setCustomAmount] = useState(150);
   const [blogOpen, setBlogOpen] = useState(null);
   const [landingPage, setLandingPage] = useState("home");
+  const [showPlans, setShowPlans] = useState(false);
 
   const openBlog = (post) => {
     setBlogOpen(post);
@@ -184,14 +185,16 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
   };
 
   useEffect(() => {
-    // Handle initial hash
     const hash = window.location.hash.replace("#", "");
     if (hash === "funciones" || hash === "quienes" || hash === "blog") setLandingPage(hash);
+    if (hash === "planes") setShowPlans(true);
     
     const handlePop = (e) => {
-      setShowPlans(false);
-      if (e.state?.lp) { setLandingPage(e.state.lp); setBlogOpen(null); }
-      else { setLandingPage("home"); setBlogOpen(null); }
+      const lp = e.state?.lp;
+      if (lp === "planes") { setShowPlans(true); setLandingPage("home"); setBlogOpen(null); }
+      else if (lp) { setShowPlans(false); setLandingPage(lp); setBlogOpen(null); }
+      else { setShowPlans(false); setLandingPage("home"); setBlogOpen(null); }
+      window.scrollTo(0, 0);
     };
     window.addEventListener("popstate", handlePop);
     return () => window.removeEventListener("popstate", handlePop);
@@ -257,7 +260,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
         <h1 className="dg-title" style={{ fontSize: "clamp(40px,6vw,72px)", fontWeight: 900, lineHeight: 1.04, letterSpacing: -2.5, marginBottom: 24 }}>Crea contenido en minutos{" "}<span style={{ color: t.ac }}>Escala a miles</span></h1>
         <p style={{ fontSize: 18, color: t.txS, maxWidth: 640, margin: "0 auto 36px", lineHeight: 1.6 }}>DataGrowth es la plataforma de inteligencia artificial que genera posts, imagenes, videos, carruseles, reels, copys y emails profesionales para tu marca o la de tus clientes. Configura tu identidad de marca una sola vez y genera contenido ilimitado con un clic.</p>
         <div style={{ display: "flex", gap: 14, justifyContent: "center" }}>
-          <button onClick={() => setShowPlans(true)} style={{ background: t.ac, border: "none", color: "#fff", fontSize: 17, fontWeight: 700, padding: "16px 44px", borderRadius: 10, cursor: "pointer", boxShadow: `0 0 30px ${t.ac}40` }}>Ver planes</button>
+          <button onClick={() => { setShowPlans(true); window.history.pushState({ lp: "planes", view: "landing" }, "", "#planes"); }} style={{ background: t.ac, border: "none", color: "#fff", fontSize: 17, fontWeight: 700, padding: "16px 44px", borderRadius: 10, cursor: "pointer", boxShadow: `0 0 30px ${t.ac}40` }}>Ver planes</button>
           <button onClick={() => onRegister()} style={{ background: "transparent", border: `1px solid ${t.brd}`, color: t.tx, fontSize: 16, fontWeight: 500, padding: "16px 32px", borderRadius: 10, cursor: "pointer" }}>Empezar gratis →</button>
         </div>
       </div>
@@ -1742,7 +1745,7 @@ export default function App() {
   const goPage = (p) => navigate("app", { page: p });
 
   if (view === "loading") return <ThemeCtx.Provider value={th}><div style={{ minHeight: "100vh", background: th.bg, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ textAlign: "center" }}><div style={{ width: 48, height: 48, border: "3px solid " + th.brd, borderTop: "3px solid " + th.ac, borderRadius: "50%", animation: "spin .8s linear infinite", margin: "0 auto 16px" }}/><div style={{ color: th.txS, fontSize: 14 }}>Cargando...</div></div></div></ThemeCtx.Provider>;
-  if (view === "landing") return <ThemeCtx.Provider value={th}><Landing onLogin={() => navigate("auth", { authMode: "login" })} onRegister={(plan) => navigate("auth", { authMode: "register", selPlan: plan || null })} showPlans={landingSubView === "plans"} setShowPlans={(v) => { if (v) { navigate("landing", { landingSubView: "plans" }); } else { window.history.back(); } }} dark={dark} setDark={setDark}/></ThemeCtx.Provider>;
+  if (view === "landing") return <ThemeCtx.Provider value={th}><Landing onLogin={() => navigate("auth", { authMode: "login" })} onRegister={(plan) => navigate("auth", { authMode: "register", selPlan: plan || null })} dark={dark} setDark={setDark}/></ThemeCtx.Provider>;
   if (view === "auth") return <ThemeCtx.Provider value={th}><Auth mode={authMode} setMode={(m) => navigate("auth", { authMode: m })} onAuth={onAuth} dark={dark} setDark={setDark} selPlan={selPlan}/></ThemeCtx.Provider>;
 
   const agPages = { dashboard: <AgencyDash setPage={setPage} brands={brands}/>, factory: <Factory brands={brands} gemKey={gemKey} isAdmin={true} user={user}/>, branding: <BrandKit brands={brands} setBrands={setBrands} user={user}/>, clients: <AgencyClients/>, plans: <AgencyPlans/>, team: <AgencyTeam/> };
