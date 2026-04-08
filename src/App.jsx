@@ -73,37 +73,34 @@ const RocketCanvas = () => {
     const getPos = (time) => {
       const w = canvas.width, h = canvas.height;
       const cx = w / 2, cy = h / 2;
-      const rx = w * 0.4, ry = h * 0.35;
-      // Multiple sine waves for organic, unpredictable movement
-      const x = cx + Math.cos(time * 0.9) * rx + Math.sin(time * 0.4) * rx * 0.2 + Math.cos(time * 1.7) * rx * 0.08;
-      const y = cy + Math.sin(time * 0.7) * ry + Math.cos(time * 1.1) * ry * 0.15 + Math.sin(time * 2.1) * ry * 0.05;
+      const rx = w * 0.42, ry = h * 0.38;
+      const x = cx + Math.cos(time * 0.7) * rx + Math.sin(time * 1.4) * rx * 0.22;
+      const y = cy + Math.sin(time * 0.9) * ry + Math.cos(time * 1.6) * ry * 0.18;
       return { x, y };
     };
-    let prevAngle = 0;
+    let smoothAngle = 0;
     const draw = () => {
       t += 0.005;
       const w = canvas.width, h = canvas.height;
       ctx.clearRect(0, 0, w, h);
       const pos = getPos(t);
-      const next = getPos(t + 0.012);
-      let targetAngle = Math.atan2(next.y - pos.y, next.x - pos.x);
-      // Smooth angle transition for natural turns
-      let diff = targetAngle - prevAngle;
+      const next = getPos(t + 0.01);
+      const targetAngle = Math.atan2(next.y - pos.y, next.x - pos.x);
+      // Smooth angle - fast enough to follow direction but smooth enough to not jerk
+      let diff = targetAngle - smoothAngle;
       while (diff > Math.PI) diff -= Math.PI * 2;
       while (diff < -Math.PI) diff += Math.PI * 2;
-      prevAngle += diff * 0.08;
-      const angle = prevAngle;
-      // Spawn fire particles from rocket exhaust (behind the emoji flame)
+      smoothAngle += diff * 0.18;
+      const angle = smoothAngle;
+      // Fire particles from exhaust
       for (let i = 0; i < 6; i++) {
         const spread = (Math.random() - 0.5) * 0.4;
         const fireAngle = angle + Math.PI + spread;
         const speed = 1.5 + Math.random() * 3;
-        // Spawn at the tail of the rocket emoji (opposite of nose)
-        const spawnDist = 30 + Math.random() * 6;
-        const ox = pos.x - Math.cos(angle) * spawnDist + (Math.random() - 0.5) * 4;
-        const oy = pos.y - Math.sin(angle) * spawnDist + (Math.random() - 0.5) * 4;
+        const spawnDist = 28 + Math.random() * 6;
         particles.push({
-          x: ox, y: oy,
+          x: pos.x - Math.cos(angle) * spawnDist + (Math.random() - 0.5) * 4,
+          y: pos.y - Math.sin(angle) * spawnDist + (Math.random() - 0.5) * 4,
           vx: Math.cos(fireAngle) * speed,
           vy: Math.sin(fireAngle) * speed,
           life: 1,
@@ -118,7 +115,6 @@ const RocketCanvas = () => {
         p.life -= 0.015;
         p.size *= 0.99;
         if (p.life <= 0 || p.size < 0.3) { particles.splice(i, 1); continue; }
-        ctx.save();
         const alpha = Math.pow(p.life, 0.6) * 0.85;
         const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
         if (p.life > 0.75) {
@@ -141,9 +137,8 @@ const RocketCanvas = () => {
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fill();
-        ctx.restore();
       }
-      // Glow at rocket exhaust
+      // Glow at exhaust
       const gx = pos.x - Math.cos(angle) * 30, gy = pos.y - Math.sin(angle) * 30;
       const glowGrad = ctx.createRadialGradient(gx, gy, 0, gx, gy, 50);
       glowGrad.addColorStop(0, "rgba(255,160,60,0.5)");
@@ -153,16 +148,17 @@ const RocketCanvas = () => {
       ctx.beginPath();
       ctx.arc(gx, gy, 50, 0, Math.PI * 2);
       ctx.fill();
-      // Draw rocket
+      // Draw rocket - rotate so nose points in movement direction
+      // The emoji 🚀 naturally points upper-right (~-45deg / -PI/4)
+      // So we subtract PI/4 to compensate
       ctx.save();
       ctx.translate(pos.x, pos.y);
-      ctx.rotate(angle - Math.PI / 4);
+      ctx.rotate(angle + Math.PI / 4);
       ctx.font = "52px serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText("🚀", 0, 0);
       ctx.restore();
-      // Cap particles
       if (particles.length > 300) particles.splice(0, particles.length - 300);
       animId = requestAnimationFrame(draw);
     };
