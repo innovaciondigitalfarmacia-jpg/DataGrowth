@@ -334,7 +334,6 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
 
       {/* ═══ FUNCIONES PAGE ═══ */}
       {landingPage === "funciones" && <div style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px" }}>
-        <button onClick={() => window.history.back()} style={{ display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", color: t.txS, fontSize: 14, cursor: "pointer", marginBottom: 40, padding: 0 }}><Ic name="back" size={16}/> Volver al inicio</button>
         <div style={{ textAlign: "center", marginBottom: 56 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Funcionalidades</div>
           <h1 style={{ fontSize: 42, fontWeight: 900, letterSpacing: -2, marginBottom: 16 }}>Todo lo que tu agencia necesita en un solo lugar</h1>
@@ -368,7 +367,6 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
 
       {/* ═══ QUIÉNES SOMOS PAGE ═══ */}
       {landingPage === "quienes" && <div style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px" }}>
-        <button onClick={() => window.history.back()} style={{ display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", color: t.txS, fontSize: 14, cursor: "pointer", marginBottom: 40, padding: 0 }}><Ic name="back" size={16}/> Volver al inicio</button>
         <div style={{ textAlign: "center", marginBottom: 56 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Quienes Somos</div>
           <h1 style={{ fontSize: 42, fontWeight: 900, letterSpacing: -2, marginBottom: 16 }}>La agencia digital que trabaja 24/7 para tu marca</h1>
@@ -476,7 +474,6 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
           </div>
         ) : (
           <>
-            <button onClick={() => window.history.back()} style={{ display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", color: t.txS, fontSize: 14, cursor: "pointer", marginBottom: 40, padding: 0 }}><Ic name="back" size={16}/> Volver al inicio</button>
             <div style={{ textAlign: "center", marginBottom: 56 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Blog</div>
               <h1 style={{ fontSize: 42, fontWeight: 900, letterSpacing: -2, marginBottom: 16 }}>Recursos para tu agencia</h1>
