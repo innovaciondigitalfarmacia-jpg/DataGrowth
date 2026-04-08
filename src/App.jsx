@@ -100,7 +100,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
 
   return (
     <div style={{ background: t.bg, minHeight: "100vh", fontFamily: "'Segoe UI',system-ui,sans-serif", color: t.tx }}>
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}} @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}} @keyframes glow{0%,100%{text-shadow:0 0 20px rgba(55,194,235,0.3)}50%{text-shadow:0 0 40px rgba(55,194,235,0.6),0 0 80px rgba(55,194,235,0.2)}} .dg-title{animation:glow 3s ease-in-out infinite}`}</style>
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}} @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}} @keyframes glow{0%,100%{text-shadow:0 0 20px rgba(55,194,235,0.3)}50%{text-shadow:0 0 40px rgba(55,194,235,0.6),0 0 80px rgba(55,194,235,0.2)}} .dg-title{${dark ? 'animation:glow 3s ease-in-out infinite' : ''}}`}</style>
 
       {/* NAV */}
       <nav style={{ padding: "0", borderBottom: `1px solid ${t.brd}`, position: "sticky", top: 0, background: t.bg + "f2", backdropFilter: "blur(16px)", zIndex: 50, height: 62, display: "flex", alignItems: "center" }}>
@@ -129,7 +129,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
 
       {/* HERO */}
       <div id="inicio" style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px 60px", textAlign: "center", position: "relative" }}>
-        <div style={{ position: "absolute", top: -100, left: "50%", transform: "translateX(-50%)", width: 600, height: 400, background: t.ac, borderRadius: "50%", filter: "blur(180px)", opacity: .06, pointerEvents: "none" }}/>
+        <div style={{ position: "absolute", top: -100, left: "50%", transform: "translateX(-50%)", width: 600, height: 400, background: t.ac, borderRadius: "50%", filter: "blur(180px)", opacity: dark ? .06 : .03, pointerEvents: "none" }}/>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, border: `1px solid ${t.ac}50`, borderRadius: 6, padding: "5px 16px 5px 10px", fontSize: 11, color: t.ac, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 32 }}>
           <span style={{ width: 6, height: 6, borderRadius: "50%", background: t.ac, animation: "pulse 2s infinite" }}/> Plataforma AI para agencias digitales
         </div>
