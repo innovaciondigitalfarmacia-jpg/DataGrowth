@@ -238,11 +238,17 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px 80px" }}>
         <div style={{ textAlign: "center", padding: "70px 40px", position: "relative", overflow: "hidden", background: t.bgC, border: "1px solid " + t.brd, borderRadius: 20 }}>
           <div style={{ position: "absolute", top: -100, left: "50%", transform: "translateX(-50%)", width: 600, height: 400, background: t.ac, borderRadius: "50%", filter: "blur(150px)", opacity: .1, pointerEvents: "none" }}/>
-          <div className="rocket-box" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, pointerEvents: "none" }}>
-            <div className="rocket-fly" style={{ position: "absolute", fontSize: 32 }}>
-              🚀
-              <div className="rocket-fire" style={{ position: "absolute", bottom: -8, left: "50%", transform: "translateX(-50%)" }}>
-                <div style={{ width: 8, height: 16, background: "linear-gradient(to bottom, #ff6b00, #ff0, transparent)", borderRadius: "0 0 4px 4px", animation: "fireFlicker 0.15s infinite alternate", filter: "blur(1px)" }}/>
+          <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, pointerEvents: "none", overflow: "hidden" }}>
+            <div className="rocket-fly" style={{ position: "absolute", width: 50, height: 50 }}>
+              <div style={{ fontSize: 32, transform: "rotate(-45deg)", filter: "drop-shadow(0 0 8px rgba(255,100,0,0.5))" }}>🚀</div>
+              <div style={{ position: "absolute", bottom: 2, left: -6, transform: "rotate(45deg)", transformOrigin: "top right" }}>
+                <div className="flame1" style={{ width: 10, height: 22, background: "linear-gradient(to bottom, #3b82f6, #60a5fa, transparent)", borderRadius: "50% 50% 50% 50%", filter: "blur(2px)", opacity: 0.9 }}/>
+              </div>
+              <div style={{ position: "absolute", bottom: -2, left: -10, transform: "rotate(45deg)", transformOrigin: "top right" }}>
+                <div className="flame2" style={{ width: 14, height: 30, background: "linear-gradient(to bottom, #fff, #fbbf24, #f97316, #ef4444, transparent)", borderRadius: "40% 40% 50% 50%", filter: "blur(2px)", opacity: 0.85 }}/>
+              </div>
+              <div style={{ position: "absolute", bottom: -6, left: -14, transform: "rotate(45deg)", transformOrigin: "top right" }}>
+                <div className="flame3" style={{ width: 8, height: 18, background: "linear-gradient(to bottom, #fbbf24, #f97316, transparent)", borderRadius: "50%", filter: "blur(3px)", opacity: 0.7 }}/>
               </div>
             </div>
           </div>
@@ -283,7 +289,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
         </div>
       </div>
 
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}} @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}} @keyframes rocketPath{0%{top:80%;left:-5%;transform:rotate(-45deg)}15%{top:10%;left:20%;transform:rotate(-30deg)}30%{top:5%;left:50%;transform:rotate(0deg)}45%{top:10%;left:80%;transform:rotate(30deg)}60%{top:80%;left:95%;transform:rotate(120deg)}75%{top:90%;left:50%;transform:rotate(180deg)}90%{top:80%;left:10%;transform:rotate(220deg)}100%{top:80%;left:-5%;transform:rotate(-45deg)}} @keyframes fireFlicker{0%{height:12px;opacity:.8}100%{height:20px;opacity:1}} .rocket-fly{animation:rocketPath 10s linear infinite} nav,section,h1,h2,p{animation:fadeUp .6s ease-out}`}</style>
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}} @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}} @keyframes rocketPath{0%{top:85%;left:0%;transform:rotate(-45deg)}8%{top:50%;left:10%;transform:rotate(-50deg)}16%{top:15%;left:25%;transform:rotate(-35deg)}24%{top:5%;left:40%;transform:rotate(-10deg)}32%{top:8%;left:55%;transform:rotate(10deg)}40%{top:15%;left:70%;transform:rotate(35deg)}48%{top:40%;left:82%;transform:rotate(60deg)}56%{top:70%;left:88%;transform:rotate(100deg)}64%{top:85%;left:78%;transform:rotate(150deg)}72%{top:80%;left:60%;transform:rotate(190deg)}80%{top:75%;left:40%;transform:rotate(210deg)}88%{top:82%;left:20%;transform:rotate(230deg)}96%{top:88%;left:8%;transform:rotate(270deg)}100%{top:85%;left:0%;transform:rotate(-45deg)}} @keyframes flame1{0%{height:22px;opacity:.9}50%{height:28px;opacity:1}100%{height:20px;opacity:.8}} @keyframes flame2{0%{height:30px;opacity:.85}33%{height:38px;opacity:1}66%{height:26px;opacity:.7}100%{height:32px;opacity:.9}} @keyframes flame3{0%{height:18px;opacity:.7}50%{height:24px;opacity:.9}100%{height:16px;opacity:.6}} .rocket-fly{animation:rocketPath 12s cubic-bezier(.45,.05,.55,.95) infinite} .flame1{animation:flame1 .12s infinite alternate} .flame2{animation:flame2 .1s infinite alternate} .flame3{animation:flame3 .15s infinite alternate} nav,section,h1,h2,p{animation:fadeUp .6s ease-out}`}</style>
 
       {/* PLANS PAGE OVERLAY */}
       {showPlans && <div style={{ position: "fixed", inset: 0, background: t.bg, zIndex: 200, overflow: "auto" }}>
