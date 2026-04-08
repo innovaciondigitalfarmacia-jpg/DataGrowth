@@ -176,7 +176,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
 
   const openBlog = (post) => {
     setBlogOpen(post);
-    window.history.pushState({ blog: post.id, lp: "blog" }, "", "#blog-" + post.id);
+    window.history.pushState({ blog: post.id, lp: "blog", view: "landing" }, "", "#blog-" + post.id);
   };
   const closeBlog = () => {
     setBlogOpen(null);
@@ -209,12 +209,12 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
   ];
 
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-  const goPage = (pg) => { setLandingPage(pg); setBlogOpen(null); window.scrollTo(0, 0); window.history.pushState({ lp: pg }, "", "#" + pg); };
+  const goPage = (pg) => { setLandingPage(pg); setBlogOpen(null); window.scrollTo(0, 0); window.history.pushState({ lp: pg, view: "landing" }, "", "#" + pg); };
   const NAV_LINKS = [
-    { label: "Inicio", action: () => { setLandingPage("home"); setBlogOpen(null); window.scrollTo(0, 0); window.history.pushState({ lp: "home" }, "", "#inicio"); } },
+    { label: "Inicio", action: () => { setLandingPage("home"); setBlogOpen(null); window.scrollTo(0, 0); window.history.pushState({ lp: "home", view: "landing" }, "", "#inicio"); } },
     { label: "Funciones", action: () => goPage("funciones") },
     { label: "Quiénes somos", action: () => goPage("quienes") },
-    { label: "Planes", action: () => { setShowPlans(true); window.history.pushState({ lp: "planes" }, "", "#planes"); } },
+    { label: "Planes", action: () => { setShowPlans(true); window.history.pushState({ lp: "planes", view: "landing" }, "", "#planes"); } },
     { label: "Blog", action: () => goPage("blog") },
   ];
 
@@ -1624,7 +1624,9 @@ export default function App() {
     const handlePop = (e) => {
       const s = e.state;
       if (!s) return;
-      setView(s.view);
+      // Landing page navigation (funciones, quienes, blog, planes)
+      if (s.lp) return; // Let Landing component handle this
+      if (s.view) setView(s.view);
       if (s.page) setPage(s.page);
       if (s.landingSubView !== undefined) setLandingSubView(s.landingSubView);
       if (s.authMode) setAuthMode(s.authMode);
