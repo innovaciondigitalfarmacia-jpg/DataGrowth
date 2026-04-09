@@ -1603,7 +1603,84 @@ const AgencyDash = ({ setPage, brands }) => { const t = useT(); return <Section 
 const AgencyClients = () => { const t = useT(); const [clients, setClients] = useState([]); const [loading, setLoading] = useState(true);
   useEffect(() => { supabase.from("profiles").select("*").eq("role", "client").then(({ data }) => { setClients(data || []); setLoading(false); }); }, []);
   return <Section title="Clientes" right={<Badge>{clients.length} registrados</Badge>}><Card style={{ padding: 0 }}><div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", padding: "12px 20px", background: t.bgI, fontSize: 11, fontWeight: 600, color: t.txM, textTransform: "uppercase" }}><div>Empresa</div><div>Plan</div><div>Registro</div></div>{loading ? <div style={{ padding: 20, textAlign: "center", color: t.txM }}>Cargando...</div> : clients.length === 0 ? <div style={{ padding: 30, textAlign: "center", color: t.txM }}>No hay clientes registrados aún</div> : clients.map((c, i) => <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", padding: "14px 20px", borderBottom: `1px solid ${t.brd}`, alignItems: "center" }}><div><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{c.name || c.email}</div><div style={{ fontSize: 11, color: t.txM }}>{c.email}</div></div><Badge color={c.plan === "agency" ? "#8b5cf6" : c.plan === "pro" ? "#37c2eb" : "#888"}>{c.plan || "free"}</Badge><div style={{ color: t.txS, fontSize: 12 }}>{c.created_at ? new Date(c.created_at).toLocaleDateString() : ""}</div></div>)}</Card></Section>; };
-const AgencyTeam = () => { const t = useT(); return <Section title="Equipo" right={<Btn primary><Ic name="plus" size={14}/> Invitar</Btn>}><Card style={{ textAlign: "center", padding: 48 }}><div style={{ fontSize: 48, marginBottom: 12 }}>👥</div><div style={{ fontSize: 18, fontWeight: 700, color: t.tx, marginBottom: 8 }}>Sin miembros aún</div><div style={{ fontSize: 14, color: t.txM }}>Invita a tu equipo para que puedan generar contenido.</div></Card></Section>; };
+const AgencyTeam = () => { 
+  const t = useT(); 
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showInvite, setShowInvite] = useState(false);
+  const [invEmail, setInvEmail] = useState("");
+  const [invName, setInvName] = useState("");
+  const [invRole, setInvRole] = useState("editor");
+  const [invMsg, setInvMsg] = useState("");
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => { 
+    supabase.from("profiles").select("*").then(({ data }) => { 
+      setMembers(data || []); 
+      setLoading(false); 
+    }); 
+  }, []);
+
+  const invite = async () => {
+    if (!invEmail) { setInvMsg("Ingresa un email"); return; }
+    setSending(true);
+    setInvMsg("");
+    // Create account with temp password
+    const tempPass = "Temp" + Math.random().toString(36).slice(2) + "!1";
+    const { data, error } = await supabase.auth.signUp({ email: invEmail, password: tempPass });
+    if (error) {
+      if (error.message?.includes("already registered")) { setInvMsg("Este email ya está registrado"); }
+      else { setInvMsg("Error: " + error.message); }
+      setSending(false);
+      return;
+    }
+    // Save profile
+    if (data?.user) {
+      await supabase.from("profiles").upsert({ id: data.user.id, name: invName || invEmail.split("@")[0], email: invEmail, role: invRole, plan: "free" });
+    }
+    // Send password reset so they can set their own password
+    await supabase.auth.resetPasswordForEmail(invEmail, { redirectTo: window.location.origin });
+    setInvMsg("✅ Invitación enviada a " + invEmail);
+    setInvEmail(""); setInvName(""); setInvRole("editor");
+    setSending(false);
+    // Refresh list
+    const { data: updated } = await supabase.from("profiles").select("*");
+    setMembers(updated || []);
+    setTimeout(() => setInvMsg(""), 4000);
+  };
+
+  const colors = ["#ec4899","#3b82f6","#f59e0b","#8b5cf6","#06b6d4","#10b981","#ef4444"];
+  return <Section title="Equipo" right={<Btn primary onClick={() => setShowInvite(true)}><Ic name="plus" size={14}/> Invitar</Btn>}>
+    {showInvite && <Card style={{ marginBottom: 16, border: "2px solid " + t.ac }}>
+      <div style={{ fontSize: 16, fontWeight: 700, color: t.tx, marginBottom: 16 }}>Invitar miembro al equipo</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+        <div><Label>Email *</Label><Input value={invEmail} onChange={e => setInvEmail(e.target.value)} placeholder="correo@ejemplo.com" type="email"/></div>
+        <div><Label>Nombre</Label><Input value={invName} onChange={e => setInvName(e.target.value)} placeholder="Nombre del miembro"/></div>
+      </div>
+      <div style={{ marginBottom: 14 }}>
+        <Label>Rol</Label>
+        <div style={{ display: "flex", gap: 8 }}>
+          {["editor","client"].map(r => <div key={r} onClick={() => setInvRole(r)} style={{ padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, background: invRole === r ? t.ac : t.bgI, color: invRole === r ? "#fff" : t.txS, border: "1px solid " + (invRole === r ? t.ac : t.brd) }}>{r === "editor" ? "Editor" : "Cliente"}</div>)}
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 10 }}>
+        <Btn primary onClick={invite} disabled={sending}>{sending ? "Enviando..." : "Enviar invitación"}</Btn>
+        <Btn ghost onClick={() => { setShowInvite(false); setInvMsg(""); }}>Cancelar</Btn>
+      </div>
+      {invMsg && <div style={{ marginTop: 10, padding: "10px 14px", background: invMsg.startsWith("✅") ? "rgba(55,194,235,0.1)" : "rgba(239,68,68,0.1)", border: "1px solid " + (invMsg.startsWith("✅") ? "rgba(55,194,235,0.3)" : "rgba(239,68,68,0.3)"), borderRadius: 10, fontSize: 13, color: invMsg.startsWith("✅") ? t.ac : "#ef4444" }}>{invMsg}</div>}
+    </Card>}
+    {loading ? <Card style={{ textAlign: "center", padding: 30, color: t.txM }}>Cargando...</Card> :
+    members.length === 0 ? <Card style={{ textAlign: "center", padding: 48 }}><div style={{ fontSize: 48, marginBottom: 12 }}>👥</div><div style={{ fontSize: 18, fontWeight: 700, color: t.tx, marginBottom: 8 }}>Sin miembros aún</div><div style={{ fontSize: 14, color: t.txM }}>Invita a tu equipo para que puedan generar contenido.</div></Card> :
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
+      {members.map((m, i) => <Card key={i}><div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ width: 44, height: 44, borderRadius: "50%", background: colors[i % colors.length], display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 18, color: "#fff" }}>{(m.name || m.email || "?")[0].toUpperCase()}</div>
+        <div><div style={{ fontSize: 15, fontWeight: 600, color: t.tx }}>{m.name || m.email}</div>
+        <div style={{ fontSize: 11, color: t.txM }}>{m.email}</div>
+        <Badge color={m.role === "admin" ? "#8b5cf6" : m.role === "editor" ? "#3b82f6" : "#37c2eb"}>{m.role || "client"}</Badge></div>
+      </div></Card>)}
+    </div>}
+  </Section>;
+};
 const AgencyPlans = () => { const t = useT(); return <Section title="Planes"><div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>{PLANS.map(p => <Card key={p.id} style={{ textAlign: "center", border: p.pop ? `2px solid ${p.color}` : `1px solid ${t.brd}`, position: "relative" }}>{p.pop && <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: p.color, color: "#fff", padding: "4px 16px", borderRadius: 20, fontSize: 11, fontWeight: 700 }}>Popular</div>}<div style={{ fontSize: 17, fontWeight: 600, color: t.tx, paddingTop: p.pop ? 10 : 0 }}>{p.name}</div><div style={{ fontSize: 40, fontWeight: 800, color: p.color, margin: "8px 0" }}>{p.price}<span style={{ fontSize: 14, color: t.txM }}>/mes</span></div>{p.features.map((f, i) => <div key={i} style={{ fontSize: 13, color: t.tx, padding: "5px 0" }}>✓ {f}</div>)}</Card>)}</div></Section>; };
 const AgencySettings = ({ gemKey, setGemKey }) => { const t = useT(); const [k, setK] = useState(gemKey); const [sv, setSv] = useState(false); return <Section title="Configuración API"><Card style={{ marginBottom: 12 }}><div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontWeight: 600, color: t.tx }}>Claude</span><Badge>Conectada</Badge></div></Card><Card style={{ border: `1px solid ${gemKey ? "rgba(55,194,235,.3)" : "rgba(245,158,11,.3)"}` }}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><span style={{ fontWeight: 600, color: t.tx }}>Gemini Imágenes</span>{gemKey ? <Badge>Conectada</Badge> : <Badge color="#f59e0b">Pendiente</Badge>}</div><div style={{ display: "flex", gap: 10 }}><Input value={k} onChange={e => setK(e.target.value)} type="password" placeholder="AIzaSy..."/><Btn primary onClick={() => { setGemKey(k); try { localStorage.setItem("dg_gemkey", k); } catch {} setSv(true); setTimeout(() => setSv(false), 2000); }}>{sv ? "✅" : "Guardar"}</Btn></div></Card></Section>; };
 
