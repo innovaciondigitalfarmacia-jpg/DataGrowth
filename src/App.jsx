@@ -1660,7 +1660,7 @@ const AgencyTeam = () => {
       <div style={{ marginBottom: 14 }}>
         <Label>Rol</Label>
         <div style={{ display: "flex", gap: 8 }}>
-          {["editor","client"].map(r => <div key={r} onClick={() => setInvRole(r)} style={{ padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, background: invRole === r ? t.ac : t.bgI, color: invRole === r ? "#fff" : t.txS, border: "1px solid " + (invRole === r ? t.ac : t.brd) }}>{r === "editor" ? "Editor" : "Cliente"}</div>)}
+          {["editor","admin"].map(r => <div key={r} onClick={() => setInvRole(r)} style={{ padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, background: invRole === r ? t.ac : t.bgI, color: invRole === r ? "#fff" : t.txS, border: "1px solid " + (invRole === r ? t.ac : t.brd) }}>{r === "editor" ? "Editor" : "Admin"}</div>)}
         </div>
       </div>
       <div style={{ display: "flex", gap: 10 }}>
