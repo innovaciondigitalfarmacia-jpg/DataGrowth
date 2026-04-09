@@ -1454,11 +1454,11 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
           <div>
             <div style={{fontSize:14,fontWeight:700,color:t.ac,marginBottom:10}}>🎬 Videos (Reel / Story)</div>
             <div style={{fontSize:12,color:t.txS,lineHeight:1.7}}>
-              <div style={{marginBottom:6}}><span style={{fontWeight:600,color:t.tx}}>Duracion:</span> Cada video generado dura maximo 8 segundos. Para videos mas largos, genera varios clips y unes despues.</div>
+              <div style={{marginBottom:6}}><span style={{fontWeight:600,color:t tx}}>Duracion:</span> Cada video generado dura maximo 8 segundos. Para videos mas largos, genera varios clips y unes despues.</div>
               <div style={{marginBottom:6}}><span style={{fontWeight:600,color:t.tx}}>Formato:</span> Los videos se generan en formato vertical 9:16 (ideal para Reels e Historias de Instagram).</div>
               <div style={{marginBottom:6}}><span style={{fontWeight:600,color:t.tx}}>Tiempo:</span> La generacion tarda entre 3-10 minutos. No cierres la pagina mientras se genera.</div>
-              <div style={{marginBottom:6}}><span style={{fontWeight:600,color:t.tx}}>Idioma:</span> El audio y narraccion se genera en espanol latinoamericano.</div>
-              <div style={{marginBottom:6}}><span style={{fontWeight:600,color:t.tx}}>Se especifico:</span> Describe la escena, la accion, el ambiente. Ej: "Un video cinematografico de una pareja entrando a una cabana romantica con jacuzzi al atardecer, con texto de 20% de descuento".</div>
+              <div style={{marginBottom:6}}><span style={{fontWeight:600,color:t tx}}>Idioma:</span> El audio y narraccion se genera en espanol latinoamericano.</div>
+              <div style={{marginBottom:6}}><span style={{fontWeight:600,color:t tx}}>Se especifico:</span> Describe la escena, la accion, el ambiente. Ej: "Un video cinematografico de una pareja entrando a una cabana romantica con jacuzzi al atardecer, con texto de 20% de descuento".</div>
               <div><span style={{fontWeight:600,color:t.tx}}>Costo:</span> Cada video consume creditos de tu cuenta de Google Cloud (~$6 USD por video de 8 seg).</div>
               <div style={{marginTop:6}}><span style={{fontWeight:600,color:t.tx}}>📷 Primer frame (opcional):</span> Puedes subir una foto REAL. El video EMPIEZA literalmente desde esa foto y le da movimiento. Ideal para animar una foto de tu local, producto o servicio. La foto NO se usa como referencia de estilo, se usa como punto de partida del video.</div>
             </div>
