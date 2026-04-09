@@ -31,9 +31,9 @@ const CTYPES = [
   { id: "email", label: "Email", icon: "✉️", fmt: "text" },
 ];
 const PLANS = [
-  { id: "free", name: "Starter", price: "$0", desc: "Para empezar", color: "#8892a8", brands: 1, limits: { post_visual: 5, carousel: 5, post_text: 5, ad: 5, email: 5, reel: 0 }, features: ["1 marca","5 posts de imagen","5 carruseles","5 copys","5 anuncios","5 emails","Sin videos","Soporte email"] },
-  { id: "pro", name: "Pro", price: "$59", desc: "Para marcas en crecimiento", color: "#37c2eb", brands: 3, limits: { post_visual: 100, carousel: 100, post_text: 100, ad: 100, email: 100, reel: 15 }, pop: true, features: ["3 marcas","100 de cada tipo/mes","15 videos/mes","Todos los formatos","Branding Kit completo","Fotos reales","Info real de la web","Soporte prioritario"] },
-  { id: "agency", name: "Agency", price: "$149", desc: "Para empresas y marcas", color: "#8b5cf6", brands: 99, limits: { post_visual: 9999, carousel: 9999, post_text: 9999, ad: 9999, email: 9999, reel: 20 }, features: ["Marcas ilimitadas","Posts ilimitados","20 videos/mes","Todos los formatos","Base de Conocimiento","Info real de la web","Multi-usuario (5 seats)","API access","Soporte dedicado 24/7"] },
+  { id: "free", name: "Starter", price: "$0", desc: "Para empezar", color: "#8892a8", brands: 1, seats: 1, limits: { post_visual: 5, carousel: 5, post_text: 5, ad: 5, email: 5, reel: 0 }, features: ["1 marca","5 posts de imagen","5 carruseles","5 copys","5 anuncios","5 emails","Sin videos","Soporte email"] },
+  { id: "pro", name: "Pro", price: "$59", desc: "Para marcas en crecimiento", color: "#37c2eb", brands: 3, seats: 2, limits: { post_visual: 100, carousel: 100, post_text: 100, ad: 100, email: 100, reel: 15 }, pop: true, features: ["3 marcas","100 de cada tipo/mes","15 videos/mes","Todos los formatos","Branding Kit completo","Fotos reales","Info real de la web","Soporte prioritario"] },
+  { id: "agency", name: "Agency", price: "$149", desc: "Para empresas y marcas", color: "#8b5cf6", brands: 99, seats: 5, limits: { post_visual: 9999, carousel: 9999, post_text: 9999, ad: 9999, email: 9999, reel: 20 }, features: ["Marcas ilimitadas","Posts ilimitados","20 videos/mes","Todos los formatos","Base de Conocimiento","Info real de la web","Multi-usuario (5 seats)","API access","Soporte dedicado 24/7"] },
 ];
 
 const Ic = ({ name, size = 18 }) => {
@@ -1015,6 +1015,12 @@ const BrandKit = ({ brands, setBrands, user }) => {
   const [tab, setTab] = useState("identity");
   const save = async (b) => {
     if (cr) {
+      // Check brand limit
+      const userPlan = PLANS.find(p => p.id === (user?.plan || "free")) || PLANS[0];
+      if (brands.length >= userPlan.brands) {
+        alert("Has alcanzado el límite de " + userPlan.brands + " marca(s) en tu plan " + userPlan.name + ". Actualiza tu plan para crear más marcas.");
+        return;
+      }
       const { data } = await supabase.from("brands").insert({ user_id: user.id, name: b.name, short: b.short, color: b.color, industry: b.industry, tone: b.tone, audience: b.audience, emoji: b.emoji, brand_voice: b.brandVoice, img_style: b.imgStyle, sector: b.sector, colors: b.colors, products: b.products, description: b.description, differentiator: b.differentiator, website: b.website, instagram: b.instagram, facebook: b.facebook }).select().single();
       if (data) { const nb = { ...data, brandVoice: data.brand_voice, imgStyle: data.img_style }; setBrands([...brands, nb]); setSel(nb); }
     } else {
@@ -1144,7 +1150,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       const u = {}; (data || []).forEach(r => { u[r.content_type] = r.count; }); setUsage(u);
     });
   }, [user?.id]);
-  const userPlan = isAdmin ? PLANS[2] : PLANS[0];
+  const userPlan = PLANS.find(p => p.id === (user?.plan || "free")) || PLANS[0];
   const getLimit = (typeId) => userPlan.limits?.[typeId] ?? 9999;
   const getLeft = (typeId) => getLimit(typeId) - getUsage(typeId);
   const [videoLoading, setVideoLoading] = useState(false);
@@ -1251,7 +1257,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       setUploadedImages([]);
       setUploadedPreviews([]);
     }
-    if (!isAdmin && getLeft(ct.id) <= 0) { setTxt("Has alcanzado el limite de " + ct.label + " de tu plan (" + getLimit(ct.id) + "/" + "mes). Actualiza a Pro o Agency para generar mas contenido."); setResult({t:"text"}); return; }
+    if (getLeft(ct.id) <= 0) { setTxt("Has alcanzado el limite de " + ct.label + " de tu plan " + userPlan.name + " (" + getLimit(ct.id) + "/mes). Actualiza tu plan para generar mas contenido."); setResult({t:"text"}); return; }
     setLoading(true); setResult(null); setTxt(""); setVideoUrl(null); setVideoLoading(false); setVideoProgress("");
     const brandColors = (brand.colors || [brand.color]).join(", ");
     const brandStyle = brand.imgStyle || "professional modern";
@@ -1482,7 +1488,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       <div style={{marginBottom:14}}><Label>Tipo</Label><div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>{CTYPES.map(c=><button key={c.id} onClick={()=>{setCt(c);setUploadedImages([]);setUploadedPreviews([]);if(c.fmt!=="visual"){setChatHistory([]);setLastAiImage(null);}setResult(null);setTxt("");}} style={{padding:"12px 10px",borderRadius:12,border:ct.id===c.id?`2px solid ${t.ac}`:`1px solid ${t.brd}`,background:ct.id===c.id?t.acS:t.bgC,cursor:"pointer",textAlign:"center"}}><div style={{fontSize:22,marginBottom:4}}>{c.icon}</div><div style={{fontSize:12,fontWeight:600,color:ct.id===c.id?t.tx:t.txS}}>{c.label}</div></button>)}</div></div>
       {(ct.fmt==="reel"||ct.fmt==="visual")&&<div style={{marginBottom:14,padding:14,background:t.bgI,borderRadius:12,border:"1px solid "+t.brd}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}><span style={{fontSize:14}}>📷</span><span style={{fontSize:12,fontWeight:600,color:t.tx}}>{ct.fmt==="reel"?"Primer frame del video":"Fotos de referencia"}</span><span style={{fontSize:11,color:t.txM,fontStyle:"italic"}}>(opcional)</span></div><div style={{fontSize:11,color:t.txS,marginBottom:10,lineHeight:1.5}}>{ct.fmt==="reel"?"Si subes una foto, el video EMPIEZA desde esa foto y le da movimiento. Si no subes foto, la IA crea todo desde cero.":"Sube fotos reales de tu producto o servicio. La IA las usa como referencia para generar la imagen. Puedes subir varias."}</div><div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}><label style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",border:"2px dashed "+(uploadedImages.length?t.ac:t.brd),borderRadius:10,cursor:"pointer",color:uploadedImages.length?t.ac:t.txM,fontSize:12,fontWeight:500,background:uploadedImages.length?t.acS:"transparent"}}><span style={{fontSize:16}}>📷</span>Subir fotos<input type="file" accept="image/*" multiple onChange={handleUploadImages} style={{display:"none"}}/></label>{uploadedPreviews.map((p,i)=><div key={i} style={{position:"relative"}}><img src={p} style={{width:44,height:44,borderRadius:8,objectFit:"cover",border:"2px solid "+t.ac}}/><div onClick={()=>removeUploadedImage(i)} style={{position:"absolute",top:-5,right:-5,width:15,height:15,borderRadius:"50%",background:"#ef4444",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,cursor:"pointer",fontWeight:700}}>x</div></div>)}{uploadedImages.length>0&&<span style={{fontSize:11,color:t.ac,fontWeight:600}}>{uploadedImages.length} foto{uploadedImages.length>1?"s":""}</span>}</div></div>}
       <div style={{display:"flex",gap:10,marginBottom:22}}><Input value={topic} onChange={e=>setTopic(e.target.value)} placeholder={chatHistory.length>0&&ct.fmt==="visual"?"Escribe como mejorar la imagen...":"Describe que contenido necesitas..."} onKeyDown={e=>e.key==="Enter"&&go()}/><Btn onClick={go} disabled={loading||!topic.trim()} primary style={{whiteSpace:"nowrap",padding:"14px 28px"}}>{loading?<><Spin/> Creando...</>:<><Ic name="sparkle" size={16}/> {chatHistory.length>0&&ct.fmt==="visual"?"Mejorar":"Generar"}</>}</Btn>{chatHistory.length>0&&ct.fmt==="visual"&&!loading&&<Btn onClick={()=>{setChatHistory([]);setLastAiImage(null);setResult(null);}} style={{whiteSpace:"nowrap",padding:"14px 16px",fontSize:12}}>Nuevo</Btn>}</div>
-      {!isAdmin&&<div style={{display:"flex",gap:10,marginBottom:14,fontSize:11,color:t.txM,flexWrap:"wrap"}}>{CTYPES.map(c=><span key={c.id} style={{padding:"3px 8px",background:getLeft(c.id)<=0?"rgba(239,68,68,.1)":t.bgI,borderRadius:6,color:getLeft(c.id)<=0?"#ef4444":t.txM}}>{c.icon} {getUsage(c.id)}/{getLimit(c.id)==9999?"∞":getLimit(c.id)}</span>)}<span style={{marginLeft:"auto",color:t.ac,cursor:"pointer"}}>⬆️ Actualizar plan</span></div>}
+      {<div style={{display:"flex",gap:10,marginBottom:14,fontSize:11,color:t.txM,flexWrap:"wrap"}}>{CTYPES.map(c=><span key={c.id} style={{padding:"3px 8px",background:getLeft(c.id)<=0?"rgba(239,68,68,.1)":t.bgI,borderRadius:6,color:getLeft(c.id)<=0?"#ef4444":t.txM}}>{c.icon} {getUsage(c.id)}/{getLimit(c.id)==9999?"∞":getLimit(c.id)}</span>)}<span style={{fontSize:10,color:t.txM,marginLeft:"auto"}}>Plan: {userPlan.name}</span></div>}
       {loading&&!(ct.fmt==="visual"&&chatHistory.length>0)&&<Card style={{padding:48,textAlign:"center"}}><div style={{width:48,height:48,border:`3px solid ${t.brd}`,borderTop:`3px solid ${brand?.color||t.ac}`,borderRadius:"50%",animation:"spin .8s linear infinite",margin:"0 auto 16px"}}/><div style={{color:t.tx,fontSize:16,fontWeight:600}}>Generando para {brand?.name}...</div></Card>}
       {result&&!loading&&result.t==="text"&&<Card><div style={{display:"flex",justifyContent:"space-between",marginBottom:14}}><span style={{fontSize:13,fontWeight:600,color:t.txS}}>{brand?.emoji} {brand?.name}</span><CopyBtn text={txt}/></div><div style={{fontSize:14,color:t.tx,lineHeight:1.8,whiteSpace:"pre-wrap"}}>{txt}</div></Card>}
       {/* VISUAL RESULT - shows only latest */}
@@ -1534,7 +1540,7 @@ const ClientSettings = ({ user, setUser, onChangePlan }) => {
   const [confirmPass, setConfirmPass] = useState("");
   const [passMsg, setPassMsg] = useState("");
   const [planMsg, setPlanMsg] = useState("");
-  const currentPlan = PLANS.find(p => p.id === "free") || PLANS[0];
+  const currentPlan = PLANS.find(p => p.id === (user?.plan || "free")) || PLANS[0];
 
   const saveProfile = async () => {
     if (user?.id) { await supabase.from("profiles").update({ name: editName, company: editCompany, phone: editPhone }).eq("id", user.id); }
@@ -1625,6 +1631,13 @@ const AgencyTeam = () => {
     if (!invEmail) { setInvMsg("Ingresa un email"); return; }
     setSending(true);
     setInvMsg("");
+    // Check seat limit
+    const adminPlan = PLANS.find(p => p.id === "agency") || PLANS[2];
+    if (members.length >= adminPlan.seats) {
+      setInvMsg("Has alcanzado el límite de " + adminPlan.seats + " miembros en tu plan " + adminPlan.name + ". Actualiza tu plan para invitar más personas.");
+      setSending(false);
+      return;
+    }
     // Create account with temp password
     const tempPass = "Temp" + Math.random().toString(36).slice(2) + "!1";
     const { data, error } = await supabase.auth.signUp({ email: invEmail, password: tempPass });
