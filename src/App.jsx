@@ -1615,7 +1615,7 @@ const AgencyTeam = () => {
   const [sending, setSending] = useState(false);
 
   useEffect(() => { 
-    supabase.from("profiles").select("*").then(({ data }) => { 
+    supabase.from("profiles").select("*").in("role", ["admin", "editor"]).then(({ data }) => { 
       setMembers(data || []); 
       setLoading(false); 
     }); 
@@ -1644,7 +1644,7 @@ const AgencyTeam = () => {
     setInvEmail(""); setInvName(""); setInvRole("editor");
     setSending(false);
     // Refresh list
-    const { data: updated } = await supabase.from("profiles").select("*");
+    const { data: updated } = await supabase.from("profiles").select("*").in("role", ["admin", "editor"]);
     setMembers(updated || []);
     setTimeout(() => setInvMsg(""), 4000);
   };
