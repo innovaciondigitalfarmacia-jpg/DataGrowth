@@ -1,48 +1,62 @@
-// v1 - Fetch real info from brand websites
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") return res.status(200).end();
 
-  const { url } = req.query;
-  if (!url) return res.status(400).json({ error: "No URL provided" });
+  const url = req.query.url;
+  if (!url) return res.status(400).json({ error: "URL required" });
 
   try {
-    const r = await fetch(url, {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
+    const response = await fetch(url, {
+      signal: controller.signal,
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; DataGrowthBot/1.0)",
-        "Accept": "text/html,application/xhtml+xml"
-      },
-      redirect: "follow"
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "es-CO,es;q=0.9,en;q=0.8"
+      }
     });
+    clearTimeout(timeout);
 
-    if (!r.ok) return res.status(200).json({ error: "Could not fetch: " + r.status, text: "" });
+    if (!response.ok) {
+      return res.status(200).json({ text: "", error: "HTTP " + response.status });
+    }
 
-    const html = await r.text();
+    const html = await response.text();
 
-    // Extract text content from HTML (remove tags, scripts, styles)
+    // Extract useful text from HTML
     let text = html
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-      .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '')
-      .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '')
-      .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
+      // Remove scripts and styles
+      .replace(/<script[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[\s\S]*?<\/style>/gi, "")
+      .replace(/<noscript[\s\S]*?<\/noscript>/gi, "")
+      // Remove HTML tags
+      .replace(/<[^>]+>/g, " ")
+      // Decode common entities
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
       .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'")
-      .replace(/\s+/g, ' ')
+      .replace(/&nbsp;/g, " ")
+      .replace(/&#\d+;/g, " ")
+      // Clean whitespace
+      .replace(/\s+/g, " ")
       .trim();
 
-    // Limit to first 3000 chars to avoid huge prompts
-    text = text.substring(0, 3000);
+    // Limit to 2000 chars
+    if (text.length > 2000) text = text.substring(0, 2000);
 
-    return res.status(200).json({ text: text, source: url });
+    // If text is too short, probably not useful
+    if (text.length < 50) {
+      return res.status(200).json({ text: "", error: "No useful content found" });
+    }
+
+    return res.status(200).json({ text });
   } catch (e) {
-    return res.status(200).json({ error: e.message, text: "" });
+    return res.status(200).json({ text: "", error: e.message || "Failed to scrape" });
   }
 }
