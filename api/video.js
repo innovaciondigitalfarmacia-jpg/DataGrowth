@@ -11,50 +11,62 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     const { action, op, endpoint, response_url, status_url } = req.query;
-    if (action === 'test') return res.status(200).json({ status: 'ready', model: 'hailuo-02', v: '14' });
+    if (action === 'test') return res.status(200).json({ status: 'ready', model: 'hailuo-02', v: '15' });
     if (action === 'check') {
       try {
         const base = endpoint || 'fal-ai/minimax/hailuo-02/standard/text-to-video';
-        const urls = [];
-        if (response_url) urls.push(decodeURIComponent(response_url));
-        if (status_url) urls.push(decodeURIComponent(status_url));
-        if (op) {
-          urls.push('https://queue.fal.run/' + base + '/requests/' + op);
-          urls.push('https://queue.fal.run/' + base + '/requests/' + op + '/status');
-        }
-
-        if (req.query.debug) {
-          const results = [];
-          for (const url of urls) {
-            try {
-              const r = await fetch(url, { headers: { 'Authorization': 'Key ' + FAL_KEY } });
-              const t = await r.text();
-              results.push({ url: url.substring(0, 100), status: r.status, body: t.substring(0, 200) });
-            } catch (e) { results.push({ url: url.substring(0, 100), error: e.message }); }
-          }
-          return res.status(200).json({ results });
-        }
-
-        for (const url of urls) {
+        
+        // Try response_url first (most reliable)
+        if (response_url) {
           try {
+            const url = decodeURIComponent(response_url);
             const r = await fetch(url, { headers: { 'Authorization': 'Key ' + FAL_KEY } });
             if (r.status === 200) {
-              const text = await r.text();
-              if (!text) continue;
-              const d = JSON.parse(text);
+              const d = await r.json();
               if (d.video?.url) return res.status(200).json({ status: 'completed', video_url: d.video.url });
-              if (d.status === 'COMPLETED' && d.response_url) {
-                const r2 = await fetch(d.response_url, { headers: { 'Authorization': 'Key ' + FAL_KEY } });
-                const d2 = await r2.json();
-                if (d2.video?.url) return res.status(200).json({ status: 'completed', video_url: d2.video.url });
-                return res.status(200).json({ status: 'completed_no_url', debug: JSON.stringify(d2).substring(0, 500) });
-              }
-              if (d.status === 'FAILED') return res.status(200).json({ status: 'error', error: d.detail || d.error || 'Video fallo' });
-              if (d.status === 'IN_QUEUE' || d.status === 'IN_PROGRESS') return res.status(200).json({ status: 'processing', fal_status: d.status });
             }
-            if (r.status === 202) return res.status(200).json({ status: 'processing' });
-          } catch (e) { continue; }
+            if (r.status === 202) return res.status(200).json({ status: 'processing', fal_status: 'IN_PROGRESS' });
+          } catch (e) {}
         }
+
+        // Try status URL
+        if (op) {
+          try {
+            const statusUrl = 'https://queue.fal.run/' + base + '/requests/' + op + '/status';
+            const r = await fetch(statusUrl, { headers: { 'Authorization': 'Key ' + FAL_KEY } });
+            if (r.ok) {
+              const d = await r.json();
+              if (d.status === 'COMPLETED') {
+                // Fetch actual result
+                try {
+                  const resultUrl = d.response_url || ('https://queue.fal.run/' + base + '/requests/' + op);
+                  const r2 = await fetch(resultUrl, { headers: { 'Authorization': 'Key ' + FAL_KEY } });
+                  if (r2.ok) {
+                    const d2 = await r2.json();
+                    if (d2.video?.url) return res.status(200).json({ status: 'completed', video_url: d2.video.url });
+                  }
+                } catch (e) {}
+                return res.status(200).json({ status: 'completed_no_url', debug: JSON.stringify(d).substring(0, 300) });
+              }
+              if (d.status === 'FAILED') return res.status(200).json({ status: 'error', error: d.error || 'Video failed' });
+              return res.status(200).json({ status: 'processing', fal_status: d.status, queue_position: d.queue_position });
+            }
+          } catch (e) {}
+        }
+
+        // Try direct result URL
+        if (op) {
+          try {
+            const resultUrl = 'https://queue.fal.run/' + base + '/requests/' + op;
+            const r = await fetch(resultUrl, { headers: { 'Authorization': 'Key ' + FAL_KEY } });
+            if (r.status === 200) {
+              const d = await r.json();
+              if (d.video?.url) return res.status(200).json({ status: 'completed', video_url: d.video.url });
+            }
+            if (r.status === 202) return res.status(200).json({ status: 'processing', fal_status: 'IN_PROGRESS' });
+          } catch (e) {}
+        }
+
         return res.status(200).json({ status: 'processing' });
       } catch (e) {
         return res.status(200).json({ status: 'processing', debug: e.message });
@@ -149,7 +161,7 @@ export default async function handler(req, res) {
           operation: d.request_id,
           endpoint: endpoint,
           response_url: d.response_url || '',
-          status_url: d.status_url || '',
+          status_url: d.status_url || ('https://queue.fal.run/' + endpoint + '/requests/' + d.request_id + '/status'),
           used_image: !!image_base64,
           image_method: imageUrl?.startsWith('data:') ? 'data_uri' : 'uploaded'
         });
