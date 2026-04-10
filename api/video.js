@@ -11,84 +11,45 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     const { action, op, endpoint, response_url, status_url } = req.query;
-    if (action === 'test') return res.status(200).json({ status: 'ready', model: 'hailuo-02', v: '16' });
+    if (action === 'test') return res.status(200).json({ status: 'ready', model: 'minimax-video-01-live', v: '17' });
     if (action === 'check') {
       try {
-        // Use response_url and status_url directly from fal.ai (already correct)
-        const respUrlDecoded = response_url || '';
-        const opId = op || '';
-        const base = endpoint || 'fal-ai/minimax/hailuo-02/standard/text-to-video';
+        const base = endpoint || 'fal-ai/minimax/video-01-live';
+        const urls = [];
         
-        // 1. Try response_url from fal.ai (gets result directly)
-        if (respUrlDecoded) {
-          try {
-            const r = await fetch(respUrlDecoded, { headers: { 'Authorization': 'Key ' + FAL_KEY } });
-            if (r.status === 200) {
-              const d = await r.json();
-              if (d.video?.url) return res.status(200).json({ status: 'completed', video_url: d.video.url });
-              if (d.status === 'FAILED') return res.status(200).json({ status: 'error', error: d.error || 'Video failed' });
-            }
-            if (r.status === 202) {
-              // Try to get status info
-              try {
-                const sr = await fetch(respUrlDecoded + '/status', { headers: { 'Authorization': 'Key ' + FAL_KEY } });
-                if (sr.ok) {
-                  const sd = await sr.json();
-                  return res.status(200).json({ status: 'processing', fal_status: sd.status, queue_position: sd.queue_position });
-                }
-              } catch (e) {}
-              return res.status(200).json({ status: 'processing', fal_status: 'IN_PROGRESS' });
-            }
-          } catch (e) {}
+        if (response_url) urls.push(response_url);
+        if (status_url) urls.push(status_url);
+        if (op) {
+          urls.push('https://queue.fal.run/' + base + '/requests/' + op);
+          urls.push('https://queue.fal.run/' + base + '/requests/' + op + '/status');
         }
-
-        // 2. Try status_url 
-        if (status_url) {
+        
+        for (const url of urls) {
           try {
-            const r = await fetch(status_url, { headers: { 'Authorization': 'Key ' + FAL_KEY } });
-            if (r.ok) {
-              const d = await r.json();
+            const r = await fetch(url, { headers: { 'Authorization': 'Key ' + FAL_KEY } });
+            
+            if (r.status === 200) {
+              const text = await r.text();
+              if (!text) continue;
+              const d = JSON.parse(text);
+              
+              if (d.video?.url) return res.status(200).json({ status: 'completed', video_url: d.video.url });
               if (d.status === 'COMPLETED') {
-                const resultUrl = d.response_url || respUrlDecoded || ('https://queue.fal.run/' + base + '/requests/' + opId);
+                const resultUrl = d.response_url || ('https://queue.fal.run/' + base + '/requests/' + op);
                 try {
                   const r2 = await fetch(resultUrl, { headers: { 'Authorization': 'Key ' + FAL_KEY } });
-                  if (r2.ok) {
-                    const d2 = await r2.json();
-                    if (d2.video?.url) return res.status(200).json({ status: 'completed', video_url: d2.video.url });
-                  }
+                  const d2 = await r2.json();
+                  if (d2.video?.url) return res.status(200).json({ status: 'completed', video_url: d2.video.url });
                 } catch (e) {}
-                return res.status(200).json({ status: 'completed_no_url', debug: JSON.stringify(d).substring(0, 300) });
+                return res.status(200).json({ status: 'completed_no_url', debug: JSON.stringify(d).substring(0, 500) });
               }
-              if (d.status === 'FAILED') return res.status(200).json({ status: 'error', error: d.error || 'Video failed' });
-              return res.status(200).json({ status: 'processing', fal_status: d.status, queue_position: d.queue_position });
+              if (d.status === 'FAILED') return res.status(200).json({ status: 'error', error: d.detail || d.error || 'Video fallo' });
+              if (d.status === 'IN_QUEUE' || d.status === 'IN_PROGRESS') return res.status(200).json({ status: 'processing', fal_status: d.status });
             }
-          } catch (e) {}
+            if (r.status === 202) return res.status(200).json({ status: 'processing' });
+          } catch (e) { continue; }
         }
-
-        // 3. Construct URLs manually as last resort
-        if (opId) {
-          const urls = [
-            'https://queue.fal.run/' + base + '/requests/' + opId + '/status',
-            'https://queue.fal.run/' + base + '/requests/' + opId
-          ];
-          for (const url of urls) {
-            try {
-              const r = await fetch(url, { headers: { 'Authorization': 'Key ' + FAL_KEY } });
-              if (r.ok) {
-                const d = await r.json();
-                if (d.video?.url) return res.status(200).json({ status: 'completed', video_url: d.video.url });
-                if (d.status === 'COMPLETED' && d.response_url) {
-                  const r2 = await fetch(d.response_url, { headers: { 'Authorization': 'Key ' + FAL_KEY } });
-                  if (r2.ok) { const d2 = await r2.json(); if (d2.video?.url) return res.status(200).json({ status: 'completed', video_url: d2.video.url }); }
-                }
-                if (d.status === 'FAILED') return res.status(200).json({ status: 'error', error: d.error || 'Video failed' });
-                if (d.status === 'IN_QUEUE' || d.status === 'IN_PROGRESS') return res.status(200).json({ status: 'processing', fal_status: d.status, queue_position: d.queue_position });
-              }
-              if (r.status === 202) return res.status(200).json({ status: 'processing', fal_status: 'WAITING' });
-            } catch (e) { continue; }
-          }
-        }
-
+        
         return res.status(200).json({ status: 'processing' });
       } catch (e) {
         return res.status(200).json({ status: 'processing', debug: e.message });
@@ -105,66 +66,47 @@ export default async function handler(req, res) {
       if (!prompt) return res.status(400).json({ error: 'No prompt' });
 
       let imageUrl = null;
-      let uploadError = null;
 
       if (image_base64) {
-        // Method 1: Upload to fal storage
+        // Upload to fal storage
         try {
           const imgBuf = Buffer.from(image_base64, 'base64');
           const uploadRes = await fetch('https://fal.run/fal-ai/storage/upload', {
             method: 'POST',
-            headers: {
-              'Authorization': 'Key ' + FAL_KEY,
-              'Content-Type': 'application/octet-stream',
-            },
+            headers: { 'Authorization': 'Key ' + FAL_KEY, 'Content-Type': 'application/octet-stream' },
             body: imgBuf
           });
-          const uploadText = await uploadRes.text();
           if (uploadRes.ok) {
-            const uploadData = JSON.parse(uploadText);
+            const uploadData = await uploadRes.json();
             imageUrl = uploadData.url || uploadData.file_url || uploadData.access_url;
-          } else {
-            uploadError = 'Upload1: ' + uploadRes.status + ' ' + uploadText.substring(0, 100);
           }
-        } catch (e) {
-          uploadError = 'Upload1 error: ' + e.message;
-        }
+        } catch (e) {}
 
-        // Method 2: Try REST endpoint if first failed
         if (!imageUrl) {
           try {
             const imgBuf = Buffer.from(image_base64, 'base64');
             const uploadRes = await fetch('https://rest.fal.run/storage/upload', {
               method: 'PUT',
-              headers: {
-                'Authorization': 'Key ' + FAL_KEY,
-                'Content-Type': 'image/jpeg',
-              },
+              headers: { 'Authorization': 'Key ' + FAL_KEY, 'Content-Type': 'image/jpeg' },
               body: imgBuf
             });
-            const uploadText = await uploadRes.text();
             if (uploadRes.ok) {
-              const uploadData = JSON.parse(uploadText);
-              imageUrl = uploadData.url || uploadData.file_url || uploadData.access_url;
-            } else {
-              uploadError += ' | Upload2: ' + uploadRes.status + ' ' + uploadText.substring(0, 100);
+              const uploadData = await uploadRes.json();
+              imageUrl = uploadData.url || uploadData.file_url;
             }
-          } catch (e) {
-            uploadError += ' | Upload2 error: ' + e.message;
-          }
+          } catch (e) {}
         }
 
-        // Method 3: Try data URI directly
         if (!imageUrl) {
           imageUrl = 'data:image/jpeg;base64,' + image_base64;
         }
       }
 
       const endpoint = (image_base64 && imageUrl)
-        ? 'fal-ai/minimax/hailuo-02/standard/image-to-video'
-        : 'fal-ai/minimax/hailuo-02/standard/text-to-video';
+        ? 'fal-ai/minimax/video-01-live/image-to-video'
+        : 'fal-ai/minimax/video-01-live';
 
-      const payload = { prompt: prompt, prompt_optimizer: true, duration: 10, resolution: "768P" };
+      const payload = { prompt: prompt, prompt_optimizer: true };
       if (imageUrl) payload.image_url = imageUrl;
 
       const r = await fetch('https://queue.fal.run/' + endpoint, {
@@ -174,18 +116,14 @@ export default async function handler(req, res) {
       });
       const text = await r.text();
       const d = JSON.parse(text);
-      if (d.detail || d.error) {
-        return res.status(200).json({ status: 'error', error: (d.detail || d.error) + (uploadError ? ' [' + uploadError + ']' : '') });
-      }
+      if (d.detail || d.error) return res.status(200).json({ status: 'error', error: d.detail || d.error });
       if (d.request_id) {
         return res.status(200).json({
           status: 'started',
           operation: d.request_id,
           endpoint: endpoint,
           response_url: d.response_url || '',
-          status_url: d.status_url || ('https://queue.fal.run/' + endpoint + '/requests/' + d.request_id + '/status'),
-          used_image: !!image_base64,
-          image_method: imageUrl?.startsWith('data:') ? 'data_uri' : 'uploaded'
+          status_url: d.status_url || ''
         });
       }
       return res.status(200).json({ status: 'error', error: 'Respuesta: ' + text.substring(0, 200) });
