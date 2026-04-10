@@ -31,9 +31,9 @@ const CTYPES = [
   { id: "email", label: "Email", icon: "✉️", fmt: "text" },
 ];
 const PLANS = [
-  { id: "free", name: "Starter", price: "$0", desc: "Para empezar", color: "#8892a8", brands: 1, seats: 1, limits: { post_visual: 5, carousel: 5, post_text: 5, ad: 5, email: 5, reel: 0 }, features: ["1 marca","5 posts de imagen","5 carruseles","5 copys","5 anuncios","5 emails","Sin videos","Soporte email"] },
-  { id: "pro", name: "Pro", price: "$59", desc: "Para marcas en crecimiento", color: "#37c2eb", brands: 3, seats: 2, limits: { post_visual: 100, carousel: 100, post_text: 100, ad: 100, email: 100, reel: 15 }, pop: true, features: ["3 marcas","100 de cada tipo/mes","15 videos/mes","Todos los formatos","Branding Kit completo","Fotos reales","Info real de la web","Soporte prioritario"] },
-  { id: "agency", name: "Agency", price: "$149", desc: "Para empresas y marcas", color: "#8b5cf6", brands: 99, seats: 5, limits: { post_visual: 9999, carousel: 9999, post_text: 9999, ad: 9999, email: 9999, reel: 20 }, features: ["Marcas ilimitadas","Posts ilimitados","20 videos/mes","Todos los formatos","Base de Conocimiento","Info real de la web","Multi-usuario (5 seats)","API access","Soporte dedicado 24/7"] },
+  { id: "free", name: "Starter", price: "$0", desc: "Para empezar", color: "#8892a8", brands: 1, seats: 1, limits: { post_visual: 5, carousel: 5, post_text: 5, ad: 5, email: 5, reel: 0 }, features: ["1 marca","5 posts de imagen","5 carruseles","5 copys","5 anuncios","5 emails","Sin videos","Branding básico","Soporte email"] },
+  { id: "pro", name: "Pro", price: "$59", desc: "Para marcas en crecimiento", color: "#37c2eb", brands: 3, seats: 1, limits: { post_visual: 100, carousel: 100, post_text: 100, ad: 100, email: 100, reel: 15 }, pop: true, features: ["3 marcas","100 de cada tipo/mes","15 videos/mes","Todos los formatos","Branding Kit completo","Fotos reales","Info real de la web","Soporte prioritario"] },
+  { id: "agency", name: "Agency", price: "$149", desc: "Para empresas y marcas", color: "#8b5cf6", brands: 99, seats: 5, limits: { post_visual: 9999, carousel: 9999, post_text: 9999, ad: 9999, email: 9999, reel: 20 }, features: ["Marcas ilimitadas","Posts ilimitados","20 videos/mes","Todos los formatos","Branding Kit completo","Info real de la web","Multi-usuario (5 seats)","Soporte dedicado 24/7"] },
 ];
 
 const Ic = ({ name, size = 18 }) => {
@@ -966,6 +966,7 @@ const BrandEditor = ({ brand, onSave, onClose, isNew }) => {
             <div style={{ marginBottom: 14 }}><Label>Productos / servicios principales</Label><Textarea value={f.products} onChange={e => u("products", e.target.value)} placeholder="Lista tus productos o servicios más importantes..." rows={2}/></div>
             <div style={{ marginBottom: 14 }}><Label>¿Qué te diferencia?</Label><Textarea value={f.differentiator} onChange={e => u("differentiator", e.target.value)} placeholder="¿Qué hace única a tu marca frente a la competencia?" rows={2}/></div>
             <UploadZone label="Documentos de estrategia" icon="📊" files={f.strategyDocs} onAdd={(n, r) => addFile("strategyDocs", n, r)} multi/>
+            {(user?.role === "agency" || user?.plan === "pro" || user?.plan === "agency") ? <>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
               <div><Label>Página web</Label><Input value={f.website} onChange={e => u("website", e.target.value)} placeholder="www.miempresa.com"/></div>
               <div><Label>Instagram</Label><Input value={f.instagram} onChange={e => u("instagram", e.target.value)} placeholder="@miempresa"/></div>
@@ -975,6 +976,10 @@ const BrandEditor = ({ brand, onSave, onClose, isNew }) => {
               <div><Label>TikTok</Label><Input value={f.tiktok} onChange={e => u("tiktok", e.target.value)} placeholder="@miempresa"/></div>
             </div>
             <UploadZone label="Captura de página web" icon="🌐" files={f.websiteScreenshot || []} onAdd={(n, r) => addFile("websiteScreenshot", n, r)} multi/>
+            </> : <div style={{ padding: 16, background: t.bgI, borderRadius: 12, border: `1px dashed ${t.brd}`, marginBottom: 14, textAlign: "center" }}>
+              <div style={{ fontSize: 14, color: t.txM, marginBottom: 8 }}>🔒 Conexión a página web y redes sociales</div>
+              <div style={{ fontSize: 12, color: t.txM }}>Disponible desde el plan <span style={{ color: t.ac, fontWeight: 700 }}>Pro</span>. La IA usará información real de tu web para generar contenido más preciso.</div>
+            </div>}
 
             {/* Preview */}
             <div style={{ padding: 16, background: t.bgI, borderRadius: 12, border: `1px solid ${t.brd}`, marginTop: 20 }}>
@@ -1305,8 +1310,9 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
     // ── NORMAL GENERATION FLOW ──
     // Fetch real info from brand website (5 sec timeout)
     let realInfo = "";
+    const canScrape = isAdmin || userPlan.id === "pro" || userPlan.id === "agency";
     const scrapeUrl = brand.website || brand.instagram || brand.facebook || "";
-    if (scrapeUrl) {
+    if (scrapeUrl && canScrape) {
       try {
         const ctrl = new AbortController();
         const tmout = setTimeout(() => ctrl.abort(), 5000);
