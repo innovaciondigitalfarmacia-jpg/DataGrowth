@@ -31,9 +31,9 @@ const CTYPES = [
   { id: "email", label: "Email", icon: "✉️", fmt: "text" },
 ];
 const PLANS = [
-  { id: "free", name: "Starter", price: "$0", desc: "Para empezar", color: "#8892a8", brands: 1, seats: 1, limits: { post_visual: 5, carousel: 5, post_text: 5, ad: 5, email: 5, reel: 0 }, features: ["1 marca","5 posts de imagen","5 carruseles","5 copys","5 anuncios","5 emails","Sin videos","Branding básico","Soporte email"] },
-  { id: "pro", name: "Pro", price: "$59", desc: "Para marcas en crecimiento", color: "#37c2eb", brands: 3, seats: 1, limits: { post_visual: 100, carousel: 100, post_text: 100, ad: 100, email: 100, reel: 15 }, pop: true, features: ["3 marcas","100 de cada tipo/mes","15 videos/mes","Todos los formatos","Branding Kit completo","Fotos reales","Info real de la web","Soporte prioritario"] },
-  { id: "agency", name: "Agency", price: "$149", desc: "Para empresas y marcas", color: "#8b5cf6", brands: 99, seats: 5, limits: { post_visual: 9999, carousel: 9999, post_text: 9999, ad: 9999, email: 9999, reel: 20 }, features: ["Marcas ilimitadas","Posts ilimitados","20 videos/mes","Todos los formatos","Branding Kit completo","Info real de la web","Multi-usuario (5 seats)","Soporte dedicado 24/7"] },
+  { id: "free", name: "Starter", price: "$0", desc: "Para empezar", color: "#8892a8", brands: 1, limits: { post_visual: 5, carousel: 5, post_text: 5, ad: 5, email: 5, reel: 0 }, features: ["1 marca","5 posts de imagen","5 carruseles","5 copys","5 anuncios","5 emails","Sin videos","Soporte email"] },
+  { id: "pro", name: "Pro", price: "$59", desc: "Para marcas en crecimiento", color: "#37c2eb", brands: 3, limits: { post_visual: 100, carousel: 100, post_text: 100, ad: 100, email: 100, reel: 15 }, pop: true, features: ["3 marcas","100 de cada tipo/mes","15 videos/mes","Todos los formatos","Branding Kit completo","Fotos reales","Info real de la web","Soporte prioritario"] },
+  { id: "agency", name: "Agency", price: "$149", desc: "Para agencias digitales", color: "#8b5cf6", brands: 99, limits: { post_visual: 9999, carousel: 9999, post_text: 9999, ad: 9999, email: 9999, reel: 20 }, features: ["Marcas ilimitadas","Posts ilimitados","20 videos/mes","Todos los formatos","Base de Conocimiento","Info real de la web","Multi-usuario (5 seats)","API access","Soporte dedicado 24/7"] },
 ];
 
 const Ic = ({ name, size = 18 }) => {
@@ -53,7 +53,7 @@ const Logo = ({ size = 32 }) => <img src="/logo.jpg" alt="DataGrowth" style={{ w
 
 // ══════ LANDING PAGE (Supabase-inspired) ══════
 const BLOG_POSTS = [
-  { id: 1, tag: "Marketing IA", emoji: "🤖", title: "Cómo generar contenido para redes sociales con IA en minutos", desc: "Aprende a usar IA para crear posts, carruseles y reels profesionales sin ser diseñador.", date: "4 Jun 2026", min: "5 min", body: "En DataGrowth hemos desarrollado una plataforma que permite a empresas y emprendedores generar contenido profesional en segundos. La clave está en configurar correctamente la identidad de tu marca.\n\nCon nuestra Fábrica Creativa puedes generar posts con imagen, carruseles de 5 slides, reels de hasta 8 segundos, copys para redes sociales, anuncios y emails de marketing. Todo con el tono, colores y voz de tu marca.\n\nEl proceso es simple: describes lo que quieres en lenguaje natural y la IA genera imagen, texto y hashtags listos para publicar." },
+  { id: 1, tag: "Marketing IA", emoji: "🤖", title: "Cómo generar contenido para redes sociales con IA en minutos", desc: "Aprende a usar IA para crear posts, carruseles y reels profesionales sin ser diseñador.", date: "4 Jun 2026", min: "5 min", body: "En DataGrowth hemos desarrollado una plataforma que permite a agencias digitales y emprendedores generar contenido profesional en segundos. La clave está en configurar correctamente la identidad de tu marca.\n\nCon nuestra Fábrica Creativa puedes generar posts con imagen, carruseles de 5 slides, reels de hasta 8 segundos, copys para redes sociales, anuncios y emails de marketing. Todo con el tono, colores y voz de tu marca.\n\nEl proceso es simple: describes lo que quieres en lenguaje natural y la IA genera imagen, texto y hashtags listos para publicar." },
   { id: 2, tag: "Estrategia", emoji: "📈", title: "5 estrategias de marketing digital que toda agencia debe aplicar en 2026", desc: "El marketing digital evoluciona rápido. Estas son las estrategias que están dominando este año.", date: "1 Jun 2026", min: "7 min", body: "El marketing digital en 2026 está siendo transformado por la inteligencia artificial. Aquí las 5 estrategias más efectivas:\n\n1. Contenido hiperpersonalizado: ya no basta con contenido genérico. Las marcas que ganan hablan directamente a su audiencia.\n\n2. Video corto consistente: Instagram Reels y TikTok siguen dominando. La clave es la consistencia, no la perfección.\n\n3. Email marketing automatizado: el email tiene el ROI más alto de todos los canales.\n\n4. Branding coherente en todos los canales: tu marca debe verse y sonar igual en Instagram, email y anuncios.\n\n5. Datos reales en el contenido: la IA que usa información real de tu marca genera contenido más creíble." },
   { id: 3, tag: "Branding", emoji: "🎨", title: "Por qué tu marca necesita contenido consistente para crecer en redes", desc: "La consistencia es el secreto del crecimiento orgánico. Te explicamos cómo lograrlo con IA.", date: "28 May 2026", min: "4 min", body: "El algoritmo de Instagram favorece a las cuentas que publican consistentemente. No es sobre cantidad, es sobre regularidad.\n\nEl problema es que crear contenido de calidad todos los días es agotador y costoso. Ahí es donde entra DataGrowth.\n\nCon nuestra plataforma puedes configurar tu marca una sola vez y generar semanas de contenido en minutos. Mismo tono, mismos colores, misma voz de marca en cada pieza." },
 ];
@@ -168,20 +168,14 @@ const RocketCanvas = () => {
   return <canvas ref={canvasRef} style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1 }} />;
 };
 
-const Landing = ({ onLogin, onRegister, dark, setDark }) => {
+const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }) => {
   const t = useT();
   const [customAmount, setCustomAmount] = useState(150);
   const [blogOpen, setBlogOpen] = useState(null);
-  const [landingPage, setLandingPage] = useState("home");
-  const [showPlans, setShowPlans] = useState(false);
-  const [mobileMenu, setMobileMenu] = useState(false);
-  const [w, setW] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
-  useEffect(() => { const h = () => setW(window.innerWidth); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
-  const mob = w < 768;
 
   const openBlog = (post) => {
     setBlogOpen(post);
-    window.history.pushState({ blog: post.id, lp: "blog", view: "landing" }, "", "#blog-" + post.id);
+    window.history.pushState({ blog: post.id }, "", "#blog-" + post.id);
   };
   const closeBlog = () => {
     setBlogOpen(null);
@@ -189,17 +183,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
   };
 
   useEffect(() => {
-    const hash = window.location.hash.replace("#", "");
-    if (hash === "funciones" || hash === "quienes" || hash === "blog") setLandingPage(hash);
-    if (hash === "planes") setShowPlans(true);
-    
-    const handlePop = (e) => {
-      const lp = e.state?.lp;
-      if (lp === "planes") { setShowPlans(true); setLandingPage("home"); setBlogOpen(null); }
-      else if (lp) { setShowPlans(false); setLandingPage(lp); setBlogOpen(null); }
-      else { setShowPlans(false); setLandingPage("home"); setBlogOpen(null); }
-      window.scrollTo(0, 0);
-    };
+    const handlePop = (e) => { if (!e.state?.blog) setBlogOpen(null); };
     window.addEventListener("popstate", handlePop);
     return () => window.removeEventListener("popstate", handlePop);
   }, []);
@@ -216,13 +200,12 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
   ];
 
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-  const goPage = (pg) => { setLandingPage(pg); setBlogOpen(null); window.scrollTo(0, 0); window.history.pushState({ lp: pg, view: "landing" }, "", "#" + pg); };
   const NAV_LINKS = [
-    { label: "Inicio", action: () => { setLandingPage("home"); setBlogOpen(null); window.scrollTo(0, 0); window.history.pushState({ lp: "home", view: "landing" }, "", "#inicio"); } },
-    { label: "Funciones", action: () => goPage("funciones") },
-    { label: "Quiénes somos", action: () => goPage("quienes") },
-    { label: "Planes", action: () => { setShowPlans(true); window.history.pushState({ lp: "planes", view: "landing" }, "", "#planes"); } },
-    { label: "Blog", action: () => goPage("blog") },
+    { label: "Inicio", id: "inicio" },
+    { label: "Funciones", id: "funciones" },
+    { label: "Quiénes somos", id: "quienes" },
+    { label: "Planes", action: () => setShowPlans(true) },
+    { label: "Blog", id: "blog" },
   ];
 
   return (
@@ -231,60 +214,49 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
 
       {/* NAV */}
       <nav style={{ padding: "0", borderBottom: `1px solid ${t.brd}`, position: "sticky", top: 0, background: t.bg + "f2", backdropFilter: "blur(16px)", zIndex: 50, height: 62, display: "flex", alignItems: "center" }}>
-        <div style={{ maxWidth: 1100, width: "100%", margin: "0 auto", padding: "0 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ maxWidth: 1100, width: "100%", margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 30, height: 30, borderRadius: 8, overflow: "hidden" }}><Logo size={30}/></div>
             <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.5 }}>DataGrowth</span>
           </div>
-          {!mob && <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
             {NAV_LINKS.map((l, i) => (
-              <button key={i} onClick={l.action}
+              <button key={i} onClick={l.action || (() => scrollTo(l.id))}
                 style={{ background: "transparent", border: "none", color: t.txS, fontSize: 13, fontWeight: 500, padding: "7px 13px", borderRadius: 7, cursor: "pointer", transition: "all .15s" }}
                 onMouseEnter={e => { e.currentTarget.style.color = t.ac; e.currentTarget.style.background = t.acS; }}
                 onMouseLeave={e => { e.currentTarget.style.color = t.txS; e.currentTarget.style.background = "transparent"; }}>
                 {l.label}
               </button>
             ))}
-          </div>}
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div onClick={() => setDark(!dark)} style={{ cursor: "pointer", color: t.txM, padding: 7, borderRadius: 7, background: t.bgI, display: "flex" }}><Ic name={dark ? "sun" : "moon"} size={15}/></div>
-            {!mob && <Btn secondary onClick={onLogin} style={{ fontSize: 13, padding: "7px 16px" }}>Iniciar sesion</Btn>}
-            {!mob && <Btn primary onClick={() => onRegister()} style={{ fontSize: 13, padding: "7px 16px" }}>Crear cuenta gratis</Btn>}
-            {mob && <div onClick={() => setMobileMenu(!mobileMenu)} style={{ cursor: "pointer", color: t.txS, padding: 7 }}><Ic name={mobileMenu ? "x" : "menu"} size={22}/></div>}
+            <Btn secondary onClick={onLogin} style={{ fontSize: 13, padding: "7px 16px" }}>Iniciar sesion</Btn>
+            <Btn primary onClick={() => onRegister()} style={{ fontSize: 13, padding: "7px 16px" }}>Crear cuenta gratis</Btn>
           </div>
         </div>
       </nav>
-      {/* MOBILE MENU */}
-      {mob && mobileMenu && <div style={{ position: "fixed", top: 62, left: 0, right: 0, bottom: 0, background: t.bg, zIndex: 49, padding: "20px 16px", display: "flex", flexDirection: "column", gap: 4 }}>
-        {NAV_LINKS.map((l, i) => <button key={i} onClick={() => { l.action(); setMobileMenu(false); }} style={{ background: "transparent", border: "none", color: t.tx, fontSize: 18, fontWeight: 600, padding: "14px 16px", borderRadius: 10, cursor: "pointer", textAlign: "left", borderBottom: "1px solid " + t.brd }}>{l.label}</button>)}
-        <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-          <Btn secondary onClick={() => { onLogin(); setMobileMenu(false); }} style={{ width: "100%", justifyContent: "center", fontSize: 15, padding: "14px" }}>Iniciar sesion</Btn>
-          <Btn primary onClick={() => { onRegister(); setMobileMenu(false); }} style={{ width: "100%", justifyContent: "center", fontSize: 15, padding: "14px" }}>Crear cuenta gratis</Btn>
-        </div>
-      </div>}
 
-      {landingPage === "home" && <>
       {/* HERO */}
-      <div id="inicio" style={{ maxWidth: 1100, margin: "0 auto", padding: mob?"40px 16px 30px":"80px 24px 60px", textAlign: "center", position: "relative" }}>
+      <div id="inicio" style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px 60px", textAlign: "center", position: "relative" }}>
         <div style={{ position: "absolute", top: -100, left: "50%", transform: "translateX(-50%)", width: 600, height: 400, background: t.ac, borderRadius: "50%", filter: "blur(180px)", opacity: dark ? .06 : .03, pointerEvents: "none" }}/>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, border: `1px solid ${t.ac}50`, borderRadius: 6, padding: "5px 16px 5px 10px", fontSize: 11, color: t.ac, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 32 }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: t.ac, animation: "pulse 2s infinite" }}/> Plataforma AI para tu negocio
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: t.ac, animation: "pulse 2s infinite" }}/> Plataforma AI para agencias digitales
         </div>
         <h1 className="dg-title" style={{ fontSize: "clamp(40px,6vw,72px)", fontWeight: 900, lineHeight: 1.04, letterSpacing: -2.5, marginBottom: 24 }}>Crea contenido en minutos{" "}<span style={{ color: t.ac }}>Escala a miles</span></h1>
         <p style={{ fontSize: 18, color: t.txS, maxWidth: 640, margin: "0 auto 36px", lineHeight: 1.6 }}>DataGrowth es la plataforma de inteligencia artificial que genera posts, imagenes, videos, carruseles, reels, copys y emails profesionales para tu marca o la de tus clientes. Configura tu identidad de marca una sola vez y genera contenido ilimitado con un clic.</p>
-        <div style={{ display: "flex", gap: 14, justifyContent: "center", flexDirection: mob ? "column" : "row", alignItems: "center" }}>
-          <button onClick={() => { setShowPlans(true); window.history.pushState({ lp: "planes", view: "landing" }, "", "#planes"); }} style={{ background: t.ac, border: "none", color: "#fff", fontSize: 17, fontWeight: 700, padding: "16px 44px", borderRadius: 10, cursor: "pointer", boxShadow: `0 0 30px ${t.ac}40` }}>Ver planes</button>
+        <div style={{ display: "flex", gap: 14, justifyContent: "center" }}>
+          <button onClick={() => setShowPlans(true)} style={{ background: t.ac, border: "none", color: "#fff", fontSize: 17, fontWeight: 700, padding: "16px 44px", borderRadius: 10, cursor: "pointer", boxShadow: `0 0 30px ${t.ac}40` }}>Ver planes</button>
           <button onClick={() => onRegister()} style={{ background: "transparent", border: `1px solid ${t.brd}`, color: t.tx, fontSize: 16, fontWeight: 500, padding: "16px 32px", borderRadius: 10, cursor: "pointer" }}>Empezar gratis →</button>
         </div>
       </div>
-      {/* FEATURES SUMMARY */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: mob?"40px 16px":"80px 24px" }}>
+      <div id="funciones" style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px" }}>
         <div style={{ textAlign: "center", marginBottom: 56 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Funcionalidades</div>
-          <h2 style={{ fontSize: 36, fontWeight: 700, letterSpacing: -1 }}>Todo lo que tu negocio necesita</h2>
+          <h2 style={{ fontSize: 36, fontWeight: 700, letterSpacing: -1 }}>Todo lo que tu agencia necesita</h2>
           <p style={{ fontSize: 15, color: t.txS, marginTop: 10, maxWidth: 500, margin: "10px auto 0" }}>Una sola plataforma para generar todo el contenido de tus marcas.</p>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: mob?"1fr":"repeat(3, 1fr)", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
           {features.map((f, i) => (
             <div key={i} style={{ background: t.bgC, border: "1px solid " + t.brd, borderRadius: 16, padding: 28, transition: "all .3s", cursor: "default" }} onMouseEnter={e => { e.currentTarget.style.borderColor = t.ac + "50"; e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 40px " + t.sh; }} onMouseLeave={e => { e.currentTarget.style.borderColor = t.brd; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}>
               <div style={{ width: 48, height: 48, borderRadius: 12, background: t.acS, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, marginBottom: 16 }}>{f.icon}</div>
@@ -293,192 +265,48 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
             </div>
           ))}
         </div>
-        <div style={{ textAlign: "center", marginTop: 32 }}><button onClick={() => goPage("funciones")} style={{ background: "transparent", border: `1px solid ${t.ac}`, color: t.ac, fontSize: 14, fontWeight: 600, padding: "12px 28px", borderRadius: 10, cursor: "pointer" }}>Ver todas las funciones →</button></div>
       </div>
 
-      {/* ABOUT SUMMARY */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: mob?"30px 16px":"60px 24px" }}>
+      {/* ABOUT US */}
+      <div id="quienes" style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px", position: "relative" }}>
+        <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 500, height: 300, background: t.ac, borderRadius: "50%", filter: "blur(160px)", opacity: .04, pointerEvents: "none" }}/>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Quienes Somos</div>
-          <h2 style={{ fontSize: 36, fontWeight: 700, letterSpacing: -1 }}>Tu equipo de marketing digital con IA</h2>
-          <p style={{ fontSize: 16, color: t.txS, marginTop: 12, maxWidth: 700, margin: "12px auto 0", lineHeight: 1.7 }}>DataGrowth es una plataforma de inteligencia artificial disenada para empresas, emprendedores y marcas.</p>
+          <h2 style={{ fontSize: 36, fontWeight: 700, letterSpacing: -1 }}>La agencia digital que trabaja 24/7 para tu marca</h2>
+          <p style={{ fontSize: 16, color: t.txS, marginTop: 12, maxWidth: 700, margin: "12px auto 0", lineHeight: 1.7 }}>DataGrowth es una plataforma de inteligencia artificial disenada para agencias digitales, emprendedores y empresas que necesitan generar contenido profesional de forma rapida, consistente y alineado con su identidad de marca.</p>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: mob?"1fr":"1fr 1fr", gap: mob?12:20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
           {[
-            { icon: "🎯", title: "Que hacemos", desc: "Generamos contenido completo para redes sociales usando inteligencia artificial de ultima generacion." },
-            { icon: "🚀", title: "Como funciona", desc: "Configura tu marca, describe lo que quieres, y la IA genera todo en segundos." },
-            { icon: "💡", title: "Que nos diferencia", desc: "Nos conectamos a tu pagina web para usar informacion REAL. Nunca inventamos datos." },
-            { icon: "🏢", title: "Para quien es", desc: "Empresas, emprendedores y marcas que quieren escalar su presencia digital." }
-          ].map((item, i) => <div key={i} style={{ background: t.bgC, border: "1px solid " + t.brd, borderRadius: 16, padding: 28 }}>
-            <div style={{ fontSize: 24, marginBottom: 14 }}>{item.icon}</div>
+            { icon: "🎯", title: "Que hacemos", desc: "Generamos contenido completo para redes sociales usando inteligencia artificial de ultima generacion. Desde imagenes y videos hasta copys, carruseles, reels, anuncios y emails de marketing. Todo personalizado con los colores, tono de voz, productos e informacion real de tu marca." },
+            { icon: "🚀", title: "Como funciona", desc: "1. Creas tu marca y configuras tu Brand Kit. 2. Conectas tu pagina web o redes sociales. 3. Seleccionas el tipo de contenido. 4. Describes lo que quieres. 5. La IA genera todo en segundos: imagen, texto, hashtags, listo para publicar." },
+            { icon: "💡", title: "Que nos diferencia", desc: "DataGrowth se conecta a tu pagina web y redes sociales para extraer informacion REAL. Nunca inventa precios, productos ni servicios. Cada pieza de contenido refleja tu marca tal como es. Sube fotos reales y la IA las transforma en contenido profesional." },
+            { icon: "🏢", title: "Para quien es", desc: "Para agencias digitales que manejan multiples marcas. Para emprendedores que necesitan contenido profesional. Para empresas que quieren mantener sus redes activas. Para cualquier negocio que quiera escalar su presencia digital." }
+          ].map((item, i) => <div key={i} style={{ background: t.bgC, border: "1px solid " + t.brd, borderRadius: 16, padding: 28, transition: "all .3s" }} onMouseEnter={e => { e.currentTarget.style.borderColor = t.ac + "50"; e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 40px " + t.sh; }} onMouseLeave={e => { e.currentTarget.style.borderColor = t.brd; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}>
+            <div style={{ width: 48, height: 48, borderRadius: 12, background: t.acS, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, marginBottom: 14 }}>{item.icon}</div>
             <div style={{ fontSize: 17, fontWeight: 700, color: t.tx, marginBottom: 10 }}>{item.title}</div>
             <div style={{ fontSize: 14, color: t.txS, lineHeight: 1.7 }}>{item.desc}</div>
           </div>)}
         </div>
-        <div style={{ textAlign: "center", marginTop: 32 }}><button onClick={() => goPage("quienes")} style={{ background: "transparent", border: `1px solid ${t.ac}`, color: t.ac, fontSize: 14, fontWeight: 600, padding: "12px 28px", borderRadius: 10, cursor: "pointer" }}>Conocer más sobre nosotros →</button></div>
-      </div>
-
-      {/* BLOG SUMMARY */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: mob?"40px 16px":"80px 24px" }}>
-        <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Blog</div>
-          <h2 style={{ fontSize: 36, fontWeight: 800, letterSpacing: -1 }}>Recursos para tu negocio</h2>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: mob?"1fr":"repeat(3,1fr)", gap: mob?12:20 }}>
-          {BLOG_POSTS.map((post, i) => (
-            <div key={i} onClick={() => { goPage("blog"); setTimeout(() => openBlog(post), 100); }} style={{ border: `1px solid ${t.brd}`, borderRadius: 16, overflow: "hidden", cursor: "pointer", background: t.bgC, transition: "all .25s" }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = t.ac + "50"; e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = `0 12px 40px ${t.sh}`; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = t.brd; e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}>
-              <div style={{ height: 100, background: `linear-gradient(135deg, ${t.ac}15, ${t.ac}03)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>{post.emoji}</div>
-              <div style={{ padding: 20 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: t.tx, marginBottom: 8, lineHeight: 1.3 }}>{post.title}</div>
-                <div style={{ fontSize: 11, color: t.txM }}>{post.date} · {post.min}</div>
-              </div>
+        <div style={{ marginTop: 24, background: t.bgC, border: "1px solid " + t.brd, borderRadius: 16, padding: 28 }}>
+          <div style={{ fontSize: 17, fontWeight: 700, color: t.tx, marginBottom: 16, textAlign: "center" }}>🛠️ Tecnologia que impulsa DataGrowth</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+              {[
+                { icon: "🤖", name: "Claude AI", desc: "Genera textos, copys y emails de nivel agencia" },
+                { icon: "🖼️", name: "Nano Banana", desc: "Crea imagenes profesionales con IA de Google" },
+                { icon: "🎬", name: "Veo 3.1", desc: "Genera videos de 8 segundos en alta calidad" },
+                { icon: "🌐", name: "Web Scraping", desc: "Extrae info real de tu pagina web y redes" }
+              ].map((t2, i) => <div key={i} style={{ textAlign: "center", padding: 16, background: t.bgI, borderRadius: 12, transition: "all .3s" }} onMouseEnter={e => { e.currentTarget.style.background = t.acS; e.currentTarget.style.transform = "translateY(-2px)"; }} onMouseLeave={e => { e.currentTarget.style.background = t.bgI; e.currentTarget.style.transform = "none"; }}><div style={{ fontSize: 24, marginBottom: 6 }}>{t2.icon}</div><div style={{ fontSize: 13, fontWeight: 600, color: t.tx, marginBottom: 4 }}>{t2.name}</div><div style={{ fontSize: 11, color: t.txS }}>{t2.desc}</div></div>)}
             </div>
-          ))}
-        </div>
-        <div style={{ textAlign: "center", marginTop: 32 }}><button onClick={() => goPage("blog")} style={{ background: "transparent", border: `1px solid ${t.ac}`, color: t.ac, fontSize: 14, fontWeight: 600, padding: "12px 28px", borderRadius: 10, cursor: "pointer" }}>Ver todos los artículos →</button></div>
-      </div>
-
-      {/* CTA */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: mob?"0 16px 40px":"0 24px 80px" }}>
-        <div style={{ textAlign: "center", padding: "70px 40px", position: "relative", overflow: "hidden", background: t.bgC, border: "1px solid " + t.brd, borderRadius: 20 }}>
-          <div style={{ position: "absolute", top: -100, left: "50%", transform: "translateX(-50%)", width: 600, height: 400, background: t.ac, borderRadius: "50%", filter: "blur(150px)", opacity: .1, pointerEvents: "none" }}/>
-          <RocketCanvas />
-          <div style={{ position: "relative" }}>
-            <h2 style={{ fontSize: 34, fontWeight: 700, marginBottom: 14 }}>Empieza a crear contenido <span style={{ color: t.ac }}>hoy</span></h2>
-            <p style={{ fontSize: 16, color: t.txS, marginBottom: 32, maxWidth: 500, margin: "0 auto 32px" }}>Unete a los negocios y emprendedores que ya generan contenido profesional con IA. Sin tarjeta de credito.</p>
-          </div>
         </div>
       </div>
-      </>}
 
-      {/* ═══ FUNCIONES PAGE ═══ */}
-      {landingPage === "funciones" && <div style={{ maxWidth: 1100, margin: "0 auto", padding: mob?"30px 16px":"60px 24px" }}>
-        <div style={{ textAlign: "center", marginBottom: 56 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Funcionalidades</div>
-          <h1 style={{ fontSize: 42, fontWeight: 900, letterSpacing: -2, marginBottom: 16 }}>Todo lo que tu negocio necesita en un solo lugar</h1>
-          <p style={{ fontSize: 17, color: t.txS, maxWidth: 650, margin: "0 auto", lineHeight: 1.7 }}>DataGrowth combina las mejores IAs del mercado para generar contenido profesional para todas tus marcas. Aquí te explicamos cada funcionalidad en detalle.</p>
-        </div>
-        {[
-          { icon: "🖼️", title: "Imágenes con IA", sub: "Nano Banana de Google", desc: "Genera imágenes profesionales para posts, anuncios y carruseles. Sube fotos reales de tu producto y la IA las transforma en contenido visual de alta calidad.", details: ["Genera imágenes desde texto o fotos de referencia", "Edita imágenes existentes con instrucciones en lenguaje natural", "Soporte para códigos de color hex para colorimetría exacta", "Calidad fotorrealista con Nano Banana 2 de Google", "Formato cuadrado optimizado para redes sociales", "Protección con marca de agua en preview"] },
-          { icon: "🎬", title: "Videos con IA", sub: "MiniMax Hailuo 02", desc: "Crea videos promocionales de hasta 10 segundos. La IA genera una imagen base perfecta y luego la anima con movimiento cinematográfico.", details: ["Videos de hasta 10 segundos en 768p", "Imagen base generada con Gemini (caras realistas)", "Animación con movimiento natural de personas y paisajes", "Sube tus propias fotos como referencia visual", "Ideal para reels de Instagram y TikTok", "Descarga directa en MP4"] },
-          { icon: "✍️", title: "Copy Profesional", sub: "Claude AI", desc: "Genera captions, textos y copys con el tono exacto de tu marca. Estructura de gancho, valor y CTA con emojis y hashtags.", details: ["Tono de voz personalizado por marca", "Estructura gancho → valor → CTA", "8 hashtags relevantes por publicación", "Español colombiano natural", "Información real extraída de tu página web", "Adaptado a cada formato: post, carrusel, reel, email"] },
-          { icon: "🎠", title: "Carruseles", sub: "5 slides optimizados", desc: "Genera los textos para carruseles de 5 slides con estructura profesional. Solo arma el diseño con los textos generados.", details: ["5 slides con estructura narrativa", "Gancho irresistible en el primer slide", "Valor en slides 2-4", "CTA claro en el último slide", "Emojis y formato visual", "Hashtags incluidos"] },
-          { icon: "📧", title: "Email Marketing", sub: "Emails persuasivos", desc: "Genera emails completos con asunto, cuerpo y CTA. Listos para enviar a tu base de datos.", details: ["Línea de asunto que genera aperturas", "Cuerpo persuasivo con estructura AIDA", "CTA claro y directo", "Tono personalizado de tu marca", "Información real de productos y servicios", "Listo para copiar a tu herramienta de email"] },
-          { icon: "📢", title: "Anuncios", sub: "Meta Ads y Google Ads", desc: "Genera imágenes y textos publicitarios listos para pauta. Optimizados para conversión.", details: ["Imágenes con texto promocional integrado", "Copy para anuncios de Facebook e Instagram", "Textos para Google Ads", "Descuentos y ofertas visuales", "Múltiples variantes para A/B testing", "Formato listo para subir a la plataforma de ads"] },
-          { icon: "🏢", title: "Multi-marca", sub: "Gestión centralizada", desc: "Gestiona múltiples marcas desde un solo panel. Cada una con su propia identidad completa.", details: ["Hasta 99 marcas por cuenta (plan Agency)", "Cada marca con colores, tono y audiencia propios", "Cambio rápido entre marcas", "Estadísticas por marca", "Límites de uso independientes", "Ideal para negocios con múltiples marcas"] },
-          { icon: "🎨", title: "Branding Kit", sub: "Identidad completa", desc: "Configura la identidad visual y verbal de cada marca. La IA usa TODO para generar contenido fiel.", details: ["Colores primarios y secundarios (hasta 5)", "Tono de voz y personalidad de marca", "Audiencia objetivo detallada", "Productos y servicios", "Diferenciador único", "Conexión a página web para info real"] },
-          { icon: "🌐", title: "Info Real", sub: "Web Scraping inteligente", desc: "Se conecta a tu página web y redes sociales para extraer información REAL. Nunca inventa datos.", details: ["Extrae precios, productos y servicios reales", "Conecta con cualquier página web", "Actualización en cada generación", "Nunca inventa ni alucina datos", "Información verificable y precisa", "Soporte para múltiples URLs por marca"] },
-        ].map((f, i) => <div key={i} style={{ background: t.bgC, border: "1px solid " + t.brd, borderRadius: 20, padding: 36, marginBottom: 20, transition: "all .3s" }} onMouseEnter={e => { e.currentTarget.style.borderColor = t.ac + "40"; }} onMouseLeave={e => { e.currentTarget.style.borderColor = t.brd; }}>
-          <div style={{ display: "flex", gap: mob ? 16 : 24, alignItems: "flex-start", flexDirection: mob ? "column" : "row" }}>
-            <div style={{ width: 64, height: 64, borderRadius: 16, background: t.acS, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, flexShrink: 0 }}>{f.icon}</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 22, fontWeight: 800, color: t.tx, marginBottom: 4 }}>{f.title}</div>
-              <div style={{ fontSize: 13, color: t.ac, fontWeight: 600, marginBottom: 12 }}>{f.sub}</div>
-              <div style={{ fontSize: 15, color: t.txS, lineHeight: 1.7, marginBottom: 16 }}>{f.desc}</div>
-              <div style={{ display: "grid", gridTemplateColumns: mob ? "1fr" : "1fr 1fr", gap: 8 }}>
-                {f.details.map((d, j) => <div key={j} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: t.txS }}><span style={{ color: t.ac, fontWeight: 700 }}>✓</span> {d}</div>)}
-              </div>
-            </div>
-          </div>
-        </div>)}
-        <div style={{ textAlign: "center", marginTop: 40 }}><button onClick={() => onRegister()} style={{ background: t.ac, border: "none", color: "#fff", fontSize: 16, fontWeight: 700, padding: "16px 40px", borderRadius: 10, cursor: "pointer" }}>Empezar gratis →</button></div>
-      </div>}
-
-      {/* ═══ QUIÉNES SOMOS PAGE ═══ */}
-      {landingPage === "quienes" && <div style={{ maxWidth: 1100, margin: "0 auto", padding: mob?"30px 16px":"60px 24px" }}>
-        <div style={{ textAlign: "center", marginBottom: 56 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Quienes Somos</div>
-          <h1 style={{ fontSize: 42, fontWeight: 900, letterSpacing: -2, marginBottom: 16 }}>Tu equipo de marketing digital con IA</h1>
-          <p style={{ fontSize: 17, color: t.txS, maxWidth: 700, margin: "0 auto", lineHeight: 1.7 }}>DataGrowth es una plataforma de inteligencia artificial diseñada para empresas, emprendedores y marcas que necesitan generar contenido profesional de forma rápida, consistente y alineado con su identidad de marca.</p>
-        </div>
-        {/* Mission */}
-        <div style={{ display: "grid", gridTemplateColumns: mob?"1fr":"1fr 1fr", gap: mob?14:24, marginBottom: 40 }}>
-          <div style={{ background: t.bgC, border: "1px solid " + t.brd, borderRadius: 20, padding: 36 }}>
-            <div style={{ fontSize: 32, marginBottom: 16 }}>🎯</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: t.tx, marginBottom: 12 }}>Nuestra misión</div>
-            <div style={{ fontSize: 15, color: t.txS, lineHeight: 1.8 }}>Democratizar la creación de contenido profesional para marcas de todos los tamaños. Creemos que cada negocio merece contenido de calidad profesional, sin importar su presupuesto. Nuestra plataforma hace posible que un emprendedor genere el mismo nivel de contenido que un equipo de marketing completo.</div>
-          </div>
-          <div style={{ background: t.bgC, border: "1px solid " + t.brd, borderRadius: 20, padding: 36 }}>
-            <div style={{ fontSize: 32, marginBottom: 16 }}>👁️</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: t.tx, marginBottom: 12 }}>Nuestra visión</div>
-            <div style={{ fontSize: 15, color: t.txS, lineHeight: 1.8 }}>Ser la plataforma líder en Latinoamérica para la creación de contenido con IA. Queremos que cada marca tenga presencia digital profesional, consistente y que refleje su verdadera identidad. Un futuro donde la tecnología potencia la creatividad humana, no la reemplaza.</div>
-          </div>
-        </div>
-        {/* How it works */}
-        <div style={{ background: t.bgC, border: "1px solid " + t.brd, borderRadius: 20, padding: 40, marginBottom: 40 }}>
-          <div style={{ fontSize: 22, fontWeight: 800, color: t.tx, marginBottom: 24, textAlign: "center" }}>🚀 Cómo funciona DataGrowth</div>
-          <div style={{ display: "grid", gridTemplateColumns: mob?"1fr":"repeat(5, 1fr)", gap: mob?12:16 }}>
-            {[
-              { step: "1", icon: "🎨", title: "Crea tu marca", desc: "Configura tu Brand Kit con colores, tono de voz, audiencia y productos." },
-              { step: "2", icon: "🌐", title: "Conecta tu web", desc: "Vincula tu página web para que la IA use información real de tu negocio." },
-              { step: "3", icon: "📝", title: "Describe lo que quieres", desc: "Escribe en lenguaje natural qué contenido necesitas." },
-              { step: "4", icon: "⚡", title: "La IA genera todo", desc: "En segundos obtienes imagen, texto, hashtags y todo listo." },
-              { step: "5", icon: "📱", title: "Publica", desc: "Descarga y publica directamente en tus redes sociales." },
-            ].map((s, i) => <div key={i} style={{ textAlign: "center", padding: 16 }}>
-              <div style={{ width: 40, height: 40, borderRadius: "50%", background: t.ac, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 800, margin: "0 auto 12px" }}>{s.step}</div>
-              <div style={{ fontSize: 24, marginBottom: 8 }}>{s.icon}</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: t.tx, marginBottom: 6 }}>{s.title}</div>
-              <div style={{ fontSize: 12, color: t.txS, lineHeight: 1.5 }}>{s.desc}</div>
-            </div>)}
-          </div>
-        </div>
-        {/* What makes us different */}
-        <div style={{ marginBottom: 40 }}>
-          <div style={{ fontSize: 22, fontWeight: 800, color: t.tx, marginBottom: 24, textAlign: "center" }}>💡 Qué nos diferencia</div>
-          <div style={{ display: "grid", gridTemplateColumns: mob?"1fr":"1fr 1fr", gap: mob?12:20 }}>
-            {[
-              { icon: "🔒", title: "Información real, nunca inventada", desc: "DataGrowth se conecta a tu página web y redes sociales para extraer información REAL. Nunca inventa precios, productos ni servicios. Cada pieza de contenido refleja tu marca tal como es." },
-              { icon: "📸", title: "Fotos reales transformadas", desc: "Sube fotos reales de tu producto o servicio y la IA las transforma en contenido profesional. No son fotos genéricas de stock, son TUS fotos mejoradas con IA." },
-              { icon: "🎭", title: "Voz de marca consistente", desc: "Cada marca tiene su propio tono, personalidad y estilo visual. La IA respeta estos parámetros en cada pieza que genera, manteniendo coherencia en todos los canales." },
-              { icon: "⚡", title: "Velocidad profesional, costo accesible", desc: "Genera en segundos lo que a un diseñador le tomaría horas. Posts, carruseles, reels, emails y anuncios, todo desde un solo panel y con un solo clic." },
-            ].map((item, i) => <div key={i} style={{ background: t.bgC, border: "1px solid " + t.brd, borderRadius: 16, padding: 28 }}>
-              <div style={{ fontSize: 28, marginBottom: 12 }}>{item.icon}</div>
-              <div style={{ fontSize: 17, fontWeight: 700, color: t.tx, marginBottom: 10 }}>{item.title}</div>
-              <div style={{ fontSize: 14, color: t.txS, lineHeight: 1.7 }}>{item.desc}</div>
-            </div>)}
-          </div>
-        </div>
-        {/* Tech */}
-        <div style={{ background: t.bgC, border: "1px solid " + t.brd, borderRadius: 20, padding: 40, marginBottom: 40 }}>
-          <div style={{ fontSize: 22, fontWeight: 800, color: t.tx, marginBottom: 24, textAlign: "center" }}>🛠️ Tecnología que impulsa DataGrowth</div>
-          <div style={{ display: "grid", gridTemplateColumns: mob?"1fr 1fr":"repeat(4, 1fr)", gap: mob?10:16 }}>
-            {[
-              { icon: "🤖", name: "Claude AI", desc: "Motor de texto de Anthropic. Genera copys, captions y emails con calidad profesional. Entiende contexto, tono y audiencia." },
-              { icon: "🖼️", name: "Nano Banana 2", desc: "El modelo de generación de imágenes más avanzado de Google. Crea imágenes fotorrealistas con texto legible y caras naturales." },
-              { icon: "🎬", name: "MiniMax Hailuo", desc: "Genera videos de hasta 10 segundos con movimiento cinematográfico. Ideal para reels y contenido dinámico en redes." },
-              { icon: "🌐", name: "Web Scraping", desc: "Extrae información real de tu página web y redes sociales. Precios, productos, servicios y datos actualizados en cada generación." }
-            ].map((t2, i) => <div key={i} style={{ textAlign: "center", padding: 20, background: t.bgI, borderRadius: 14 }}>
-              <div style={{ fontSize: 32, marginBottom: 10 }}>{t2.icon}</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: t.tx, marginBottom: 8 }}>{t2.name}</div>
-              <div style={{ fontSize: 13, color: t.txS, lineHeight: 1.6 }}>{t2.desc}</div>
-            </div>)}
-          </div>
-        </div>
-        {/* For who */}
-        <div style={{ marginBottom: 40 }}>
-          <div style={{ fontSize: 22, fontWeight: 800, color: t.tx, marginBottom: 24, textAlign: "center" }}>🏢 Para quién es DataGrowth</div>
-          <div style={{ display: "grid", gridTemplateColumns: mob?"1fr 1fr":"repeat(4, 1fr)", gap: mob?10:16 }}>
-            {[
-              { icon: "📊", title: "Empresas", desc: "Mantén tus redes activas con contenido profesional generado por IA. Escala tu presencia digital sin esfuerzo." },
-              { icon: "💼", title: "Emprendedores", desc: "Contenido profesional sin contratar diseñador ni community manager. Tu marca se ve como las grandes." },
-              { icon: "🏪", title: "Empresas", desc: "Mantén tus redes activas con contenido consistente y profesional. Escala tu presencia digital." },
-              { icon: "📱", title: "Marcas personales", desc: "Contenido profesional para tus redes sin contratar un equipo. Tu marca se ve como las grandes." },
-            ].map((item, i) => <div key={i} style={{ background: t.bgC, border: "1px solid " + t.brd, borderRadius: 16, padding: 24, textAlign: "center" }}>
-              <div style={{ fontSize: 32, marginBottom: 12 }}>{item.icon}</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: t.tx, marginBottom: 8 }}>{item.title}</div>
-              <div style={{ fontSize: 13, color: t.txS, lineHeight: 1.6 }}>{item.desc}</div>
-            </div>)}
-          </div>
-        </div>
-        <div style={{ textAlign: "center" }}><button onClick={() => onRegister()} style={{ background: t.ac, border: "none", color: "#fff", fontSize: 16, fontWeight: 700, padding: "16px 40px", borderRadius: 10, cursor: "pointer" }}>Empezar gratis →</button></div>
-      </div>}
-
-      {/* ═══ BLOG PAGE ═══ */}
-      {landingPage === "blog" && <div style={{ maxWidth: 1100, margin: "0 auto", padding: mob?"30px 16px":"60px 24px" }}>
+      {/* BLOG */}
+      <div id="blog" style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px" }}>
         {blogOpen ? (
           <div>
+            <button onClick={closeBlog} style={{ display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", color: t.txS, fontSize: 14, cursor: "pointer", marginBottom: 40, padding: 0, fontWeight: 500 }}>
+              <Ic name="back" size={16}/> Volver al blog
+            </button>
             <div style={{ maxWidth: 680 }}>
               <div style={{ display: "inline-block", background: t.acS, color: t.ac, fontSize: 10, fontWeight: 700, padding: "4px 12px", borderRadius: 6, marginBottom: 24, textTransform: "uppercase", letterSpacing: 1.5 }}>{blogOpen.tag}</div>
               <h1 style={{ fontSize: "clamp(28px,4vw,48px)", fontWeight: 900, letterSpacing: -2, marginBottom: 20, lineHeight: 1.05 }}>{blogOpen.title}</h1>
@@ -492,12 +320,12 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
           </div>
         ) : (
           <>
-            <div style={{ textAlign: "center", marginBottom: 56 }}>
+            <div style={{ textAlign: "center", marginBottom: 48 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Blog</div>
-              <h1 style={{ fontSize: 42, fontWeight: 900, letterSpacing: -2, marginBottom: 16 }}>Recursos para tu negocio</h1>
-              <p style={{ fontSize: 17, color: t.txS, maxWidth: 600, margin: "0 auto", lineHeight: 1.7 }}>Artículos sobre marketing digital, contenido con IA y estrategias para crecer tu negocio y tu marca.</p>
+              <h2 style={{ fontSize: 36, fontWeight: 800, letterSpacing: -1 }}>Recursos para tu agencia</h2>
+              <p style={{ fontSize: 15, color: t.txS, marginTop: 10, maxWidth: 500, margin: "10px auto 0" }}>Artículos sobre marketing digital, contenido con IA y estrategias para crecer.</p>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: mob?"1fr":"repeat(3,1fr)", gap: mob?12:20 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
               {BLOG_POSTS.map((post, i) => (
                 <div key={i} onClick={() => openBlog(post)} style={{ border: `1px solid ${t.brd}`, borderRadius: 16, overflow: "hidden", cursor: "pointer", background: t.bgC, transition: "all .25s" }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = t.ac + "50"; e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = `0 12px 40px ${t.sh}`; }}
@@ -514,7 +342,19 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
             </div>
           </>
         )}
-      </div>}
+      </div>
+
+      {/* CTA */}
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px 80px" }}>
+        <div style={{ textAlign: "center", padding: "70px 40px", position: "relative", overflow: "hidden", background: t.bgC, border: "1px solid " + t.brd, borderRadius: 20 }}>
+          <div style={{ position: "absolute", top: -100, left: "50%", transform: "translateX(-50%)", width: 600, height: 400, background: t.ac, borderRadius: "50%", filter: "blur(150px)", opacity: .1, pointerEvents: "none" }}/>
+          <RocketCanvas />
+          <div style={{ position: "relative" }}>
+            <h2 style={{ fontSize: 34, fontWeight: 700, marginBottom: 14 }}>Empieza a crear contenido <span style={{ color: t.ac }}>hoy</span></h2>
+            <p style={{ fontSize: 16, color: t.txS, marginBottom: 32, maxWidth: 500, margin: "0 auto 32px" }}>Unete a las agencias y emprendedores que ya generan contenido profesional con IA. Sin tarjeta de credito.</p>
+          </div>
+        </div>
+      </div>
 
       {/* FOOTER */}
       <div style={{ borderTop: `1px solid ${t.brd}`, padding: "40px 0 24px" }}>
@@ -524,7 +364,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
               <div style={{ width: 28, height: 28, borderRadius: 7, overflow: "hidden" }}><Logo size={28}/></div>
               <span style={{ fontSize: 15, fontWeight: 700, color: t.tx }}>DataGrowth</span>
             </div>
-            <div style={{ display: "flex", gap: mob ? 10 : 16, alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
               <a href="https://instagram.com/datagrowth.agency" target="_blank" rel="noopener noreferrer" style={{ color: t.txS, textDecoration: "none", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500, transition: "color .2s" }} onMouseEnter={e => e.currentTarget.style.color = "#E1306C"} onMouseLeave={e => e.currentTarget.style.color = t.txS}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
                 @datagrowth.agency
@@ -552,7 +392,8 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
       {showPlans && <div style={{ position: "fixed", inset: 0, background: t.bg, zIndex: 200, overflow: "auto" }}>
         <nav style={{ padding: "16px 0", borderBottom: "1px solid " + t.brd, background: t.bg + "ee", backdropFilter: "blur(12px)" }}>
           <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => { setShowPlans(false); window.history.back(); }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => setShowPlans(false)}>
+              <Ic name="back" size={20}/>
               <div style={{ width: 32, height: 32, borderRadius: 8, overflow: "hidden" }}><Logo size={32}/></div>
               <span style={{ fontSize: 16, fontWeight: 700 }}>DataGrowth</span>
             </div>
@@ -568,7 +409,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
             <h2 style={{ fontSize: 40, fontWeight: 800, letterSpacing: -1 }}>Elige el plan perfecto para ti</h2>
             <p style={{ fontSize: 16, color: t.txS, marginTop: 12 }}>Empieza gratis. Escala cuando lo necesites. Cancela cuando quieras.</p>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: mob?"1fr":"repeat(3, 1fr)", gap: mob?14:24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
             {PLANS.map(p => (
               <div key={p.id} style={{ position: "relative", background: t.bgC, border: p.pop ? "2px solid " + p.color : "1px solid " + t.brd, borderRadius: 20, textAlign: "center", padding: 40, overflow: "visible", transition: "all .3s", display: "flex", flexDirection: "column" }} onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-6px)"; e.currentTarget.style.boxShadow = "0 20px 60px " + t.sh; }} onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}>
                 {p.pop && <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: t.gr, color: "#fff", padding: "6px 28px", borderRadius: 20, fontSize: 12, fontWeight: 700, boxShadow: "0 4px 15px rgba(55,194,235,.3)" }}>Mas popular</div>}
@@ -620,6 +461,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark }) => {
           </div>
           <div style={{ textAlign: "center", marginTop: 40 }}>
             <p style={{ fontSize: 13, color: t.txM }}>Todos los planes incluyen acceso a la plataforma completa. Sin permanencia. Cancela cuando quieras.</p>
+            <Btn ghost onClick={() => setShowPlans(false)} style={{ marginTop: 16, fontSize: 14 }}><Ic name="back" size={16}/> Volver al inicio</Btn>
           </div>
         </div>
       </div>}
@@ -966,7 +808,6 @@ const BrandEditor = ({ brand, onSave, onClose, isNew }) => {
             <div style={{ marginBottom: 14 }}><Label>Productos / servicios principales</Label><Textarea value={f.products} onChange={e => u("products", e.target.value)} placeholder="Lista tus productos o servicios más importantes..." rows={2}/></div>
             <div style={{ marginBottom: 14 }}><Label>¿Qué te diferencia?</Label><Textarea value={f.differentiator} onChange={e => u("differentiator", e.target.value)} placeholder="¿Qué hace única a tu marca frente a la competencia?" rows={2}/></div>
             <UploadZone label="Documentos de estrategia" icon="📊" files={f.strategyDocs} onAdd={(n, r) => addFile("strategyDocs", n, r)} multi/>
-            {(user?.role === "agency" || user?.plan === "pro" || user?.plan === "agency") ? <>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
               <div><Label>Página web</Label><Input value={f.website} onChange={e => u("website", e.target.value)} placeholder="www.miempresa.com"/></div>
               <div><Label>Instagram</Label><Input value={f.instagram} onChange={e => u("instagram", e.target.value)} placeholder="@miempresa"/></div>
@@ -976,10 +817,6 @@ const BrandEditor = ({ brand, onSave, onClose, isNew }) => {
               <div><Label>TikTok</Label><Input value={f.tiktok} onChange={e => u("tiktok", e.target.value)} placeholder="@miempresa"/></div>
             </div>
             <UploadZone label="Captura de página web" icon="🌐" files={f.websiteScreenshot || []} onAdd={(n, r) => addFile("websiteScreenshot", n, r)} multi/>
-            </> : <div style={{ padding: 16, background: t.bgI, borderRadius: 12, border: `1px dashed ${t.brd}`, marginBottom: 14, textAlign: "center" }}>
-              <div style={{ fontSize: 14, color: t.txM, marginBottom: 8 }}>🔒 Conexión a página web y redes sociales</div>
-              <div style={{ fontSize: 12, color: t.txM }}>Disponible desde el plan <span style={{ color: t.ac, fontWeight: 700 }}>Pro</span>. La IA usará información real de tu web para generar contenido más preciso.</div>
-            </div>}
 
             {/* Preview */}
             <div style={{ padding: 16, background: t.bgI, borderRadius: 12, border: `1px solid ${t.brd}`, marginTop: 20 }}>
@@ -1020,12 +857,6 @@ const BrandKit = ({ brands, setBrands, user }) => {
   const [tab, setTab] = useState("identity");
   const save = async (b) => {
     if (cr) {
-      // Check brand limit (skip for admin)
-      const userPlan = PLANS.find(p => p.id === (user?.plan || "free")) || PLANS[0];
-      if (user?.role !== "agency" && brands.length >= userPlan.brands) {
-        alert("Has alcanzado el límite de " + userPlan.brands + " marca(s) en tu plan " + userPlan.name + ". Actualiza tu plan para crear más marcas.");
-        return;
-      }
       const { data } = await supabase.from("brands").insert({ user_id: user.id, name: b.name, short: b.short, color: b.color, industry: b.industry, tone: b.tone, audience: b.audience, emoji: b.emoji, brand_voice: b.brandVoice, img_style: b.imgStyle, sector: b.sector, colors: b.colors, products: b.products, description: b.description, differentiator: b.differentiator, website: b.website, instagram: b.instagram, facebook: b.facebook }).select().single();
       if (data) { const nb = { ...data, brandVoice: data.brand_voice, imgStyle: data.img_style }; setBrands([...brands, nb]); setSel(nb); }
     } else {
@@ -1155,7 +986,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       const u = {}; (data || []).forEach(r => { u[r.content_type] = r.count; }); setUsage(u);
     });
   }, [user?.id]);
-  const userPlan = PLANS.find(p => p.id === (user?.plan || "free")) || PLANS[0];
+  const userPlan = isAdmin ? PLANS[2] : PLANS[0];
   const getLimit = (typeId) => userPlan.limits?.[typeId] ?? 9999;
   const getLeft = (typeId) => getLimit(typeId) - getUsage(typeId);
   const [videoLoading, setVideoLoading] = useState(false);
@@ -1211,7 +1042,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
   const pollVideo = async (opName, ep, respUrl, statUrl) => {
     setVideoLoading(true); setVideoProgress("Generando video con IA... (1-3 min)");
     let attempts = 0;
-    const maxAttempts = 120;
+    const maxAttempts = 60;
     let falInfo = "";
     while (attempts < maxAttempts) {
       await new Promise(r => setTimeout(r, 5000));
@@ -1262,14 +1093,14 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       setUploadedImages([]);
       setUploadedPreviews([]);
     }
-    if (!isAdmin && getLeft(ct.id) <= 0) { setTxt("Has alcanzado el limite de " + ct.label + " de tu plan " + userPlan.name + " (" + getLimit(ct.id) + "/mes). Actualiza tu plan para generar mas contenido."); setResult({t:"text"}); return; }
+    if (!isAdmin && getLeft(ct.id) <= 0) { setTxt("Has alcanzado el limite de " + ct.label + " de tu plan (" + getLimit(ct.id) + "/" + "mes). Actualiza a Pro o Agency para generar mas contenido."); setResult({t:"text"}); return; }
     setLoading(true); setResult(null); setTxt(""); setVideoUrl(null); setVideoLoading(false); setVideoProgress("");
     const brandColors = (brand.colors || [brand.color]).join(", ");
     const brandStyle = brand.imgStyle || "professional modern";
 
     // ── DIRECT EDIT: user uploaded a photo, send instruction directly to image API ──
     if (isDirectEdit) {
-      const editPrompt = "Edit this image. ONLY make this specific change: " + currentTopic + ". CRITICAL: Keep EVERYTHING else in the image EXACTLY the same - same composition, same objects, same style, same layout. Only change what the user asked for. Any text must be in Spanish.";
+      const editPrompt = "You have this reference image uploaded by the user. Apply these changes: " + currentTopic + ". INSTRUCTIONS: 1) If the user asks to MOVE, REPOSITION, or REARRANGE elements: recreate the ENTIRE image with the new layout but keep the SAME style, colors, atmosphere, and overall look. 2) If the user asks to CHANGE colors, ADD text, ADD elements, or MODIFY details: edit the existing image and preserve everything else. 3) If the user mentions hex color codes (like #FF0000), use those EXACT colors. 4) Any visible text must be in Spanish. 5) Match the quality and style of the reference image as closely as possible.";
       setChatHistory(prev => [...prev, { role: "ai", text: "", headline: "", loading: true }]);
       try {
         const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: editPrompt, images: currentImages }) });
@@ -1289,7 +1120,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
 
     // ── DIRECT REFINEMENT: skip text gen, send instruction directly to image API ──
     if (isRefining) {
-      const editPrompt = "Edit this image. ONLY make this specific change: " + currentTopic + ". CRITICAL: Keep EVERYTHING else in the image EXACTLY the same - same composition, same objects, same style, same layout. Only change what the user asked for. Any text must be in Spanish.";
+      const editPrompt = "You have this reference image. The user wants these changes: " + currentTopic + ". INSTRUCTIONS: 1) If the user asks to MOVE, REPOSITION, or REARRANGE elements: recreate the ENTIRE image with the new layout but keep the SAME style, colors, atmosphere, and overall look. 2) If the user asks to CHANGE colors, ADD text, ADD elements, or MODIFY details: edit the existing image and preserve everything else. 3) If the user mentions hex color codes (like #FF0000), use those EXACT colors. 4) Any visible text must be in Spanish. 5) Match the quality and style of the reference image as closely as possible.";
       setChatHistory(prev => [...prev, { role: "ai", text: "", headline: "", loading: true }]);
       try {
         const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: editPrompt, image_base64: lastAiImage }) });
@@ -1310,9 +1141,8 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
     // ── NORMAL GENERATION FLOW ──
     // Fetch real info from brand website (5 sec timeout)
     let realInfo = "";
-    const canScrape = isAdmin || userPlan.id === "pro" || userPlan.id === "agency";
     const scrapeUrl = brand.website || brand.instagram || brand.facebook || "";
-    if (scrapeUrl && canScrape) {
+    if (scrapeUrl) {
       try {
         const ctrl = new AbortController();
         const tmout = setTimeout(() => ctrl.abort(), 5000);
@@ -1438,7 +1268,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
         setResult({t:fmt,d:pd,img:imgUrl,imgLoading:!!imgUrl});
         if(imgUrl){const testImg=new Image();testImg.onload=()=>setResult(prev=>({...prev,imgLoading:false}));testImg.onerror=()=>setResult(prev=>({...prev,imgLoading:false}));testImg.src=imgUrl;}
       }
-      if(fmt==="reel"){setResult({t:"reel",d:pd});}}catch{if(fmt==="visual"){setChatHistory(prev=>[...prev,{role:"ai",text:raw}]);}else if(fmt==="reel"){setResult({t:"reel",d:{scenes:[{title:"Video",duration:"8s",emoji:"🎬",visual:"cinematic",text_overlay:"",audio:"musica",transition:"fade"}],caption:raw,hashtags:""}});}else{setTxt(raw);setResult({t:"text"});}}} } catch(err){const errMsg=err.name==="AbortError"?"La generacion tardo demasiado. Intenta con una instruccion mas corta.":"Error al generar. Intenta de nuevo.";if(fmt==="visual"){setChatHistory(prev=>[...prev,{role:"ai",text:errMsg}]);}else if(fmt==="reel"){setResult({t:"reel",d:{scenes:[{title:"Video",duration:"8s",emoji:"🎬",visual:"cinematic",text_overlay:"",audio:"musica",transition:"fade"}],caption:"",hashtags:""}});}else{setTxt(errMsg);setResult({t:"text"});}} if(!isAdmin && fmt !== "reel"){addUsage(ct.id);} setLoading(false);
+      if(fmt==="reel"){/* video already started in parallel above */}}catch{if(fmt==="visual"){setChatHistory(prev=>[...prev,{role:"ai",text:raw}]);}else{setTxt(raw);setResult({t:"text"});}}} } catch(err){const errMsg=err.name==="AbortError"?"La generacion tardo demasiado. Intenta con una instruccion mas corta.":"Error al generar. Intenta de nuevo.";if(fmt==="visual"){setChatHistory(prev=>[...prev,{role:"ai",text:errMsg}]);}else{setTxt(errMsg);setResult({t:"text"});}} if(!isAdmin && fmt !== "reel"){addUsage(ct.id);} setLoading(false);
   };
   const [showGuide, setShowGuide] = useState(false);
   if(!brands.length) return <Section title="Crear Contenido"><Card style={{textAlign:"center",padding:48}}><div style={{fontSize:48,marginBottom:12}}>🏢</div><div style={{fontSize:16,fontWeight:600,color:t.tx}}>Primero crea una marca en "Mis Marcas"</div></Card></Section>;
@@ -1494,7 +1324,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       <div style={{marginBottom:14}}><Label>Tipo</Label><div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>{CTYPES.map(c=><button key={c.id} onClick={()=>{setCt(c);setUploadedImages([]);setUploadedPreviews([]);if(c.fmt!=="visual"){setChatHistory([]);setLastAiImage(null);}setResult(null);setTxt("");}} style={{padding:"12px 10px",borderRadius:12,border:ct.id===c.id?`2px solid ${t.ac}`:`1px solid ${t.brd}`,background:ct.id===c.id?t.acS:t.bgC,cursor:"pointer",textAlign:"center"}}><div style={{fontSize:22,marginBottom:4}}>{c.icon}</div><div style={{fontSize:12,fontWeight:600,color:ct.id===c.id?t.tx:t.txS}}>{c.label}</div></button>)}</div></div>
       {(ct.fmt==="reel"||ct.fmt==="visual")&&<div style={{marginBottom:14,padding:14,background:t.bgI,borderRadius:12,border:"1px solid "+t.brd}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}><span style={{fontSize:14}}>📷</span><span style={{fontSize:12,fontWeight:600,color:t.tx}}>{ct.fmt==="reel"?"Primer frame del video":"Fotos de referencia"}</span><span style={{fontSize:11,color:t.txM,fontStyle:"italic"}}>(opcional)</span></div><div style={{fontSize:11,color:t.txS,marginBottom:10,lineHeight:1.5}}>{ct.fmt==="reel"?"Si subes una foto, el video EMPIEZA desde esa foto y le da movimiento. Si no subes foto, la IA crea todo desde cero.":"Sube fotos reales de tu producto o servicio. La IA las usa como referencia para generar la imagen. Puedes subir varias."}</div><div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}><label style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",border:"2px dashed "+(uploadedImages.length?t.ac:t.brd),borderRadius:10,cursor:"pointer",color:uploadedImages.length?t.ac:t.txM,fontSize:12,fontWeight:500,background:uploadedImages.length?t.acS:"transparent"}}><span style={{fontSize:16}}>📷</span>Subir fotos<input type="file" accept="image/*" multiple onChange={handleUploadImages} style={{display:"none"}}/></label>{uploadedPreviews.map((p,i)=><div key={i} style={{position:"relative"}}><img src={p} style={{width:44,height:44,borderRadius:8,objectFit:"cover",border:"2px solid "+t.ac}}/><div onClick={()=>removeUploadedImage(i)} style={{position:"absolute",top:-5,right:-5,width:15,height:15,borderRadius:"50%",background:"#ef4444",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,cursor:"pointer",fontWeight:700}}>x</div></div>)}{uploadedImages.length>0&&<span style={{fontSize:11,color:t.ac,fontWeight:600}}>{uploadedImages.length} foto{uploadedImages.length>1?"s":""}</span>}</div></div>}
       <div style={{display:"flex",gap:10,marginBottom:22}}><Input value={topic} onChange={e=>setTopic(e.target.value)} placeholder={chatHistory.length>0&&ct.fmt==="visual"?"Escribe como mejorar la imagen...":"Describe que contenido necesitas..."} onKeyDown={e=>e.key==="Enter"&&go()}/><Btn onClick={go} disabled={loading||!topic.trim()} primary style={{whiteSpace:"nowrap",padding:"14px 28px"}}>{loading?<><Spin/> Creando...</>:<><Ic name="sparkle" size={16}/> {chatHistory.length>0&&ct.fmt==="visual"?"Mejorar":"Generar"}</>}</Btn>{chatHistory.length>0&&ct.fmt==="visual"&&!loading&&<Btn onClick={()=>{setChatHistory([]);setLastAiImage(null);setResult(null);}} style={{whiteSpace:"nowrap",padding:"14px 16px",fontSize:12}}>Nuevo</Btn>}</div>
-      {!isAdmin&&<div style={{display:"flex",gap:10,marginBottom:14,fontSize:11,color:t.txM,flexWrap:"wrap"}}>{CTYPES.map(c=><span key={c.id} style={{padding:"3px 8px",background:getLeft(c.id)<=0?"rgba(239,68,68,.1)":t.bgI,borderRadius:6,color:getLeft(c.id)<=0?"#ef4444":t.txM}}>{c.icon} {getUsage(c.id)}/{getLimit(c.id)==9999?"∞":getLimit(c.id)}</span>)}<span style={{fontSize:10,color:t.txM,marginLeft:"auto"}}>Plan: {userPlan.name}</span></div>}
+      {!isAdmin&&<div style={{display:"flex",gap:10,marginBottom:14,fontSize:11,color:t.txM,flexWrap:"wrap"}}>{CTYPES.map(c=><span key={c.id} style={{padding:"3px 8px",background:getLeft(c.id)<=0?"rgba(239,68,68,.1)":t.bgI,borderRadius:6,color:getLeft(c.id)<=0?"#ef4444":t.txM}}>{c.icon} {getUsage(c.id)}/{getLimit(c.id)==9999?"∞":getLimit(c.id)}</span>)}<span style={{marginLeft:"auto",color:t.ac,cursor:"pointer"}}>⬆️ Actualizar plan</span></div>}
       {loading&&!(ct.fmt==="visual"&&chatHistory.length>0)&&<Card style={{padding:48,textAlign:"center"}}><div style={{width:48,height:48,border:`3px solid ${t.brd}`,borderTop:`3px solid ${brand?.color||t.ac}`,borderRadius:"50%",animation:"spin .8s linear infinite",margin:"0 auto 16px"}}/><div style={{color:t.tx,fontSize:16,fontWeight:600}}>Generando para {brand?.name}...</div></Card>}
       {result&&!loading&&result.t==="text"&&<Card><div style={{display:"flex",justifyContent:"space-between",marginBottom:14}}><span style={{fontSize:13,fontWeight:600,color:t.txS}}>{brand?.emoji} {brand?.name}</span><CopyBtn text={txt}/></div><div style={{fontSize:14,color:t.tx,lineHeight:1.8,whiteSpace:"pre-wrap"}}>{txt}</div></Card>}
       {/* VISUAL RESULT - shows only latest */}
@@ -1546,7 +1376,7 @@ const ClientSettings = ({ user, setUser, onChangePlan }) => {
   const [confirmPass, setConfirmPass] = useState("");
   const [passMsg, setPassMsg] = useState("");
   const [planMsg, setPlanMsg] = useState("");
-  const currentPlan = PLANS.find(p => p.id === (user?.plan || "free")) || PLANS[0];
+  const currentPlan = PLANS.find(p => p.id === "free") || PLANS[0];
 
   const saveProfile = async () => {
     if (user?.id) { await supabase.from("profiles").update({ name: editName, company: editCompany, phone: editPhone }).eq("id", user.id); }
@@ -1615,91 +1445,7 @@ const AgencyDash = ({ setPage, brands }) => { const t = useT(); return <Section 
 const AgencyClients = () => { const t = useT(); const [clients, setClients] = useState([]); const [loading, setLoading] = useState(true);
   useEffect(() => { supabase.from("profiles").select("*").eq("role", "client").then(({ data }) => { setClients(data || []); setLoading(false); }); }, []);
   return <Section title="Clientes" right={<Badge>{clients.length} registrados</Badge>}><Card style={{ padding: 0 }}><div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", padding: "12px 20px", background: t.bgI, fontSize: 11, fontWeight: 600, color: t.txM, textTransform: "uppercase" }}><div>Empresa</div><div>Plan</div><div>Registro</div></div>{loading ? <div style={{ padding: 20, textAlign: "center", color: t.txM }}>Cargando...</div> : clients.length === 0 ? <div style={{ padding: 30, textAlign: "center", color: t.txM }}>No hay clientes registrados aún</div> : clients.map((c, i) => <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", padding: "14px 20px", borderBottom: `1px solid ${t.brd}`, alignItems: "center" }}><div><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{c.name || c.email}</div><div style={{ fontSize: 11, color: t.txM }}>{c.email}</div></div><Badge color={c.plan === "agency" ? "#8b5cf6" : c.plan === "pro" ? "#37c2eb" : "#888"}>{c.plan || "free"}</Badge><div style={{ color: t.txS, fontSize: 12 }}>{c.created_at ? new Date(c.created_at).toLocaleDateString() : ""}</div></div>)}</Card></Section>; };
-const AgencyTeam = () => { 
-  const t = useT(); 
-  const [members, setMembers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showInvite, setShowInvite] = useState(false);
-  const [invEmail, setInvEmail] = useState("");
-  const [invName, setInvName] = useState("");
-  const [invRole, setInvRole] = useState("editor");
-  const [invMsg, setInvMsg] = useState("");
-  const [sending, setSending] = useState(false);
-
-  useEffect(() => { 
-    supabase.from("profiles").select("*").in("role", ["admin", "editor"]).then(({ data }) => { 
-      setMembers(data || []); 
-      setLoading(false); 
-    }); 
-  }, []);
-
-  const invite = async () => {
-    if (!invEmail) { setInvMsg("Ingresa un email"); return; }
-    setSending(true);
-    setInvMsg("");
-    // Check seat limit
-    const adminPlan = PLANS.find(p => p.id === "agency") || PLANS[2];
-    if (members.length >= adminPlan.seats) {
-      setInvMsg("Has alcanzado el límite de " + adminPlan.seats + " miembros en tu plan " + adminPlan.name + ". Actualiza tu plan para invitar más personas.");
-      setSending(false);
-      return;
-    }
-    // Create account with temp password
-    const tempPass = "Temp" + Math.random().toString(36).slice(2) + "!1";
-    const { data, error } = await supabase.auth.signUp({ email: invEmail, password: tempPass });
-    if (error) {
-      if (error.message?.includes("already registered")) { setInvMsg("Este email ya está registrado"); }
-      else { setInvMsg("Error: " + error.message); }
-      setSending(false);
-      return;
-    }
-    // Save profile
-    if (data?.user) {
-      await supabase.from("profiles").upsert({ id: data.user.id, name: invName || invEmail.split("@")[0], email: invEmail, role: invRole, plan: "free" });
-    }
-    // Send password reset so they can set their own password
-    await supabase.auth.resetPasswordForEmail(invEmail, { redirectTo: window.location.origin });
-    setInvMsg("✅ Invitación enviada a " + invEmail);
-    setInvEmail(""); setInvName(""); setInvRole("editor");
-    setSending(false);
-    // Refresh list
-    const { data: updated } = await supabase.from("profiles").select("*").in("role", ["admin", "editor"]);
-    setMembers(updated || []);
-    setTimeout(() => setInvMsg(""), 4000);
-  };
-
-  const colors = ["#ec4899","#3b82f6","#f59e0b","#8b5cf6","#06b6d4","#10b981","#ef4444"];
-  return <Section title="Equipo" right={<Btn primary onClick={() => setShowInvite(true)}><Ic name="plus" size={14}/> Invitar</Btn>}>
-    {showInvite && <Card style={{ marginBottom: 16, border: "2px solid " + t.ac }}>
-      <div style={{ fontSize: 16, fontWeight: 700, color: t.tx, marginBottom: 16 }}>Invitar miembro al equipo</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-        <div><Label>Email *</Label><Input value={invEmail} onChange={e => setInvEmail(e.target.value)} placeholder="correo@ejemplo.com" type="email"/></div>
-        <div><Label>Nombre</Label><Input value={invName} onChange={e => setInvName(e.target.value)} placeholder="Nombre del miembro"/></div>
-      </div>
-      <div style={{ marginBottom: 14 }}>
-        <Label>Rol</Label>
-        <div style={{ display: "flex", gap: 8 }}>
-          {["editor","admin"].map(r => <div key={r} onClick={() => setInvRole(r)} style={{ padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, background: invRole === r ? t.ac : t.bgI, color: invRole === r ? "#fff" : t.txS, border: "1px solid " + (invRole === r ? t.ac : t.brd) }}>{r === "editor" ? "Editor" : "Admin"}</div>)}
-        </div>
-      </div>
-      <div style={{ display: "flex", gap: 10 }}>
-        <Btn primary onClick={invite} disabled={sending}>{sending ? "Enviando..." : "Enviar invitación"}</Btn>
-        <Btn ghost onClick={() => { setShowInvite(false); setInvMsg(""); }}>Cancelar</Btn>
-      </div>
-      {invMsg && <div style={{ marginTop: 10, padding: "10px 14px", background: invMsg.startsWith("✅") ? "rgba(55,194,235,0.1)" : "rgba(239,68,68,0.1)", border: "1px solid " + (invMsg.startsWith("✅") ? "rgba(55,194,235,0.3)" : "rgba(239,68,68,0.3)"), borderRadius: 10, fontSize: 13, color: invMsg.startsWith("✅") ? t.ac : "#ef4444" }}>{invMsg}</div>}
-    </Card>}
-    {loading ? <Card style={{ textAlign: "center", padding: 30, color: t.txM }}>Cargando...</Card> :
-    members.length === 0 ? <Card style={{ textAlign: "center", padding: 48 }}><div style={{ fontSize: 48, marginBottom: 12 }}>👥</div><div style={{ fontSize: 18, fontWeight: 700, color: t.tx, marginBottom: 8 }}>Sin miembros aún</div><div style={{ fontSize: 14, color: t.txM }}>Invita a tu equipo para que puedan generar contenido.</div></Card> :
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
-      {members.map((m, i) => <Card key={i}><div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 44, height: 44, borderRadius: "50%", background: colors[i % colors.length], display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 18, color: "#fff" }}>{(m.name || m.email || "?")[0].toUpperCase()}</div>
-        <div><div style={{ fontSize: 15, fontWeight: 600, color: t.tx }}>{m.name || m.email}</div>
-        <div style={{ fontSize: 11, color: t.txM }}>{m.email}</div>
-        <Badge color={m.role === "admin" ? "#8b5cf6" : m.role === "editor" ? "#3b82f6" : "#37c2eb"}>{m.role || "client"}</Badge></div>
-      </div></Card>)}
-    </div>}
-  </Section>;
-};
+const AgencyTeam = () => { const t = useT(); return <Section title="Equipo" right={<Btn primary><Ic name="plus" size={14}/> Invitar</Btn>}><div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>{[{ n: "Julian", r: "Admin", c: "#ec4899" }, { n: "María", r: "Editor", c: "#3b82f6" }].map((m, i) => <Card key={i}><div style={{ display: "flex", alignItems: "center", gap: 12 }}><div style={{ width: 44, height: 44, borderRadius: "50%", background: m.c, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 18, color: "#fff" }}>{m.n[0]}</div><div><div style={{ fontSize: 15, fontWeight: 600, color: t.tx }}>{m.n}</div><Badge color={m.r === "Admin" ? "#8b5cf6" : "#37c2eb"}>{m.r}</Badge></div></div></Card>)}</div></Section>; };
 const AgencyPlans = () => { const t = useT(); return <Section title="Planes"><div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>{PLANS.map(p => <Card key={p.id} style={{ textAlign: "center", border: p.pop ? `2px solid ${p.color}` : `1px solid ${t.brd}`, position: "relative" }}>{p.pop && <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: p.color, color: "#fff", padding: "4px 16px", borderRadius: 20, fontSize: 11, fontWeight: 700 }}>Popular</div>}<div style={{ fontSize: 17, fontWeight: 600, color: t.tx, paddingTop: p.pop ? 10 : 0 }}>{p.name}</div><div style={{ fontSize: 40, fontWeight: 800, color: p.color, margin: "8px 0" }}>{p.price}<span style={{ fontSize: 14, color: t.txM }}>/mes</span></div>{p.features.map((f, i) => <div key={i} style={{ fontSize: 13, color: t.tx, padding: "5px 0" }}>✓ {f}</div>)}</Card>)}</div></Section>; };
 const AgencySettings = ({ gemKey, setGemKey }) => { const t = useT(); const [k, setK] = useState(gemKey); const [sv, setSv] = useState(false); return <Section title="Configuración API"><Card style={{ marginBottom: 12 }}><div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontWeight: 600, color: t.tx }}>Claude</span><Badge>Conectada</Badge></div></Card><Card style={{ border: `1px solid ${gemKey ? "rgba(55,194,235,.3)" : "rgba(245,158,11,.3)"}` }}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><span style={{ fontWeight: 600, color: t.tx }}>Gemini Imágenes</span>{gemKey ? <Badge>Conectada</Badge> : <Badge color="#f59e0b">Pendiente</Badge>}</div><div style={{ display: "flex", gap: 10 }}><Input value={k} onChange={e => setK(e.target.value)} type="password" placeholder="AIzaSy..."/><Btn primary onClick={() => { setGemKey(k); try { localStorage.setItem("dg_gemkey", k); } catch {} setSv(true); setTimeout(() => setSv(false), 2000); }}>{sv ? "✅" : "Guardar"}</Btn></div></Card></Section>; };
 
@@ -1736,9 +1482,7 @@ export default function App() {
     const handlePop = (e) => {
       const s = e.state;
       if (!s) return;
-      // Landing page navigation (funciones, quienes, blog, planes)
-      if (s.lp) return; // Let Landing component handle this
-      if (s.view) setView(s.view);
+      setView(s.view);
       if (s.page) setPage(s.page);
       if (s.landingSubView !== undefined) setLandingSubView(s.landingSubView);
       if (s.authMode) setAuthMode(s.authMode);
@@ -1854,7 +1598,7 @@ export default function App() {
   const goPage = (p) => navigate("app", { page: p });
 
   if (view === "loading") return <ThemeCtx.Provider value={th}><div style={{ minHeight: "100vh", background: th.bg, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ textAlign: "center" }}><div style={{ width: 48, height: 48, border: "3px solid " + th.brd, borderTop: "3px solid " + th.ac, borderRadius: "50%", animation: "spin .8s linear infinite", margin: "0 auto 16px" }}/><div style={{ color: th.txS, fontSize: 14 }}>Cargando...</div></div></div></ThemeCtx.Provider>;
-  if (view === "landing") return <ThemeCtx.Provider value={th}><Landing onLogin={() => navigate("auth", { authMode: "login" })} onRegister={(plan) => navigate("auth", { authMode: "register", selPlan: plan || null })} dark={dark} setDark={setDark}/></ThemeCtx.Provider>;
+  if (view === "landing") return <ThemeCtx.Provider value={th}><Landing onLogin={() => navigate("auth", { authMode: "login" })} onRegister={(plan) => navigate("auth", { authMode: "register", selPlan: plan || null })} showPlans={landingSubView === "plans"} setShowPlans={(v) => { if (v) { navigate("landing", { landingSubView: "plans" }); } else { window.history.back(); } }} dark={dark} setDark={setDark}/></ThemeCtx.Provider>;
   if (view === "auth") return <ThemeCtx.Provider value={th}><Auth mode={authMode} setMode={(m) => navigate("auth", { authMode: m })} onAuth={onAuth} dark={dark} setDark={setDark} selPlan={selPlan}/></ThemeCtx.Provider>;
 
   const agPages = { dashboard: <AgencyDash setPage={setPage} brands={brands}/>, factory: <Factory brands={brands} gemKey={gemKey} isAdmin={true} user={user}/>, branding: <BrandKit brands={brands} setBrands={setBrands} user={user}/>, clients: <AgencyClients/>, plans: <AgencyPlans/>, team: <AgencyTeam/> };
