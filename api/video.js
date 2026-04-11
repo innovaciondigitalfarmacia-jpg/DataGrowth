@@ -11,7 +11,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     const { action, op, endpoint, response_url, status_url } = req.query;
-    if (action === 'test') return res.status(200).json({ status: 'ready', model: 'minimax-video-01-live', v: '17' });
+    if (action === 'test') return res.status(200).json({ status: 'ready', model: 'minimax-video-01-live', v: '18' });
     if (action === 'check') {
       try {
         const base = endpoint || 'fal-ai/minimax/video-01-live';
@@ -106,7 +106,8 @@ export default async function handler(req, res) {
         ? 'fal-ai/minimax/video-01-live/image-to-video'
         : 'fal-ai/minimax/video-01-live';
 
-      const payload = { prompt: prompt, prompt_optimizer: true };
+      // FIXED: prompt_optimizer disabled so MiniMax uses YOUR prompt exactly
+      const payload = { prompt: prompt, prompt_optimizer: false };
       if (imageUrl) payload.image_url = imageUrl;
 
       const r = await fetch('https://queue.fal.run/' + endpoint, {
