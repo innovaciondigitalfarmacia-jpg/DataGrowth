@@ -1,4 +1,4 @@
-export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
+export const config = { api: { bodyParser: { sizeLimit: '10mb' }, responseLimit: '15mb' } };
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -7,12 +7,54 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const FAL_KEY = process.env.FAL_KEY;
-  if (!FAL_KEY) return res.status(500).json({ error: "No FAL_KEY" });
+  const GEMINI_KEY = process.env.GEMINI_API_KEY;
+  const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
+  if (!FAL_KEY && !GEMINI_KEY) return res.status(500).json({ error: "No API keys configured" });
+
+  // ── GET: Check status or proxy video ──
   if (req.method === 'GET') {
-    const { action, op, endpoint, response_url, status_url } = req.query;
-    if (action === 'test') return res.status(200).json({ status: 'ready', model: 'minimax-video-01-live', v: '18' });
+    const { action, op, endpoint, response_url, status_url, provider } = req.query;
+    if (action === 'test') return res.status(200).json({ status: 'ready', model: 'minimax+veo-fallback', v: '19' });
+
+    // Proxy Gemini video download
+    if (action === 'proxy' && req.query.uri) {
+      try {
+        const r = await fetch(req.query.uri, { headers: { 'x-goog-api-key': GEMINI_KEY } });
+        if (r.ok) {
+          res.setHeader('Content-Type', 'video/mp4');
+          const buf = Buffer.from(await r.arrayBuffer());
+          return res.send(buf);
+        }
+      } catch (e) {}
+      return res.status(500).json({ error: 'Proxy failed' });
+    }
+
     if (action === 'check') {
+      // ── Gemini Veo check ──
+      if (provider === 'gemini' && op) {
+        try {
+          const r = await fetch(GEMINI_BASE + '/' + op + '?key=' + GEMINI_KEY);
+          if (r.ok) {
+            const d = await r.json();
+            if (d.done) {
+              const videoUri = d.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri;
+              if (videoUri) {
+                // Return proxy URL so frontend can access the video
+                const proxyUrl = '/api/video?action=proxy&uri=' + encodeURIComponent(videoUri);
+                return res.status(200).json({ status: 'completed', video_url: proxyUrl });
+              }
+              return res.status(200).json({ status: 'error', error: 'Video done but no URL found' });
+            }
+            return res.status(200).json({ status: 'processing', provider: 'gemini' });
+          }
+          return res.status(200).json({ status: 'processing', provider: 'gemini' });
+        } catch (e) {
+          return res.status(200).json({ status: 'processing', provider: 'gemini' });
+        }
+      }
+
+      // ── fal.ai check ──
       try {
         const base = endpoint || 'fal-ai/minimax/video-01-live';
         const urls = [];
@@ -58,6 +100,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Unknown action' });
   }
 
+  // ── POST: Start video generation ──
   if (req.method === 'POST') {
     try {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
@@ -65,69 +108,155 @@ export default async function handler(req, res) {
       const image_base64 = body && body.image_base64;
       if (!prompt) return res.status(400).json({ error: 'No prompt' });
 
-      let imageUrl = null;
-
-      if (image_base64) {
-        // Upload to fal storage
+      // ── PRIMARY: fal.ai MiniMax ──
+      if (FAL_KEY) {
         try {
-          const imgBuf = Buffer.from(image_base64, 'base64');
-          const uploadRes = await fetch('https://fal.run/fal-ai/storage/upload', {
-            method: 'POST',
-            headers: { 'Authorization': 'Key ' + FAL_KEY, 'Content-Type': 'application/octet-stream' },
-            body: imgBuf
-          });
-          if (uploadRes.ok) {
-            const uploadData = await uploadRes.json();
-            imageUrl = uploadData.url || uploadData.file_url || uploadData.access_url;
-          }
-        } catch (e) {}
+          let imageUrl = null;
 
-        if (!imageUrl) {
-          try {
-            const imgBuf = Buffer.from(image_base64, 'base64');
-            const uploadRes = await fetch('https://rest.fal.run/storage/upload', {
-              method: 'PUT',
-              headers: { 'Authorization': 'Key ' + FAL_KEY, 'Content-Type': 'image/jpeg' },
-              body: imgBuf
-            });
-            if (uploadRes.ok) {
-              const uploadData = await uploadRes.json();
-              imageUrl = uploadData.url || uploadData.file_url;
+          if (image_base64) {
+            try {
+              const imgBuf = Buffer.from(image_base64, 'base64');
+              const uploadRes = await fetch('https://fal.run/fal-ai/storage/upload', {
+                method: 'POST',
+                headers: { 'Authorization': 'Key ' + FAL_KEY, 'Content-Type': 'application/octet-stream' },
+                body: imgBuf
+              });
+              if (uploadRes.ok) {
+                const uploadData = await uploadRes.json();
+                imageUrl = uploadData.url || uploadData.file_url || uploadData.access_url;
+              }
+            } catch (e) {}
+
+            if (!imageUrl) {
+              try {
+                const imgBuf = Buffer.from(image_base64, 'base64');
+                const uploadRes = await fetch('https://rest.fal.run/storage/upload', {
+                  method: 'PUT',
+                  headers: { 'Authorization': 'Key ' + FAL_KEY, 'Content-Type': 'image/jpeg' },
+                  body: imgBuf
+                });
+                if (uploadRes.ok) {
+                  const uploadData = await uploadRes.json();
+                  imageUrl = uploadData.url || uploadData.file_url;
+                }
+              } catch (e) {}
             }
-          } catch (e) {}
-        }
 
-        if (!imageUrl) {
-          imageUrl = 'data:image/jpeg;base64,' + image_base64;
+            if (!imageUrl) {
+              imageUrl = 'data:image/jpeg;base64,' + image_base64;
+            }
+          }
+
+          const falEndpoint = (image_base64 && imageUrl)
+            ? 'fal-ai/minimax/video-01-live/image-to-video'
+            : 'fal-ai/minimax/video-01-live';
+
+          const payload = { prompt: prompt, prompt_optimizer: false };
+          if (imageUrl) payload.image_url = imageUrl;
+
+          const r = await fetch('https://queue.fal.run/' + falEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Key ' + FAL_KEY },
+            body: JSON.stringify(payload)
+          });
+          const text = await r.text();
+          const d = JSON.parse(text);
+
+          // Check if fal.ai failed (locked account, no balance, etc.)
+          const falError = d.detail || d.error || '';
+          const isFalDown = falError.toLowerCase().includes('locked') || 
+                            falError.toLowerCase().includes('balance') || 
+                            falError.toLowerCase().includes('unauthorized') ||
+                            falError.toLowerCase().includes('forbidden') ||
+                            r.status >= 400;
+
+          if (d.request_id && !isFalDown) {
+            return res.status(200).json({
+              status: 'started',
+              operation: d.request_id,
+              endpoint: falEndpoint,
+              provider: 'fal',
+              response_url: d.response_url || '',
+              status_url: d.status_url || ''
+            });
+          }
+
+          // fal.ai failed, fall through to Gemini
+          console.log('fal.ai failed, falling back to Gemini Veo:', falError);
+        } catch (e) {
+          console.log('fal.ai exception, falling back to Gemini Veo:', e.message);
         }
       }
 
-      const endpoint = (image_base64 && imageUrl)
-        ? 'fal-ai/minimax/video-01-live/image-to-video'
-        : 'fal-ai/minimax/video-01-live';
+      // ── FALLBACK: Gemini Veo ──
+      if (GEMINI_KEY) {
+        try {
+          const instances = [];
+          const instance = { prompt: prompt.substring(0, 500) };
 
-      // FIXED: prompt_optimizer disabled so MiniMax uses YOUR prompt exactly
-      const payload = { prompt: prompt, prompt_optimizer: false };
-      if (imageUrl) payload.image_url = imageUrl;
+          if (image_base64) {
+            instance.image = { inlineData: { mimeType: 'image/jpeg', data: image_base64 } };
+          }
 
-      const r = await fetch('https://queue.fal.run/' + endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Key ' + FAL_KEY },
-        body: JSON.stringify(payload)
-      });
-      const text = await r.text();
-      const d = JSON.parse(text);
-      if (d.detail || d.error) return res.status(200).json({ status: 'error', error: d.detail || d.error });
-      if (d.request_id) {
-        return res.status(200).json({
-          status: 'started',
-          operation: d.request_id,
-          endpoint: endpoint,
-          response_url: d.response_url || '',
-          status_url: d.status_url || ''
-        });
+          instances.push(instance);
+
+          const r = await fetch(
+            GEMINI_BASE + '/models/veo-3.1-generate-preview:generateVideos?key=' + GEMINI_KEY,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                instances: instances,
+                config: { aspectRatio: '9:16', resolution: '720p' }
+              })
+            }
+          );
+
+          if (r.ok) {
+            const d = await r.json();
+            const opName = d.name;
+            if (opName) {
+              return res.status(200).json({
+                status: 'started',
+                operation: opName,
+                provider: 'gemini'
+              });
+            }
+          }
+
+          // Try lite model as second fallback
+          const r2 = await fetch(
+            GEMINI_BASE + '/models/veo-3.1-lite-generate-preview:generateVideos?key=' + GEMINI_KEY,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                instances: instances,
+                config: { aspectRatio: '9:16', resolution: '720p' }
+              })
+            }
+          );
+
+          if (r2.ok) {
+            const d2 = await r2.json();
+            const opName2 = d2.name;
+            if (opName2) {
+              return res.status(200).json({
+                status: 'started',
+                operation: opName2,
+                provider: 'gemini'
+              });
+            }
+          }
+
+          const errText = await r2.text();
+          console.log('Gemini Veo also failed:', errText.substring(0, 500));
+        } catch (e) {
+          console.log('Gemini Veo exception:', e.message);
+        }
       }
-      return res.status(200).json({ status: 'error', error: 'Respuesta: ' + text.substring(0, 200) });
+
+      return res.status(200).json({ status: 'error', error: 'Ambos servicios de video fallaron (fal.ai y Gemini). Verifica tu saldo en fal.ai o tu API key de Gemini.' });
     } catch (e) {
       return res.status(500).json({ error: e.message });
     }
