@@ -134,8 +134,15 @@ export default async function handler(req, res) {
               return res.send(buf);
             }
           }
+          // Gemini responded but no image
+          console.log("Gemini no image in response:", JSON.stringify(d).substring(0, 500));
+        } else {
+          const errText = await r.text();
+          console.log("Gemini error " + r.status + ":", errText.substring(0, 500));
         }
-      } catch (e) {}
+      } catch (e) {
+        console.log("Gemini exception:", e.message);
+      }
     }
 
     // FALLBACK: fal.ai Flux - lower strength to preserve more of original
@@ -162,7 +169,7 @@ export default async function handler(req, res) {
       } catch (e) {}
     }
 
-    return res.status(500).json({ error: "No API key available" });
+    return res.status(500).json({ error: "Image generation failed. Gemini and fallback both failed." });
   }
 
   return res.status(405).json({ error: "Method not allowed" });
