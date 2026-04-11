@@ -1,4 +1,4 @@
-// v8 - Gemini primary, fal.ai Flux fallback
+// v9 - Gemini primary, fal.ai Flux fallback - IMPROVED EDITING
 export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
 
 export default async function handler(req, res) {
@@ -16,7 +16,6 @@ export default async function handler(req, res) {
     if (test) return res.status(200).json({ key: GEMINI_KEY ? "SI" : "NO", model: "gemini-image" });
     if (!prompt) return res.status(400).json({ error: "No prompt" });
 
-    // PRIMARY: Gemini
     if (GEMINI_KEY) {
       try {
         const r = await fetch(
@@ -44,7 +43,6 @@ export default async function handler(req, res) {
       } catch (e) {}
     }
 
-    // FALLBACK: fal.ai Flux
     if (FAL_KEY) {
       try {
         const r = await fetch("https://fal.run/fal-ai/flux/dev", {
@@ -83,9 +81,24 @@ export default async function handler(req, res) {
     const { prompt, image_base64, images } = body || {};
     if (!prompt) return res.status(400).json({ error: "No prompt" });
 
-    // PRIMARY: Gemini for editing (much better at following instructions)
+    const hasImages = (images && Array.isArray(images) && images.length > 0) || image_base64;
+
     if (GEMINI_KEY) {
       const parts = [];
+
+      // System instruction BEFORE images to force editing behavior
+      if (hasImages) {
+        parts.push({ text: "CRITICAL INSTRUCTIONS - YOU ARE AN IMAGE EDITOR:\n" +
+          "1. You MUST preserve the original image as much as possible. Keep the SAME composition, layout, colors, lighting, style, perspective, background, and ALL elements the user did NOT ask to change.\n" +
+          "2. ONLY modify what the user explicitly requests. Everything else MUST remain IDENTICAL.\n" +
+          "3. The output must look like a minor edit of the input, NOT a new image.\n" +
+          "4. Match the EXACT same art style, resolution, aspect ratio, and quality.\n" +
+          "5. If changing text: keep all visual elements exactly the same.\n" +
+          "6. If changing colors: only change the specified colors.\n" +
+          "7. If repositioning something: keep ALL other elements in their original positions.\n\n" +
+          "Here is the original image to edit:" });
+      }
+
       if (images && Array.isArray(images)) {
         for (const img of images) {
           parts.push({ inlineData: { mimeType: "image/jpeg", data: img } });
@@ -93,7 +106,12 @@ export default async function handler(req, res) {
       } else if (image_base64) {
         parts.push({ inlineData: { mimeType: "image/jpeg", data: image_base64 } });
       }
-      parts.push({ text: prompt });
+
+      if (hasImages) {
+        parts.push({ text: "Apply ONLY this edit to the image above. Keep EVERYTHING else identical: " + prompt });
+      } else {
+        parts.push({ text: prompt });
+      }
 
       try {
         const r = await fetch(
@@ -121,14 +139,14 @@ export default async function handler(req, res) {
       } catch (e) {}
     }
 
-    // FALLBACK: fal.ai Flux for editing
-    if ((image_base64 || images) && FAL_KEY) {
+    // FALLBACK: fal.ai Flux - lower strength to preserve more of original
+    if (hasImages && FAL_KEY) {
       try {
         const imgData = image_base64 || images?.[0];
         const r = await fetch("https://fal.run/fal-ai/flux/dev/image-to-image", {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": "Key " + FAL_KEY },
-          body: JSON.stringify({ prompt, image_url: `data:image/jpeg;base64,${imgData}`, strength: 0.85, num_images: 1, output_format: "jpeg", guidance_scale: 3.5, num_inference_steps: 28 })
+          body: JSON.stringify({ prompt, image_url: `data:image/jpeg;base64,${imgData}`, strength: 0.55, num_images: 1, output_format: "jpeg", guidance_scale: 3.5, num_inference_steps: 28 })
         });
         if (r.ok) {
           const d = await r.json();
