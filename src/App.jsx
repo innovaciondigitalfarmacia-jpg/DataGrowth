@@ -1039,10 +1039,10 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       img.src = imgUrl;
     });
   };
-  const pollVideo = async (opName, ep, respUrl, statUrl) => {
-    setVideoLoading(true); setVideoProgress("Generando video con IA... (1-3 min)");
+  const pollVideo = async (opName, ep, respUrl, statUrl, provider) => {
+    setVideoLoading(true); setVideoProgress(provider === 'gemini' ? "Generando video con Gemini Veo... (2-5 min)" : "Generando video con IA... (1-3 min)");
     let attempts = 0;
-    const maxAttempts = 60;
+    const maxAttempts = provider === 'gemini' ? 90 : 60;
     let falInfo = "";
     while (attempts < maxAttempts) {
       await new Promise(r => setTimeout(r, 5000));
@@ -1053,6 +1053,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
         if (ep) url += "&endpoint=" + encodeURIComponent(ep);
         if (respUrl) url += "&response_url=" + encodeURIComponent(respUrl);
         if (statUrl) url += "&status_url=" + encodeURIComponent(statUrl);
+        if (provider) url += "&provider=" + encodeURIComponent(provider);
         url += "&t=" + Date.now();
         const r = await fetch(url);
         const d = await r.json();
@@ -1199,7 +1200,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
             const videoBody = { prompt: imgPrompt.substring(0, 500) };
             const r = await fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(videoBody) });
             const d = await r.json();
-            if (d.operation) { pollVideo(d.operation, d.endpoint, d.response_url, d.status_url); } else { setVideoProgress("Error: " + (d.error || "no se pudo iniciar")); }
+            if (d.operation) { pollVideo(d.operation, d.endpoint, d.response_url, d.status_url, d.provider); } else { setVideoProgress("Error: " + (d.error || "no se pudo iniciar")); }
             return;
           }
           
@@ -1208,7 +1209,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
           const videoBody = { prompt: motionPrompt, image_base64: imageBase64 };
           const r = await fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(videoBody) });
           const d = await r.json();
-          if (d.operation) { pollVideo(d.operation, d.endpoint, d.response_url, d.status_url); } else { setVideoProgress("Error: " + (d.error || "no se pudo iniciar")); setVideoLoading(false); }
+          if (d.operation) { pollVideo(d.operation, d.endpoint, d.response_url, d.status_url, d.provider); } else { setVideoProgress("Error: " + (d.error || "no se pudo iniciar")); setVideoLoading(false); }
         } catch (e) {
           setVideoProgress("Error: " + e.message); setVideoLoading(false);
         }
