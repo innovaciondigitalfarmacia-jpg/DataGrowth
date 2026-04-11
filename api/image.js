@@ -88,14 +88,7 @@ export default async function handler(req, res) {
 
       // System instruction BEFORE images to force editing behavior
       if (hasImages) {
-        parts.push({ text: "You received an image from the user along with instructions. Determine the user's INTENT:\n\n" +
-          "MODE A — EDIT (user says: change, edit, modify, replace, fix, move, add text, change color, remove, etc.):\n" +
-          "- PRESERVE the original image. Keep the SAME composition, layout, colors, lighting, style, and ALL elements NOT mentioned.\n" +
-          "- ONLY modify what the user explicitly asks. The output must look like a minor edit, NOT a new image.\n\n" +
-          "MODE B — REFERENCE/GUIDE (user says: guíate, based on this, inspired by, similar to, create something like, use as reference, etc.):\n" +
-          "- Use the image as VISUAL INSPIRATION for style, mood, color palette, and atmosphere.\n" +
-          "- Create a NEW original image following the user's instructions, guided by the reference.\n\n" +
-          "Here is the image:" });
+        parts.push({ text: "Edit the following image according to the user's instructions. Keep everything the user does NOT mention exactly the same. Only change what the user asks for. Output ONLY the edited image, no text.\n\nHere is the image:" });
       }
 
       if (images && Array.isArray(images)) {
@@ -107,9 +100,9 @@ export default async function handler(req, res) {
       }
 
       if (hasImages) {
-        parts.push({ text: "User instructions: " + prompt });
+        parts.push({ text: "Apply this change and return ONLY the image: " + prompt });
       } else {
-        parts.push({ text: prompt });
+        parts.push({ text: prompt + "\n\nRespond ONLY with the generated image, no text." });
       }
 
       try {
