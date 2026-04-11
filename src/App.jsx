@@ -1100,10 +1100,16 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
 
     // ── DIRECT EDIT: user uploaded a photo, send instruction directly to image API ──
     if (isDirectEdit) {
-      const editPrompt = "You have this reference image uploaded by the user. Apply these changes: " + currentTopic + ". INSTRUCTIONS: 1) If the user asks to MOVE, REPOSITION, or REARRANGE elements: recreate the ENTIRE image with the new layout but keep the SAME style, colors, atmosphere, and overall look. 2) If the user asks to CHANGE colors, ADD text, ADD elements, or MODIFY details: edit the existing image and preserve everything else. 3) If the user mentions hex color codes (like #FF0000), use those EXACT colors. 4) Any visible text must be in Spanish. 5) Match the quality and style of the reference image as closely as possible.";
+      const editPrompt = currentTopic + ". If any visible text is needed, write it in Spanish. If hex color codes are mentioned, use those exact colors.";
+      // If there's a previous AI image, send it as the FIRST image (base to edit)
+      // and the uploaded photos as additional reference
+      const allImages = lastAiImage ? [lastAiImage, ...currentImages] : currentImages;
+      const promptWithContext = lastAiImage 
+        ? "The FIRST image is the current design that the user already has. The OTHER images are new references the user uploaded. Apply the user's instructions using the new references but keeping the first image as the base. Instructions: " + editPrompt
+        : editPrompt;
       setChatHistory(prev => [...prev, { role: "ai", text: "", headline: "", loading: true }]);
       try {
-        const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: editPrompt, images: currentImages }) });
+        const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: promptWithContext, images: allImages }) });
         if (!r.ok) throw new Error("API error " + r.status);
         const b = await r.blob();
         if (!r.headers.get("content-type")?.includes("image")) throw new Error("No image");
@@ -1120,7 +1126,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
 
     // ── DIRECT REFINEMENT: skip text gen, send instruction directly to image API ──
     if (isRefining) {
-      const editPrompt = "You have this reference image. The user wants these changes: " + currentTopic + ". INSTRUCTIONS: 1) If the user asks to MOVE, REPOSITION, or REARRANGE elements: recreate the ENTIRE image with the new layout but keep the SAME style, colors, atmosphere, and overall look. 2) If the user asks to CHANGE colors, ADD text, ADD elements, or MODIFY details: edit the existing image and preserve everything else. 3) If the user mentions hex color codes (like #FF0000), use those EXACT colors. 4) Any visible text must be in Spanish. 5) Match the quality and style of the reference image as closely as possible.";
+      const editPrompt = currentTopic + ". If any visible text is needed, write it in Spanish. If hex color codes are mentioned, use those exact colors.";
       setChatHistory(prev => [...prev, { role: "ai", text: "", headline: "", loading: true }]);
       try {
         const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: editPrompt, image_base64: lastAiImage }) });
