@@ -1,3 +1,4 @@
+// v9 - Gemini primary, fal.ai Flux fallback - IMPROVED EDITING
 export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
 
 export default async function handler(req, res) {
@@ -6,132 +7,164 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
+  const GEMINI_KEY = process.env.GEMINI_API_KEY;
   const FAL_KEY = process.env.FAL_KEY;
-  if (!FAL_KEY) return res.status(500).json({ error: "No FAL_KEY" });
 
+  // ── GET: Image generation ──
   if (req.method === 'GET') {
-    const { action, op, endpoint, response_url, status_url } = req.query;
-    if (action === 'test') return res.status(200).json({ status: 'ready', model: 'minimax-video-01-live', v: '18' });
-    if (action === 'check') {
+    const { prompt, test } = req.query;
+    if (test) return res.status(200).json({ key: GEMINI_KEY ? "SI" : "NO", model: "gemini-image" });
+    if (!prompt) return res.status(400).json({ error: "No prompt" });
+
+    if (GEMINI_KEY) {
       try {
-        const base = endpoint || 'fal-ai/minimax/video-01-live';
-        const urls = [];
-        
-        if (response_url) urls.push(response_url);
-        if (status_url) urls.push(status_url);
-        if (op) {
-          urls.push('https://queue.fal.run/' + base + '/requests/' + op);
-          urls.push('https://queue.fal.run/' + base + '/requests/' + op + '/status');
-        }
-        
-        for (const url of urls) {
-          try {
-            const r = await fetch(url, { headers: { 'Authorization': 'Key ' + FAL_KEY } });
-            
-            if (r.status === 200) {
-              const text = await r.text();
-              if (!text) continue;
-              const d = JSON.parse(text);
-              
-              if (d.video?.url) return res.status(200).json({ status: 'completed', video_url: d.video.url });
-              if (d.status === 'COMPLETED') {
-                const resultUrl = d.response_url || ('https://queue.fal.run/' + base + '/requests/' + op);
-                try {
-                  const r2 = await fetch(resultUrl, { headers: { 'Authorization': 'Key ' + FAL_KEY } });
-                  const d2 = await r2.json();
-                  if (d2.video?.url) return res.status(200).json({ status: 'completed', video_url: d2.video.url });
-                } catch (e) {}
-                return res.status(200).json({ status: 'completed_no_url', debug: JSON.stringify(d).substring(0, 500) });
-              }
-              if (d.status === 'FAILED') return res.status(200).json({ status: 'error', error: d.detail || d.error || 'Video fallo' });
-              if (d.status === 'IN_QUEUE' || d.status === 'IN_PROGRESS') return res.status(200).json({ status: 'processing', fal_status: d.status });
-            }
-            if (r.status === 202) return res.status(200).json({ status: 'processing' });
-          } catch (e) { continue; }
-        }
-        
-        return res.status(200).json({ status: 'processing' });
-      } catch (e) {
-        return res.status(200).json({ status: 'processing', debug: e.message });
-      }
-    }
-    return res.status(400).json({ error: 'Unknown action' });
-  }
-
-  if (req.method === 'POST') {
-    try {
-      const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-      const prompt = body && body.prompt;
-      const image_base64 = body && body.image_base64;
-      if (!prompt) return res.status(400).json({ error: 'No prompt' });
-
-      let imageUrl = null;
-
-      if (image_base64) {
-        // Upload to fal storage
-        try {
-          const imgBuf = Buffer.from(image_base64, 'base64');
-          const uploadRes = await fetch('https://fal.run/fal-ai/storage/upload', {
-            method: 'POST',
-            headers: { 'Authorization': 'Key ' + FAL_KEY, 'Content-Type': 'application/octet-stream' },
-            body: imgBuf
-          });
-          if (uploadRes.ok) {
-            const uploadData = await uploadRes.json();
-            imageUrl = uploadData.url || uploadData.file_url || uploadData.access_url;
+        const r = await fetch(
+          "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=" + GEMINI_KEY,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
+            })
           }
-        } catch (e) {}
-
-        if (!imageUrl) {
-          try {
-            const imgBuf = Buffer.from(image_base64, 'base64');
-            const uploadRes = await fetch('https://rest.fal.run/storage/upload', {
-              method: 'PUT',
-              headers: { 'Authorization': 'Key ' + FAL_KEY, 'Content-Type': 'image/jpeg' },
-              body: imgBuf
-            });
-            if (uploadRes.ok) {
-              const uploadData = await uploadRes.json();
-              imageUrl = uploadData.url || uploadData.file_url;
+        );
+        if (r.ok) {
+          const d = await r.json();
+          const parts = d.candidates?.[0]?.content?.parts || [];
+          for (const part of parts) {
+            if (part.inlineData?.data) {
+              const buf = Buffer.from(part.inlineData.data, "base64");
+              res.setHeader("Content-Type", part.inlineData.mimeType || "image/png");
+              return res.send(buf);
             }
-          } catch (e) {}
+          }
         }
-
-        if (!imageUrl) {
-          imageUrl = 'data:image/jpeg;base64,' + image_base64;
-        }
-      }
-
-      const endpoint = (image_base64 && imageUrl)
-        ? 'fal-ai/minimax/video-01-live/image-to-video'
-        : 'fal-ai/minimax/video-01-live';
-
-      // FIXED: prompt_optimizer disabled so MiniMax uses YOUR prompt exactly
-      const payload = { prompt: prompt, prompt_optimizer: false };
-      if (imageUrl) payload.image_url = imageUrl;
-
-      const r = await fetch('https://queue.fal.run/' + endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Key ' + FAL_KEY },
-        body: JSON.stringify(payload)
-      });
-      const text = await r.text();
-      const d = JSON.parse(text);
-      if (d.detail || d.error) return res.status(200).json({ status: 'error', error: d.detail || d.error });
-      if (d.request_id) {
-        return res.status(200).json({
-          status: 'started',
-          operation: d.request_id,
-          endpoint: endpoint,
-          response_url: d.response_url || '',
-          status_url: d.status_url || ''
-        });
-      }
-      return res.status(200).json({ status: 'error', error: 'Respuesta: ' + text.substring(0, 200) });
-    } catch (e) {
-      return res.status(500).json({ error: e.message });
+      } catch (e) {}
     }
+
+    if (FAL_KEY) {
+      try {
+        const r = await fetch("https://fal.run/fal-ai/flux/dev", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Key " + FAL_KEY },
+          body: JSON.stringify({ prompt, image_size: "square_hd", num_images: 1, output_format: "jpeg", guidance_scale: 3.5, num_inference_steps: 28 })
+        });
+        if (r.ok) {
+          const d = await r.json();
+          const imageUrl = d.images?.[0]?.url;
+          if (imageUrl) {
+            const imgRes = await fetch(imageUrl);
+            if (imgRes.ok) {
+              const buf = Buffer.from(await imgRes.arrayBuffer());
+              res.setHeader("Content-Type", "image/jpeg");
+              return res.send(buf);
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    const seed = Math.abs(prompt.split("").reduce((a, c) => a + c.charCodeAt(0), 0));
+    return res.redirect(302, "https://picsum.photos/seed/" + seed + "/768/768");
   }
 
-  return res.status(405).json({ error: 'Method not allowed' });
+  // ── POST: Image editing ──
+  if (req.method === 'POST') {
+    let body;
+    try {
+      body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    } catch (e) {
+      return res.status(400).json({ error: "Invalid JSON" });
+    }
+
+    const { prompt, image_base64, images } = body || {};
+    if (!prompt) return res.status(400).json({ error: "No prompt" });
+
+    const hasImages = (images && Array.isArray(images) && images.length > 0) || image_base64;
+
+    if (GEMINI_KEY) {
+      const parts = [];
+
+      // System instruction BEFORE images to force editing behavior
+      if (hasImages) {
+        parts.push({ text: "CRITICAL INSTRUCTIONS - YOU ARE AN IMAGE EDITOR:\n" +
+          "1. You MUST preserve the original image as much as possible. Keep the SAME composition, layout, colors, lighting, style, perspective, background, and ALL elements the user did NOT ask to change.\n" +
+          "2. ONLY modify what the user explicitly requests. Everything else MUST remain IDENTICAL.\n" +
+          "3. The output must look like a minor edit of the input, NOT a new image.\n" +
+          "4. Match the EXACT same art style, resolution, aspect ratio, and quality.\n" +
+          "5. If changing text: keep all visual elements exactly the same.\n" +
+          "6. If changing colors: only change the specified colors.\n" +
+          "7. If repositioning something: keep ALL other elements in their original positions.\n\n" +
+          "Here is the original image to edit:" });
+      }
+
+      if (images && Array.isArray(images)) {
+        for (const img of images) {
+          parts.push({ inlineData: { mimeType: "image/jpeg", data: img } });
+        }
+      } else if (image_base64) {
+        parts.push({ inlineData: { mimeType: "image/jpeg", data: image_base64 } });
+      }
+
+      if (hasImages) {
+        parts.push({ text: "Apply ONLY this edit to the image above. Keep EVERYTHING else identical: " + prompt });
+      } else {
+        parts.push({ text: prompt });
+      }
+
+      try {
+        const r = await fetch(
+          "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=" + GEMINI_KEY,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts }],
+              generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
+            })
+          }
+        );
+        if (r.ok) {
+          const d = await r.json();
+          const resParts = d.candidates?.[0]?.content?.parts || [];
+          for (const part of resParts) {
+            if (part.inlineData?.data) {
+              const buf = Buffer.from(part.inlineData.data, "base64");
+              res.setHeader("Content-Type", part.inlineData.mimeType || "image/png");
+              return res.send(buf);
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    // FALLBACK: fal.ai Flux - lower strength to preserve more of original
+    if (hasImages && FAL_KEY) {
+      try {
+        const imgData = image_base64 || images?.[0];
+        const r = await fetch("https://fal.run/fal-ai/flux/dev/image-to-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Key " + FAL_KEY },
+          body: JSON.stringify({ prompt, image_url: `data:image/jpeg;base64,${imgData}`, strength: 0.55, num_images: 1, output_format: "jpeg", guidance_scale: 3.5, num_inference_steps: 28 })
+        });
+        if (r.ok) {
+          const d = await r.json();
+          const imageUrl = d.images?.[0]?.url;
+          if (imageUrl) {
+            const imgRes = await fetch(imageUrl);
+            if (imgRes.ok) {
+              const buf = Buffer.from(await imgRes.arrayBuffer());
+              res.setHeader("Content-Type", "image/jpeg");
+              return res.send(buf);
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    return res.status(500).json({ error: "No API key available" });
+  }
+
+  return res.status(405).json({ error: "Method not allowed" });
 }
