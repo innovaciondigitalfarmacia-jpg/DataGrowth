@@ -88,15 +88,14 @@ export default async function handler(req, res) {
 
       // System instruction BEFORE images to force editing behavior
       if (hasImages) {
-        parts.push({ text: "CRITICAL INSTRUCTIONS - YOU ARE AN IMAGE EDITOR:\n" +
-          "1. You MUST preserve the original image as much as possible. Keep the SAME composition, layout, colors, lighting, style, perspective, background, and ALL elements the user did NOT ask to change.\n" +
-          "2. ONLY modify what the user explicitly requests. Everything else MUST remain IDENTICAL.\n" +
-          "3. The output must look like a minor edit of the input, NOT a new image.\n" +
-          "4. Match the EXACT same art style, resolution, aspect ratio, and quality.\n" +
-          "5. If changing text: keep all visual elements exactly the same.\n" +
-          "6. If changing colors: only change the specified colors.\n" +
-          "7. If repositioning something: keep ALL other elements in their original positions.\n\n" +
-          "Here is the original image to edit:" });
+        parts.push({ text: "You received an image from the user along with instructions. Determine the user's INTENT:\n\n" +
+          "MODE A — EDIT (user says: change, edit, modify, replace, fix, move, add text, change color, remove, etc.):\n" +
+          "- PRESERVE the original image. Keep the SAME composition, layout, colors, lighting, style, and ALL elements NOT mentioned.\n" +
+          "- ONLY modify what the user explicitly asks. The output must look like a minor edit, NOT a new image.\n\n" +
+          "MODE B — REFERENCE/GUIDE (user says: guíate, based on this, inspired by, similar to, create something like, use as reference, etc.):\n" +
+          "- Use the image as VISUAL INSPIRATION for style, mood, color palette, and atmosphere.\n" +
+          "- Create a NEW original image following the user's instructions, guided by the reference.\n\n" +
+          "Here is the image:" });
       }
 
       if (images && Array.isArray(images)) {
@@ -108,7 +107,7 @@ export default async function handler(req, res) {
       }
 
       if (hasImages) {
-        parts.push({ text: "Apply ONLY this edit to the image above. Keep EVERYTHING else identical: " + prompt });
+        parts.push({ text: "User instructions: " + prompt });
       } else {
         parts.push({ text: prompt });
       }
