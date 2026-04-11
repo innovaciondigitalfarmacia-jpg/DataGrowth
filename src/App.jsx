@@ -1155,35 +1155,24 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
     // Start video generation for reels: Gemini image first, then fal.ai animates it
     const fmt = ct.fmt;
     if (fmt === "reel") {
-      const imgPrompt = "Cinematic photo for " + brand.name + " (" + brand.industry + "). Topic: " + topic + ". Style: " + brandStyle + ". IMPORTANT: 1) If reference photos are provided, keep ALL buildings and structures exactly as they appear. 2) You CAN freely create beautiful natural landscapes around them. 3) Do NOT add objects, pools, furniture, vehicles, or structures UNLESS the user explicitly asks for them. 4) People must have REALISTIC proportions relative to buildings and surroundings. Faces must be sharp, clear, and detailed with natural expressions. 5) Any visible text must be in Spanish. 6) Do NOT include any logo. Photorealistic, high quality, 9:16 vertical format.";
-      const motionPrompt = "Animate this image with cinematic life-like motion: people should move realistically - smiling, laughing, turning heads, touching each other affectionately, shifting weight, gesturing with hands. Hair and clothes should sway with the breeze. Add atmospheric effects: wind in trees, moving clouds, flickering warm lights, rising steam. Slow smooth camera dolly. Keep any TEXT and LOGOS fixed in place.";
+      const imgPrompt = currentImages[0]
+        ? "You have reference photos from the user. Use them as the BASE of the image. Keep the same scene, place, and elements shown in the photos. Then apply ONLY what the user asks: " + topic + ". If the user asks to add something, add it to the existing scene. If the user asks to improve something, improve it while keeping the rest. Do NOT generate a completely different image. Brand: " + brand.name + " (" + brand.industry + "). Style: " + brandStyle + ". Any visible text must be in Spanish. Do NOT include any logo. Photorealistic, high quality, 9:16 vertical format."
+        : "Cinematic photo for " + brand.name + " (" + brand.industry + "). Topic: " + topic + ". Style: " + brandStyle + ". IMPORTANT: 1) Do NOT add objects, pools, furniture, vehicles, or structures UNLESS the user explicitly asks for them. 2) People must have REALISTIC proportions. Faces must be sharp and detailed. 3) Any visible text must be in Spanish. 4) Do NOT include any logo. Photorealistic, high quality, 9:16 vertical format.";
+      const motionPrompt = "Animate this image with cinematic life-like motion based on the user's request: " + topic + ". People should move realistically - smiling, laughing, turning heads, gesturing. Hair and clothes sway with breeze. Add atmospheric effects: wind in trees, moving clouds, flickering warm lights. Slow smooth camera dolly. Keep any TEXT and LOGOS fixed in place.";
       
-      setVideoLoading(true); setVideoProgress("Generando imagen base con IA...");
+      setVideoLoading(true); setVideoProgress("Preparando video...");
       
-      // Step 1: Generate image with Gemini
       const generateAndAnimate = async () => {
         try {
           let imageBase64 = null;
           
-          // Always generate through Gemini first (even with uploaded images as reference)
           if (currentImages[0]) {
-            // Send uploaded images as reference to Gemini
-            setVideoProgress("Generando imagen base usando tus fotos como referencia...");
-            const imgRes = await fetch("/api/image", { 
-              method: "POST", 
-              headers: { "Content-Type": "application/json" }, 
-              body: JSON.stringify({ prompt: imgPrompt + " Use the uploaded images as visual reference for style and content.", images: currentImages }) 
-            });
-            if (imgRes.ok && imgRes.headers.get("content-type")?.includes("image")) {
-              const blob = await imgRes.blob();
-              imageBase64 = await new Promise(resolve => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result.split(",")[1]);
-                reader.readAsDataURL(blob);
-              });
-            }
+            // User uploaded photos: send the FIRST photo directly to MiniMax
+            // This ensures the video is based on the user's actual photo
+            setVideoProgress("Usando tu foto como base del video...");
+            imageBase64 = currentImages[0];
           } else {
-            // Generate image with Gemini from scratch
+            // No photos: generate image with Gemini from scratch
             setVideoProgress("Generando imagen base con IA...");
             const imgRes = await fetch("/api/image", { 
               method: "POST", 
@@ -1201,7 +1190,6 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
           }
           
           if (!imageBase64) {
-            // Fallback: text-to-video without image
             const videoBody = { prompt: imgPrompt.substring(0, 500) };
             const r = await fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(videoBody) });
             const d = await r.json();
@@ -1209,7 +1197,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
             return;
           }
           
-          // Step 2: Send image to fal.ai to animate
+          // Send image + user's instructions to MiniMax
           setVideoProgress("Animando video con IA...");
           const videoBody = { prompt: motionPrompt, image_base64: imageBase64 };
           const r = await fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(videoBody) });
