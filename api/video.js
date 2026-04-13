@@ -17,15 +17,13 @@ export default async function handler(req, res) {
     const { action, op, endpoint, response_url, status_url, provider } = req.query;
     if (action === 'test') return res.status(200).json({ status: 'ready', model: 'minimax+veo-fallback', v: '19' });
 
-    // Proxy Gemini video download
+    // Proxy Gemini video download - redirect with key
     if (action === 'proxy' && req.query.uri) {
       try {
-        const r = await fetch(req.query.uri, { headers: { 'x-goog-api-key': GEMINI_KEY } });
-        if (r.ok) {
-          res.setHeader('Content-Type', 'video/mp4');
-          const buf = Buffer.from(await r.arrayBuffer());
-          return res.send(buf);
-        }
+        const uri = req.query.uri;
+        const separator = uri.includes('?') ? '&' : '?';
+        const directUrl = uri + separator + 'key=' + GEMINI_KEY;
+        return res.redirect(302, directUrl);
       } catch (e) {}
       return res.status(500).json({ error: 'Proxy failed' });
     }
@@ -199,8 +197,8 @@ export default async function handler(req, res) {
         try {
           const instance = { prompt: prompt.substring(0, 500) };
 
-          // Only send image if it's not too large (< 4MB in base64)
-          if (image_base64 && image_base64.length < 4000000) {
+          // Send image to Veo if available
+          if (image_base64) {
             instance.image = { inlineData: { mimeType: 'image/jpeg', data: image_base64 } };
           }
 
