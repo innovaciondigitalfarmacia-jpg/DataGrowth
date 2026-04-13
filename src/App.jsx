@@ -1174,37 +1174,28 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
           let videoPrompt = motionPrompt;
           
           if (currentImages[0]) {
-            // User uploaded photos: use Gemini to describe them, then pass description to Veo
+            // User uploaded photos: send them to Gemini to describe, then pass description to Veo
             setVideoProgress("Analizando tus fotos...");
             try {
-              const descRes = await fetch("/api/image", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                  prompt: "Describe this image in extreme detail in English for a video generation AI. Include: exact setting/location, lighting, colors, objects, people, atmosphere, time of day, camera angle. Be very specific. Do not generate an image, only return text description.", 
-                  images: [currentImages[0]],
-                  text_only: true
-                })
-              });
-              // If image API returns text (won't happen with current setup), use it
-              // Otherwise use Gemini text model to describe
-              const descGenRes = await fetch("/api/generate", {
+              const descRes = await fetch("/api/generate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  system: "You are a visual description expert. Describe images for video generation.",
-                  messages: [{ content: "The user uploaded photos showing their business/brand. Based on the user's request: '" + topic + "', create a detailed cinematic video prompt in English. Brand: " + brand.name + " (" + brand.industry + "). Style: " + brandStyle + ". The video should be a professional promotional video in 9:16 vertical format. Include specific visual details: setting, lighting, camera movement, people actions, atmosphere. Keep it under 400 characters." }]
+                  system: "You create detailed video prompts based on reference images.",
+                  messages: [{ content: "Look at these reference images carefully. The user wants a promotional video based on them. User request: '" + topic + "'. Brand: " + brand.name + " (" + brand.industry + "). Create a detailed cinematic video prompt IN ENGLISH describing: the exact scene from the photos (buildings, landscape, nature, objects), lighting, colors, atmosphere, camera movement (slow dolly, pan), and any people actions. The video must match what's shown in these photos. Keep under 450 characters. Return ONLY the video prompt, nothing else." }],
+                  images: currentImages
                 })
               });
-              if (descGenRes.ok) {
-                const descData = await descGenRes.json();
+              if (descRes.ok) {
+                const descData = await descRes.json();
                 const desc = descData.content?.[0]?.text || "";
                 if (desc.length > 20) {
                   videoPrompt = desc.substring(0, 480);
+                  console.log("Video prompt from photos:", videoPrompt);
                 }
               }
             } catch (e) {
-              // Fall back to default prompt
+              console.log("Photo description failed:", e.message);
             }
             setVideoProgress("Generando video con IA...");
           } else {
