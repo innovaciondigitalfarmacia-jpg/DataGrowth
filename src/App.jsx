@@ -1171,54 +1171,71 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       
       const generateAndAnimate = async () => {
         try {
-          let imageBase64 = null;
+          let videoPrompt = motionPrompt;
           
           if (currentImages[0]) {
-            // User uploaded photos: resize to smaller JPEG for video
-            setVideoProgress("Usando tu foto como base del video...");
-            const img = new Image();
-            img.src = "data:image/jpeg;base64," + currentImages[0];
-            imageBase64 = await new Promise(resolve => {
-              img.onload = () => {
-                const maxW = 720;
-                const scale = img.width > maxW ? maxW / img.width : 1;
-                const c = document.createElement("canvas");
-                c.width = Math.round(img.width * scale);
-                c.height = Math.round(img.height * scale);
-                c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-                resolve(c.toDataURL("image/jpeg", 0.8).split(",")[1]);
-              };
-              img.onerror = () => resolve(currentImages[0]);
-            });
+            // User uploaded photos: use Gemini to describe them, then pass description to Veo
+            setVideoProgress("Analizando tus fotos...");
+            try {
+              const descRes = await fetch("/api/image", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                  prompt: "Describe this image in extreme detail in English for a video generation AI. Include: exact setting/location, lighting, colors, objects, people, atmosphere, time of day, camera angle. Be very specific. Do not generate an image, only return text description.", 
+                  images: [currentImages[0]],
+                  text_only: true
+                })
+              });
+              // If image API returns text (won't happen with current setup), use it
+              // Otherwise use Gemini text model to describe
+              const descGenRes = await fetch("/api/generate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  system: "You are a visual description expert. Describe images for video generation.",
+                  messages: [{ content: "The user uploaded photos showing their business/brand. Based on the user's request: '" + topic + "', create a detailed cinematic video prompt in English. Brand: " + brand.name + " (" + brand.industry + "). Style: " + brandStyle + ". The video should be a professional promotional video in 9:16 vertical format. Include specific visual details: setting, lighting, camera movement, people actions, atmosphere. Keep it under 400 characters." }]
+                })
+              });
+              if (descGenRes.ok) {
+                const descData = await descGenRes.json();
+                const desc = descData.content?.[0]?.text || "";
+                if (desc.length > 20) {
+                  videoPrompt = desc.substring(0, 480);
+                }
+              }
+            } catch (e) {
+              // Fall back to default prompt
+            }
+            setVideoProgress("Generando video con IA...");
           } else {
-            // No photos: generate image with Gemini from scratch
+            // No photos: generate image with Gemini, then animate
             setVideoProgress("Generando imagen base con IA...");
             const imgRes = await fetch("/api/image", { 
               method: "POST", 
               headers: { "Content-Type": "application/json" }, 
               body: JSON.stringify({ prompt: imgPrompt }) 
             });
+            // Try to send generated image to video API
             if (imgRes.ok && imgRes.headers.get("content-type")?.includes("image")) {
               const blob = await imgRes.blob();
-              imageBase64 = await new Promise(resolve => {
+              const imageBase64 = await new Promise(resolve => {
                 const reader = new FileReader();
                 reader.onloadend = () => resolve(reader.result.split(",")[1]);
                 reader.readAsDataURL(blob);
               });
+              if (imageBase64) {
+                setVideoProgress("Generando video con IA...");
+                const videoBody = { prompt: videoPrompt, image_base64: imageBase64 };
+                const r = await fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(videoBody) });
+                const d = await r.json();
+                if (d.operation) { pollVideo(d.operation, d.endpoint, d.response_url, d.status_url, d.provider); return; }
+              }
             }
           }
           
-          if (!imageBase64) {
-            const videoBody = { prompt: imgPrompt.substring(0, 500) };
-            const r = await fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(videoBody) });
-            const d = await r.json();
-            if (d.operation) { pollVideo(d.operation, d.endpoint, d.response_url, d.status_url, d.provider); } else { setVideoProgress("Error: " + (d.error || "no se pudo iniciar")); }
-            return;
-          }
-          
-          // Send image + user's instructions to MiniMax
-          setVideoProgress("Animando video con IA...");
-          const videoBody = { prompt: motionPrompt, image_base64: imageBase64 };
+          // Send prompt to video API (text-only for Veo)
+          setVideoProgress("Generando video con IA...");
+          const videoBody = { prompt: videoPrompt.substring(0, 500) };
           const r = await fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(videoBody) });
           const d = await r.json();
           if (d.operation) { pollVideo(d.operation, d.endpoint, d.response_url, d.status_url, d.provider); } else { setVideoProgress("Error: " + (d.error || "no se pudo iniciar")); setVideoLoading(false); }
