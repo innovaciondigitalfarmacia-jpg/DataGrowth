@@ -34,7 +34,7 @@ export default async function handler(req, res) {
       // ── Gemini Veo check ──
       if (provider === 'gemini' && op) {
         try {
-          const r = await fetch(GEMINI_BASE + '/' + op + '?key=' + GEMINI_KEY);
+          const r = await fetch(GEMINI_BASE + '/' + op, { headers: { 'x-goog-api-key': GEMINI_KEY } });
           if (r.ok) {
             const d = await r.json();
             if (d.done) {
@@ -191,66 +191,77 @@ export default async function handler(req, res) {
       // ── FALLBACK: Gemini Veo ──
       if (GEMINI_KEY) {
         try {
-          const instances = [];
           const instance = { prompt: prompt.substring(0, 500) };
 
-          if (image_base64) {
+          // Only send image if it's not too large (< 4MB in base64)
+          if (image_base64 && image_base64.length < 4000000) {
             instance.image = { inlineData: { mimeType: 'image/jpeg', data: image_base64 } };
           }
 
-          instances.push(instance);
+          // Try multiple models - header auth as per Google docs
+          const models = ['veo-3.1-generate-preview', 'veo-3.1-lite-generate-preview', 'veo-3.1-fast-generate-preview', 'veo-2.0-generate-001'];
+          
+          for (const model of models) {
+            try {
+              const r = await fetch(
+                GEMINI_BASE + '/models/' + model + ':generateVideos',
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
+                  body: JSON.stringify({
+                    instances: [instance],
+                    config: { aspectRatio: '9:16' }
+                  })
+                }
+              );
 
-          const r = await fetch(
-            GEMINI_BASE + '/models/veo-3.1-generate-preview:generateVideos?key=' + GEMINI_KEY,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                instances: instances,
-                config: { aspectRatio: '9:16', resolution: '720p' }
-              })
-            }
-          );
-
-          if (r.ok) {
-            const d = await r.json();
-            const opName = d.name;
-            if (opName) {
-              return res.status(200).json({
-                status: 'started',
-                operation: opName,
-                provider: 'gemini'
-              });
+              if (r.ok) {
+                const d = await r.json();
+                if (d.name) {
+                  console.log('Gemini Veo started with model:', model, 'operation:', d.name);
+                  return res.status(200).json({
+                    status: 'started',
+                    operation: d.name,
+                    provider: 'gemini'
+                  });
+                }
+              } else {
+                const errText = await r.text();
+                console.log('Gemini Veo ' + model + ' error ' + r.status + ':', errText.substring(0, 500));
+                
+                // If image caused the error, retry without image
+                if (image_base64 && instance.image) {
+                  delete instance.image;
+                  const r2 = await fetch(
+                    GEMINI_BASE + '/models/' + model + ':generateVideos',
+                    {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
+                      body: JSON.stringify({
+                        instances: [instance],
+                        config: { aspectRatio: '9:16' }
+                      })
+                    }
+                  );
+                  if (r2.ok) {
+                    const d2 = await r2.json();
+                    if (d2.name) {
+                      console.log('Gemini Veo started (no image) with model:', model);
+                      return res.status(200).json({
+                        status: 'started',
+                        operation: d2.name,
+                        provider: 'gemini'
+                      });
+                    }
+                  }
+                }
+              }
+            } catch (e) {
+              console.log('Gemini Veo ' + model + ' exception:', e.message);
             }
           }
 
-          // Try lite model as second fallback
-          const r2 = await fetch(
-            GEMINI_BASE + '/models/veo-3.1-lite-generate-preview:generateVideos?key=' + GEMINI_KEY,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                instances: instances,
-                config: { aspectRatio: '9:16', resolution: '720p' }
-              })
-            }
-          );
-
-          if (r2.ok) {
-            const d2 = await r2.json();
-            const opName2 = d2.name;
-            if (opName2) {
-              return res.status(200).json({
-                status: 'started',
-                operation: opName2,
-                provider: 'gemini'
-              });
-            }
-          }
-
-          const errText = await r2.text();
-          console.log('Gemini Veo also failed:', errText.substring(0, 500));
+          console.log('Gemini Veo all models failed');
         } catch (e) {
           console.log('Gemini Veo exception:', e.message);
         }
