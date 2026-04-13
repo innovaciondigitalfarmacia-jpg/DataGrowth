@@ -197,9 +197,11 @@ export default async function handler(req, res) {
         try {
           const instance = { prompt: prompt.substring(0, 500) };
 
-          // Send image to Veo if available
-          if (image_base64) {
-            instance.image = { inlineData: { mimeType: 'image/jpeg', data: image_base64 } };
+          // Send image to Veo if available (limit to ~2MB)
+          if (image_base64 && image_base64.length < 2800000) {
+            instance.image = { bytesBase64Encoded: image_base64 };
+          } else if (image_base64) {
+            console.log('Image too large for Veo (' + Math.round(image_base64.length/1024) + 'KB), skipping image');
           }
 
           const errors = [];
@@ -234,9 +236,10 @@ export default async function handler(req, res) {
                 errors.push(model + ': ' + r.status + ' - ' + errText.substring(0, 200));
                 console.log('Gemini Veo ' + model + ' error ' + r.status + ':', errText.substring(0, 500));
                 
-                // If image caused the error, retry without image
+                // If image caused the error, retry with different image format
                 if (image_base64 && instance.image) {
-                  delete instance.image;
+                  // Try inlineData format
+                  instance.image = { inlineData: { mimeType: 'image/jpeg', data: image_base64 } };
                   const r2 = await fetch(
                     GEMINI_BASE + '/models/' + model + ':predictLongRunning',
                     {
@@ -251,10 +254,34 @@ export default async function handler(req, res) {
                   if (r2.ok) {
                     const d2 = await r2.json();
                     if (d2.name) {
-                      console.log('Gemini Veo started (no image) with model:', model);
+                      console.log('Gemini Veo started (inlineData) with model:', model);
                       return res.status(200).json({
                         status: 'started',
                         operation: d2.name,
+                        provider: 'gemini'
+                      });
+                    }
+                  }
+                  // Last retry: without image at all
+                  delete instance.image;
+                  const r3 = await fetch(
+                    GEMINI_BASE + '/models/' + model + ':predictLongRunning',
+                    {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
+                      body: JSON.stringify({
+                        instances: [instance],
+                        parameters: { aspectRatio: '9:16' }
+                      })
+                    }
+                  );
+                  if (r3.ok) {
+                    const d3 = await r3.json();
+                    if (d3.name) {
+                      console.log('Gemini Veo started (no image) with model:', model);
+                      return res.status(200).json({
+                        status: 'started',
+                        operation: d3.name,
                         provider: 'gemini'
                       });
                     }
