@@ -197,11 +197,9 @@ export default async function handler(req, res) {
         try {
           const instance = { prompt: prompt.substring(0, 500) };
 
-          // Send image to Veo if available (limit to ~2MB)
-          if (image_base64 && image_base64.length < 2800000) {
+          // Send image to Veo if available (resized to 720p JPEG)
+          if (image_base64) {
             instance.image = { bytesBase64Encoded: image_base64 };
-          } else if (image_base64) {
-            console.log('Image too large for Veo (' + Math.round(image_base64.length/1024) + 'KB), skipping image');
           }
 
           const errors = [];
