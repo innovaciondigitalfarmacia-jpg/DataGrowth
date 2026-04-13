@@ -1174,10 +1174,22 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
           let imageBase64 = null;
           
           if (currentImages[0]) {
-            // User uploaded photos: send the FIRST photo directly to MiniMax
-            // This ensures the video is based on the user's actual photo
+            // User uploaded photos: resize to smaller JPEG for video
             setVideoProgress("Usando tu foto como base del video...");
-            imageBase64 = currentImages[0];
+            const img = new Image();
+            img.src = "data:image/jpeg;base64," + currentImages[0];
+            imageBase64 = await new Promise(resolve => {
+              img.onload = () => {
+                const maxW = 720;
+                const scale = img.width > maxW ? maxW / img.width : 1;
+                const c = document.createElement("canvas");
+                c.width = Math.round(img.width * scale);
+                c.height = Math.round(img.height * scale);
+                c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+                resolve(c.toDataURL("image/jpeg", 0.8).split(",")[1]);
+              };
+              img.onerror = () => resolve(currentImages[0]);
+            });
           } else {
             // No photos: generate image with Gemini from scratch
             setVideoProgress("Generando imagen base con IA...");
@@ -1320,7 +1332,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       {(ct.fmt==="reel"||ct.fmt==="visual")&&<div style={{marginBottom:14,padding:14,background:t.bgI,borderRadius:12,border:"1px solid "+t.brd}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}><span style={{fontSize:14}}>📷</span><span style={{fontSize:12,fontWeight:600,color:t.tx}}>{ct.fmt==="reel"?"Primer frame del video":"Fotos de referencia"}</span><span style={{fontSize:11,color:t.txM,fontStyle:"italic"}}>(opcional)</span></div><div style={{fontSize:11,color:t.txS,marginBottom:10,lineHeight:1.5}}>{ct.fmt==="reel"?"Si subes una foto, el video EMPIEZA desde esa foto y le da movimiento. Si no subes foto, la IA crea todo desde cero.":"Sube fotos reales de tu producto o servicio. La IA las usa como referencia para generar la imagen. Puedes subir varias."}</div><div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}><label style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",border:"2px dashed "+(uploadedImages.length?t.ac:t.brd),borderRadius:10,cursor:"pointer",color:uploadedImages.length?t.ac:t.txM,fontSize:12,fontWeight:500,background:uploadedImages.length?t.acS:"transparent"}}><span style={{fontSize:16}}>📷</span>Subir fotos<input type="file" accept="image/*" multiple onChange={handleUploadImages} style={{display:"none"}}/></label>{uploadedPreviews.map((p,i)=><div key={i} style={{position:"relative"}}><img src={p} style={{width:44,height:44,borderRadius:8,objectFit:"cover",border:"2px solid "+t.ac}}/><div onClick={()=>removeUploadedImage(i)} style={{position:"absolute",top:-5,right:-5,width:15,height:15,borderRadius:"50%",background:"#ef4444",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,cursor:"pointer",fontWeight:700}}>x</div></div>)}{uploadedImages.length>0&&<span style={{fontSize:11,color:t.ac,fontWeight:600}}>{uploadedImages.length} foto{uploadedImages.length>1?"s":""}</span>}</div></div>}
       <div style={{display:"flex",gap:10,marginBottom:22}}><Input value={topic} onChange={e=>setTopic(e.target.value)} placeholder={chatHistory.length>0&&ct.fmt==="visual"?"Escribe como mejorar la imagen...":"Describe que contenido necesitas..."} onKeyDown={e=>e.key==="Enter"&&go()}/><Btn onClick={go} disabled={loading||!topic.trim()} primary style={{whiteSpace:"nowrap",padding:"14px 28px"}}>{loading?<><Spin/> Creando...</>:<><Ic name="sparkle" size={16}/> {chatHistory.length>0&&ct.fmt==="visual"?"Mejorar":"Generar"}</>}</Btn>{chatHistory.length>0&&ct.fmt==="visual"&&!loading&&<Btn onClick={()=>{setChatHistory([]);setLastAiImage(null);setResult(null);}} style={{whiteSpace:"nowrap",padding:"14px 16px",fontSize:12}}>Nuevo</Btn>}</div>
       {!isAdmin&&<div style={{display:"flex",gap:10,marginBottom:14,fontSize:11,color:t.txM,flexWrap:"wrap"}}>{CTYPES.map(c=><span key={c.id} style={{padding:"3px 8px",background:getLeft(c.id)<=0?"rgba(239,68,68,.1)":t.bgI,borderRadius:6,color:getLeft(c.id)<=0?"#ef4444":t.txM}}>{c.icon} {getUsage(c.id)}/{getLimit(c.id)==9999?"∞":getLimit(c.id)}</span>)}<span style={{marginLeft:"auto",color:t.ac,cursor:"pointer"}}>⬆️ Actualizar plan</span></div>}
-      {loading&&!(ct.fmt==="visual"&&chatHistory.length>0)&&<Card style={{padding:48,textAlign:"center"}}><div style={{width:48,height:48,border:`3px solid ${t.brd}`,borderTop:`3px solid ${brand?.color||t.ac}`,borderRadius:"50%",animation:"spin .8s linear infinite",margin:"0 auto 16px"}}/><div style={{color:t.tx,fontSize:16,fontWeight:600}}>Generando para {brand?.name}...</div></Card>}
+      {loading&&!(ct.fmt==="visual"&&chatHistory.length>0)&&!(ct.fmt==="reel"&&videoLoading)&&<Card style={{padding:48,textAlign:"center"}}><div style={{width:48,height:48,border:`3px solid ${t.brd}`,borderTop:`3px solid ${brand?.color||t.ac}`,borderRadius:"50%",animation:"spin .8s linear infinite",margin:"0 auto 16px"}}/><div style={{color:t.tx,fontSize:16,fontWeight:600}}>Generando para {brand?.name}...</div></Card>}
       {result&&!loading&&result.t==="text"&&<Card><div style={{display:"flex",justifyContent:"space-between",marginBottom:14}}><span style={{fontSize:13,fontWeight:600,color:t.txS}}>{brand?.emoji} {brand?.name}</span><CopyBtn text={txt}/></div><div style={{fontSize:14,color:t.tx,lineHeight:1.8,whiteSpace:"pre-wrap"}}>{txt}</div></Card>}
       {/* VISUAL RESULT - shows only latest */}
       {ct.fmt==="visual"&&chatHistory.length>0&&(() => { const last = [...chatHistory].reverse().find(m => m.role === "ai"); if (!last) return null; return <div style={{marginBottom:16}}>
