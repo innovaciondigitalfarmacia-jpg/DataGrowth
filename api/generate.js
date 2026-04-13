@@ -1,4 +1,6 @@
-// v4 - Gemini only for text generation
+// v5 - Gemini for text generation + image vision
+export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -12,13 +14,28 @@ export default async function handler(req, res) {
   try {
     const sys = req.body.system || '';
     const msg = req.body.messages?.[0]?.content || '';
+    const images = req.body.images || [];
+
+    // Build parts array
+    const parts = [];
+    
+    // Add images if provided (for vision/description)
+    if (images && Array.isArray(images) && images.length > 0) {
+      for (const img of images) {
+        parts.push({ inlineData: { mimeType: 'image/jpeg', data: img } });
+      }
+    }
+    
+    // Add text
+    parts.push({ text: sys + '\n\n' + msg });
+
     const r = await fetch(
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + GEM,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: sys + '\n\n' + msg }] }]
+          contents: [{ parts }]
         })
       }
     );
