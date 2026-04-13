@@ -216,7 +216,7 @@ export default async function handler(req, res) {
                   headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
                   body: JSON.stringify({
                     instances: [instance],
-                    config: { aspectRatio: '9:16' }
+                    parameters: { aspectRatio: '9:16' }
                   })
                 }
               );
@@ -246,7 +246,7 @@ export default async function handler(req, res) {
                       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
                       body: JSON.stringify({
                         instances: [instance],
-                        config: { aspectRatio: '9:16' }
+                        parameters: { aspectRatio: '9:16' }
                       })
                     }
                   );
