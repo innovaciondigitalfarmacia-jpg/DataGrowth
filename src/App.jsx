@@ -1174,29 +1174,57 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
           let videoPrompt = motionPrompt;
           
           if (currentImages[0]) {
-            // User uploaded photos: send them to Gemini to describe, then pass description to Veo
+            // Step 1: Describe photos with Gemini vision
             setVideoProgress("Analizando tus fotos...");
             try {
               const descRes = await fetch("/api/generate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  system: "You create detailed video prompts based on reference images.",
-                  messages: [{ content: "Look at these reference images carefully. The user wants a promotional video based on them. User request: '" + topic + "'. Brand: " + brand.name + " (" + brand.industry + "). Create a detailed cinematic video prompt IN ENGLISH describing: the exact scene from the photos (buildings, landscape, nature, objects), lighting, colors, atmosphere, camera movement (slow dolly, pan), and any people actions. The video must match what's shown in these photos. Keep under 450 characters. Return ONLY the video prompt, nothing else." }],
+                  system: "You create video prompts from reference images.",
+                  messages: [{ content: "Describe these images in detail for a video AI. User request: '" + topic + "'. Brand: " + brand.name + ". Create a cinematic video prompt IN ENGLISH. Describe the exact scene, buildings, landscape, lighting, colors, atmosphere, camera movement. Under 400 chars. Return ONLY the prompt." }],
                   images: currentImages
                 })
               });
               if (descRes.ok) {
                 const descData = await descRes.json();
                 const desc = descData.content?.[0]?.text || "";
-                if (desc.length > 20) {
-                  videoPrompt = desc.substring(0, 480);
-                  console.log("Video prompt from photos:", videoPrompt);
-                }
+                if (desc.length > 20) videoPrompt = desc.substring(0, 480);
               }
-            } catch (e) {
-              console.log("Photo description failed:", e.message);
-            }
+            } catch (e) {}
+
+            // Step 2: Resize first photo to 720p JPEG for Veo
+            setVideoProgress("Preparando imagen para video...");
+            try {
+              const img = new Image();
+              img.src = "data:image/jpeg;base64," + currentImages[0];
+              const resizedB64 = await new Promise(resolve => {
+                img.onload = () => {
+                  const targetW = 720; const targetH = 1280; // 9:16
+                  const c = document.createElement("canvas");
+                  c.width = targetW; c.height = targetH;
+                  const ctx = c.getContext("2d");
+                  // Cover fit
+                  const scale = Math.max(targetW / img.width, targetH / img.height);
+                  const sw = targetW / scale, sh = targetH / scale;
+                  const sx = (img.width - sw) / 2, sy = (img.height - sh) / 2;
+                  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetW, targetH);
+                  resolve(c.toDataURL("image/jpeg", 0.75).split(",")[1]);
+                };
+                img.onerror = () => resolve(null);
+              });
+
+              if (resizedB64) {
+                // Send image + prompt to video API
+                setVideoProgress("Generando video con IA...");
+                const videoBody = { prompt: videoPrompt.substring(0, 480), image_base64: resizedB64 };
+                const r = await fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(videoBody) });
+                const d = await r.json();
+                if (d.operation) { pollVideo(d.operation, d.endpoint, d.response_url, d.status_url, d.provider); return; }
+              }
+            } catch (e) {}
+
+            // Fallback: text only
             setVideoProgress("Generando video con IA...");
           } else {
             // No photos: generate image with Gemini, then animate
