@@ -38,13 +38,19 @@ export default async function handler(req, res) {
           if (r.ok) {
             const d = await r.json();
             if (d.done) {
-              const videoUri = d.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri;
+              // Try multiple possible response formats
+              const videoUri = d.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri
+                || d.response?.generatedVideos?.[0]?.video?.uri
+                || d.response?.predictions?.[0]?.video?.uri
+                || d.response?.predictions?.[0]?.videoUri;
+              
               if (videoUri) {
-                // Return proxy URL so frontend can access the video
                 const proxyUrl = '/api/video?action=proxy&uri=' + encodeURIComponent(videoUri);
                 return res.status(200).json({ status: 'completed', video_url: proxyUrl });
               }
-              return res.status(200).json({ status: 'error', error: 'Video done but no URL found' });
+              // Log full response to debug
+              console.log('Gemini video done, response:', JSON.stringify(d.response || d).substring(0, 1000));
+              return res.status(200).json({ status: 'error', error: 'Video done but no URL found. Debug: ' + JSON.stringify(d.response || d).substring(0, 300) });
             }
             return res.status(200).json({ status: 'processing', provider: 'gemini' });
           }
@@ -198,13 +204,13 @@ export default async function handler(req, res) {
             instance.image = { inlineData: { mimeType: 'image/jpeg', data: image_base64 } };
           }
 
-          // Try multiple models - header auth as per Google docs
-          const models = ['veo-3.1-generate-preview', 'veo-3.1-lite-generate-preview', 'veo-3.1-fast-generate-preview', 'veo-2.0-generate-001'];
+          const errors = [];
+          const models = ['veo-3.1-generate-preview', 'veo-3.1-lite-generate-preview'];
           
           for (const model of models) {
             try {
               const r = await fetch(
-                GEMINI_BASE + '/models/' + model + ':generateVideos',
+                GEMINI_BASE + '/models/' + model + ':predictLongRunning',
                 {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
@@ -227,13 +233,14 @@ export default async function handler(req, res) {
                 }
               } else {
                 const errText = await r.text();
+                errors.push(model + ': ' + r.status + ' - ' + errText.substring(0, 200));
                 console.log('Gemini Veo ' + model + ' error ' + r.status + ':', errText.substring(0, 500));
                 
                 // If image caused the error, retry without image
                 if (image_base64 && instance.image) {
                   delete instance.image;
                   const r2 = await fetch(
-                    GEMINI_BASE + '/models/' + model + ':generateVideos',
+                    GEMINI_BASE + '/models/' + model + ':predictLongRunning',
                     {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
@@ -262,6 +269,7 @@ export default async function handler(req, res) {
           }
 
           console.log('Gemini Veo all models failed');
+          return res.status(200).json({ status: 'error', error: 'Gemini Veo errors: ' + errors.join(' | ') });
         } catch (e) {
           console.log('Gemini Veo exception:', e.message);
         }
