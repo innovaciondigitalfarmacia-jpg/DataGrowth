@@ -208,7 +208,20 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
 
   return (
     <div style={{ background: t.bg, minHeight: "100vh", fontFamily: "'Segoe UI',system-ui,sans-serif", color: t.tx }}>
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}} @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}} @keyframes glow{0%,100%{text-shadow:0 0 20px rgba(55,194,235,0.3)}50%{text-shadow:0 0 40px rgba(55,194,235,0.6),0 0 80px rgba(55,194,235,0.2)}} .dg-title{${dark ? 'animation:glow 3s ease-in-out infinite' : ''}}`}</style>
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}} @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}} @keyframes glow{0%,100%{text-shadow:0 0 20px rgba(55,194,235,0.3)}50%{text-shadow:0 0 40px rgba(55,194,235,0.6),0 0 80px rgba(55,194,235,0.2)}} .dg-title{${dark ? 'animation:glow 3s ease-in-out infinite' : ''}}
+        @media(max-width:768px){
+          .dg-grid3{grid-template-columns:1fr!important}
+          .dg-grid4{grid-template-columns:repeat(2,1fr)!important}
+          .dg-grid2{grid-template-columns:1fr!important}
+          .dg-nav-links{display:none!important}
+          .dg-nav-hamburger{display:flex!important}
+          .dg-footer-links{flex-direction:column!important;gap:10px!important}
+          .dg-footer-bottom{flex-direction:column!important;text-align:center}
+        }
+        @media(min-width:769px){
+          .dg-nav-hamburger{display:none!important}
+        }
+      `}</style>
 
       {/* NAV */}
       <nav style={{ padding: "0", borderBottom: `1px solid ${t.brd}`, position: "sticky", top: 0, background: t.bg + "f2", backdropFilter: "blur(16px)", zIndex: 50, height: 62, display: "flex", alignItems: "center" }}>
@@ -217,7 +230,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
             <div style={{ width: 30, height: 30, borderRadius: 8, overflow: "hidden" }}><Logo size={30}/></div>
             <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.5 }}>DataGrowth</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <div className="dg-nav-links" style={{ display: "flex", alignItems: "center", gap: 2 }}>
             {NAV_LINKS.map((l, i) => (
               <button key={i} onClick={l.action}
                 style={{ background: "transparent", border: "none", color: t.txS, fontSize: 13, fontWeight: 500, padding: "7px 13px", borderRadius: 7, cursor: "pointer", transition: "all .15s" }}
@@ -227,6 +240,9 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
               </button>
             ))}
           </div>
+          <div className="dg-nav-hamburger" style={{ display: "none", alignItems: "center" }}>
+            <div onClick={() => { const m = document.getElementById("dg-mobile-menu"); if(m) m.style.display = m.style.display === "flex" ? "none" : "flex"; }} style={{ cursor: "pointer", color: t.txM, padding: 7, borderRadius: 7, background: t.bgI, display: "flex" }}><Ic name="menu" size={20}/></div>
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div onClick={() => setDark(!dark)} style={{ cursor: "pointer", color: t.txM, padding: 7, borderRadius: 7, background: t.bgI, display: "flex" }}><Ic name={dark ? "sun" : "moon"} size={15}/></div>
             <Btn secondary onClick={onLogin} style={{ fontSize: 13, padding: "7px 16px" }}>Iniciar sesion</Btn>
@@ -234,6 +250,10 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
           </div>
         </div>
       </nav>
+      {/* Mobile menu */}
+      <div id="dg-mobile-menu" style={{ display: "none", flexDirection: "column", background: t.bg, borderBottom: "1px solid " + t.brd, padding: "8px 24px 16px", position: "sticky", top: 62, zIndex: 49 }}>
+        {NAV_LINKS.map((l, i) => <button key={i} onClick={() => { l.action(); const m = document.getElementById("dg-mobile-menu"); if(m) m.style.display = "none"; }} style={{ background: "transparent", border: "none", color: t.txS, fontSize: 14, fontWeight: 500, padding: "10px 0", cursor: "pointer", textAlign: "left", borderBottom: "1px solid " + t.brd }}>{l.label}</button>)}
+      </div>
 
       {/* HERO */}
       {landingPage==="home"&&<div id="inicio" style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px 60px", textAlign: "center", position: "relative" }}>
@@ -254,7 +274,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
           <h2 style={{ fontSize: 36, fontWeight: 700, letterSpacing: -1 }}>Todo lo que tu agencia necesita</h2>
           <p style={{ fontSize: 15, color: t.txS, marginTop: 10, maxWidth: 500, margin: "10px auto 0" }}>Una sola plataforma para generar todo el contenido de tus marcas.</p>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+        <div className="dg-grid3" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
           {features.map((f, i) => (
             <div key={i} style={{ background: t.bgC, border: "1px solid " + t.brd, borderRadius: 16, padding: 28, transition: "all .3s", cursor: "default" }} onMouseEnter={e => { e.currentTarget.style.borderColor = t.ac + "50"; e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 40px " + t.sh; }} onMouseLeave={e => { e.currentTarget.style.borderColor = t.brd; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}>
               <div style={{ width: 48, height: 48, borderRadius: 12, background: t.acS, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, marginBottom: 16 }}>{f.icon}</div>
@@ -273,7 +293,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
           <h2 style={{ fontSize: 36, fontWeight: 700, letterSpacing: -1 }}>La agencia digital que trabaja 24/7 para tu marca</h2>
           <p style={{ fontSize: 16, color: t.txS, marginTop: 12, maxWidth: 700, margin: "12px auto 0", lineHeight: 1.7 }}>DataGrowth es una plataforma de inteligencia artificial disenada para agencias digitales, emprendedores y empresas que necesitan generar contenido profesional de forma rapida, consistente y alineado con su identidad de marca.</p>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+        <div className="dg-grid2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
           {[
             { icon: "🎯", title: "Que hacemos", desc: "Generamos contenido completo para redes sociales usando inteligencia artificial de ultima generacion. Desde imagenes y videos hasta copys, carruseles, reels, anuncios y emails de marketing. Todo personalizado con los colores, tono de voz, productos e informacion real de tu marca." },
             { icon: "🚀", title: "Como funciona", desc: "1. Creas tu marca y configuras tu Brand Kit. 2. Conectas tu pagina web o redes sociales. 3. Seleccionas el tipo de contenido. 4. Describes lo que quieres. 5. La IA genera todo en segundos: imagen, texto, hashtags, listo para publicar." },
@@ -287,7 +307,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
         </div>
         <div style={{ marginTop: 24, background: t.bgC, border: "1px solid " + t.brd, borderRadius: 16, padding: 28 }}>
           <div style={{ fontSize: 17, fontWeight: 700, color: t.tx, marginBottom: 16, textAlign: "center" }}>🛠️ Tecnologia que impulsa DataGrowth</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+            <div className="dg-grid4" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
               {[
                 { icon: "🤖", name: "Claude AI", desc: "Genera textos, copys y emails de nivel agencia" },
                 { icon: "🖼️", name: "Nano Banana", desc: "Crea imagenes profesionales con IA de Google" },
@@ -323,7 +343,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
               <h2 style={{ fontSize: 36, fontWeight: 800, letterSpacing: -1 }}>Recursos para tu agencia</h2>
               <p style={{ fontSize: 15, color: t.txS, marginTop: 10, maxWidth: 500, margin: "10px auto 0" }}>Artículos sobre marketing digital, contenido con IA y estrategias para crecer.</p>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
+            <div className="dg-grid3" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
               {BLOG_POSTS.map((post, i) => (
                 <div key={i} onClick={() => openBlog(post)} style={{ border: `1px solid ${t.brd}`, borderRadius: 16, overflow: "hidden", cursor: "pointer", background: t.bgC, transition: "all .25s" }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = t.ac + "50"; e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = `0 12px 40px ${t.sh}`; }}
@@ -362,7 +382,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
               <div style={{ width: 28, height: 28, borderRadius: 7, overflow: "hidden" }}><Logo size={28}/></div>
               <span style={{ fontSize: 15, fontWeight: 700, color: t.tx }}>DataGrowth</span>
             </div>
-            <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+            <div className="dg-footer-links" style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
               <a href="https://instagram.com/datagrowth.agency" target="_blank" rel="noopener noreferrer" style={{ color: t.txS, textDecoration: "none", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500, transition: "color .2s" }} onMouseEnter={e => e.currentTarget.style.color = "#E1306C"} onMouseLeave={e => e.currentTarget.style.color = t.txS}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
                 @datagrowth.agency
@@ -377,7 +397,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
               </a>
             </div>
           </div>
-          <div style={{ borderTop: `1px solid ${t.brd}`, paddingTop: 20, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+          <div className="dg-footer-bottom" style={{ borderTop: `1px solid ${t.brd}`, paddingTop: 20, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
             <p style={{ fontSize: 12, color: t.txM }}>© 2026 DataGrowth by DataGrowth Agency. Todos los derechos reservados.</p>
             <p style={{ fontSize: 12, color: t.txM }}>Powered by Claude + Gemini</p>
           </div>
@@ -406,7 +426,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
             <h2 style={{ fontSize: 40, fontWeight: 800, letterSpacing: -1 }}>Elige el plan perfecto para ti</h2>
             <p style={{ fontSize: 16, color: t.txS, marginTop: 12 }}>Empieza gratis. Escala cuando lo necesites. Cancela cuando quieras.</p>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
+          <div className="dg-grid3" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
             {PLANS.map(p => (
               <div key={p.id} style={{ position: "relative", background: t.bgC, border: p.pop ? "2px solid " + p.color : "1px solid " + t.brd, borderRadius: 20, textAlign: "center", padding: 40, overflow: "visible", transition: "all .3s", display: "flex", flexDirection: "column" }} onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-6px)"; e.currentTarget.style.boxShadow = "0 20px 60px " + t.sh; }} onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}>
                 {p.pop && <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: t.gr, color: "#fff", padding: "6px 28px", borderRadius: 20, fontSize: 12, fontWeight: 700, boxShadow: "0 4px 15px rgba(55,194,235,.3)" }}>Mas popular</div>}
