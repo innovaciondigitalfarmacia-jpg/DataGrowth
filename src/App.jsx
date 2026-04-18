@@ -246,7 +246,8 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
             <Btn secondary onClick={onLogin} style={{ fontSize: 13, padding: "7px 16px" }}>Iniciar sesion</Btn>
             <Btn primary onClick={() => onRegister()} style={{ fontSize: 13, padding: "7px 16px" }}>Crear cuenta gratis</Btn>
           </div>
-          <div className="dg-nav-hamburger" style={{ display: "none", alignItems: "center", marginLeft: "auto" }}>
+          <div className="dg-nav-hamburger" style={{ display: "none", alignItems: "center", marginLeft: "auto", gap: 8 }}>
+            <div onClick={() => setDark(!dark)} style={{ cursor: "pointer", color: t.txM, padding: 7, borderRadius: 7, background: t.bgI, display: "flex" }}><Ic name={dark ? "sun" : "moon"} size={15}/></div>
             <div onClick={() => { const m = document.getElementById("dg-mobile-menu"); if(m) m.style.display = m.style.display === "flex" ? "none" : "flex"; }} style={{ cursor: "pointer", color: t.txM, padding: 8, borderRadius: 8, background: t.bgI, display: "flex" }}><Ic name="menu" size={22}/></div>
           </div>
         </div>
