@@ -719,7 +719,7 @@ const BrandEditor = ({ brand, onSave, onClose, isNew }) => {
   const [f, setF] = useState(brand || {
     name: "", short: "", colors: [ALLCOLORS[0]], industry: "", tone: "", audience: "", emoji: "🎯",
     brandVoice: "", imgStyle: "", website: "", instagram: "", facebook: "", tiktok: "", sector: "B2C",
-    slogan: "", products: "", differentiator: "", typography: "", values: "",
+    slogan: "", products: "", differentiator: "", typography: "", values: "", knowledge: "",
     logos: [], backgrounds: [], productPhotos: [], videos: [], socialPieces: [],
     brandManuals: [], catalogs: [], strategyDocs: [], productInfo: ""
   });
@@ -798,6 +798,58 @@ const BrandEditor = ({ brand, onSave, onClose, isNew }) => {
             <UploadZone label="Catálogos y listas de precios" icon="📋" files={f.catalogs} onAdd={(n, r) => addFile("catalogs", n, r)} multi/>
             <UploadZone label="Investigaciones y research" icon="🔍" files={f.researchDocs || []} onAdd={(n, r) => addFile("researchDocs", n, r)} multi/>
             <div><Label>Información de productos o servicios</Label><Textarea value={f.productInfo} onChange={e => u("productInfo", e.target.value)} placeholder="Describe tus productos/servicios principales, características, precios..." rows={3}/></div>
+            
+            {/* BASE DE CONOCIMIENTO */}
+            <div style={{ marginTop: 20, padding: 16, background: t.bgI, borderRadius: 12, border: "1px solid " + t.brd }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <span style={{ fontSize: 20 }}>🧠</span>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: t.tx }}>Base de Conocimiento</div>
+                  <div style={{ fontSize: 11, color: t.txM }}>Sube archivos (PDF, Word, Excel, imágenes) y la IA extraerá la información para usarla al generar contenido.</div>
+                </div>
+              </div>
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", border: "2px dashed " + t.brd, borderRadius: 10, cursor: "pointer", color: t.txM, fontSize: 12, fontWeight: 500, marginBottom: 8 }}>
+                <span style={{ fontSize: 16 }}>📄</span> Subir archivo (PDF, Word, Excel, imagen)
+                <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.webp" onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = async () => {
+                    const b64 = reader.result.split(",")[1];
+                    try {
+                      u("_fileLoading", true);
+                      const r = await fetch("/api/fileread", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ file_base64: b64, mime_type: file.type, filename: file.name })
+                      });
+                      const d = await r.json();
+                      if (d.text) {
+                        const prev = f.knowledge || "";
+                        const newKnowledge = prev + (prev ? "\n\n---\n\n" : "") + "📄 " + file.name + ":\n" + d.text;
+                        u("knowledge", newKnowledge.substring(0, 15000));
+                        u("_fileLoading", false);
+                        alert("✅ Archivo leído: " + d.chars + " caracteres extraídos de " + file.name);
+                      } else {
+                        u("_fileLoading", false);
+                        alert("❌ No se pudo leer el archivo: " + (d.error || "error desconocido"));
+                      }
+                    } catch (err) {
+                      u("_fileLoading", false);
+                      alert("❌ Error: " + err.message);
+                    }
+                  };
+                  reader.readAsDataURL(file);
+                  e.target.value = "";
+                }} style={{ display: "none" }}/>
+              </label>
+              {f._fileLoading && <div style={{ fontSize: 12, color: t.ac, marginBottom: 8 }}>⏳ Leyendo archivo con IA...</div>}
+              {f.knowledge && <div style={{ marginTop: 8 }}>
+                <div style={{ fontSize: 11, color: t.txM, marginBottom: 4 }}>Conocimiento extraído ({f.knowledge.length} chars):</div>
+                <Textarea value={f.knowledge} onChange={e => u("knowledge", e.target.value)} rows={4} style={{ fontSize: 11 }}/>
+                <button onClick={() => u("knowledge", "")} style={{ marginTop: 4, background: "transparent", border: "none", color: "#ef4444", fontSize: 11, cursor: "pointer" }}>🗑️ Borrar conocimiento</button>
+              </div>}
+            </div>
           </>}
 
           {step === 5 && <>
@@ -814,6 +866,39 @@ const BrandEditor = ({ brand, onSave, onClose, isNew }) => {
               <div><Label>TikTok</Label><Input value={f.tiktok} onChange={e => u("tiktok", e.target.value)} placeholder="@miempresa"/></div>
             </div>
             <UploadZone label="Captura de página web" icon="🌐" files={f.websiteScreenshot || []} onAdd={(n, r) => addFile("websiteScreenshot", n, r)} multi/>
+
+            {/* LEER REDES SOCIALES */}
+            {(f.website || f.instagram || f.facebook) && <div style={{ padding: 14, background: t.bgI, borderRadius: 12, border: "1px solid " + t.brd, marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: 18 }}>📡</span>
+                <div style={{ fontSize: 13, fontWeight: 600, color: t.tx }}>Leer información de redes y web</div>
+              </div>
+              <div style={{ fontSize: 11, color: t.txM, marginBottom: 10 }}>La IA visitará tus redes y web para extraer información real (bio, posts, productos, precios) y usarla al generar contenido.</div>
+              <button onClick={async () => {
+                const urls = [f.website, f.instagram, f.facebook].filter(Boolean);
+                if (!urls.length) return alert("Agrega al menos una URL");
+                u("_socialLoading", true);
+                let allText = "";
+                for (const rawUrl of urls) {
+                  try {
+                    const url = rawUrl.startsWith("http") ? rawUrl : "https://" + rawUrl;
+                    const r = await fetch("/api/scrape?url=" + encodeURIComponent(url));
+                    const d = await r.json();
+                    if (d.text) allText += "\n\n🌐 " + rawUrl + ":\n" + d.text.substring(0, 2000);
+                  } catch (e) {}
+                }
+                if (allText) {
+                  const prev = f.knowledge || "";
+                  u("knowledge", (prev + allText).substring(0, 15000));
+                  alert("✅ Se leyeron " + urls.length + " fuentes y se agregaron al conocimiento de la marca");
+                } else {
+                  alert("❌ No se pudo leer ninguna fuente. Algunas redes sociales bloquean la lectura automática.");
+                }
+                u("_socialLoading", false);
+              }} disabled={f._socialLoading} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", background: t.ac, border: "none", borderRadius: 8, color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                {f._socialLoading ? "⏳ Leyendo..." : "📡 Leer redes y web ahora"}
+              </button>
+            </div>}
 
             {/* Preview */}
             <div style={{ padding: 16, background: t.bgI, borderRadius: 12, border: `1px solid ${t.brd}`, marginTop: 20 }}>
@@ -854,10 +939,10 @@ const BrandKit = ({ brands, setBrands, user }) => {
   const [tab, setTab] = useState("identity");
   const save = async (b) => {
     if (cr) {
-      const { data } = await supabase.from("brands").insert({ user_id: user.id, name: b.name, short: b.short, color: b.color, industry: b.industry, tone: b.tone, audience: b.audience, emoji: b.emoji, brand_voice: b.brandVoice, img_style: b.imgStyle, sector: b.sector, colors: b.colors, products: b.products, description: b.description, differentiator: b.differentiator, website: b.website, instagram: b.instagram, facebook: b.facebook }).select().single();
+      const { data } = await supabase.from("brands").insert({ user_id: user.id, name: b.name, short: b.short, color: b.color, industry: b.industry, tone: b.tone, audience: b.audience, emoji: b.emoji, brand_voice: b.brandVoice, img_style: b.imgStyle, sector: b.sector, colors: b.colors, products: b.products, description: b.description, differentiator: b.differentiator, website: b.website, instagram: b.instagram, facebook: b.facebook, knowledge: b.knowledge || "" }).select().single();
       if (data) { const nb = { ...data, brandVoice: data.brand_voice, imgStyle: data.img_style }; setBrands([...brands, nb]); setSel(nb); }
     } else {
-      await supabase.from("brands").update({ name: b.name, short: b.short, color: b.color, industry: b.industry, tone: b.tone, audience: b.audience, emoji: b.emoji, brand_voice: b.brandVoice, img_style: b.imgStyle, sector: b.sector, colors: b.colors, products: b.products, description: b.description, differentiator: b.differentiator, website: b.website, instagram: b.instagram, facebook: b.facebook }).eq("id", b.id);
+      await supabase.from("brands").update({ name: b.name, short: b.short, color: b.color, industry: b.industry, tone: b.tone, audience: b.audience, emoji: b.emoji, brand_voice: b.brandVoice, img_style: b.imgStyle, sector: b.sector, colors: b.colors, products: b.products, description: b.description, differentiator: b.differentiator, website: b.website, instagram: b.instagram, facebook: b.facebook, knowledge: b.knowledge || "" }).eq("id", b.id);
       setBrands(brands.map(x => x.id === b.id ? b : x)); setSel(b);
     }
     setEd(null); setCr(false);
@@ -1263,8 +1348,9 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
     }
     const brandCtx = "MARCA:" + brand.name + "|INDUSTRIA:" + brand.industry + "|TONO:" + brand.tone + "|AUDIENCIA:" + brand.audience + "|VOZ:" + (brand.brandVoice || "Profesional") + "|PRODUCTOS:" + (brand.products || "N/A") + "|COLORES:" + brandColors + "|ESTILO_VISUAL:" + brandStyle;
     const realInfoBlock = realInfo ? "\n\nINFORMACION REAL DE LA PAGINA WEB DE " + brand.name + " (USA SOLO ESTA INFORMACION REAL, NO INVENTES DATOS):\n" + realInfo : "";
+    const knowledgeBlock = brand.knowledge ? "\n\nBASE DE CONOCIMIENTO DE LA MARCA (informacion de archivos, redes sociales y documentos de la marca - USA ESTA INFO):\n" + brand.knowledge.substring(0, 3000) : "";
     const jsonRule = (fmt === "text") ? " Responde en texto plano, NO JSON." : " SOLO JSON sin markdown sin backticks.";
-    const sys = "Eres DIRECTOR CREATIVO SENIOR agencia Bogota. " + brandCtx + ". REGLAS:1)Gancho 2)3-5 emojis 3)Gancho>Valor>CTA 4)8 hashtags 5)Espanol colombiano tu 6)Valor primero 7)Saltos linea." + jsonRule + " MUY IMPORTANTE: Usa SOLO informacion REAL de la marca. NUNCA inventes precios, productos, servicios ni datos que no sean reales." + realInfoBlock;
+    const sys = "Eres DIRECTOR CREATIVO SENIOR agencia Bogota. " + brandCtx + ". REGLAS:1)Gancho 2)3-5 emojis 3)Gancho>Valor>CTA 4)8 hashtags 5)Espanol colombiano tu 6)Valor primero 7)Saltos linea." + jsonRule + " MUY IMPORTANTE: Usa SOLO informacion REAL de la marca. NUNCA inventes precios, productos, servicios ni datos que no sean reales." + realInfoBlock + knowledgeBlock;
     const imgInst = "image_prompt: MUST be in english BUT any visible text inside the image MUST be in Spanish. Translate the user request LITERALLY into an image description. If user asks for animated/cartoon style, specify 3D Pixar-style animated. If user mentions discounts or text, include that text visually in the image. Honor any hex color codes mentioned by the user. Brand name: " + brand.name + ". Brand colors: " + brandColors + ". Brand visual style: " + brandStyle + ". Industry: " + brand.industry + ". Be EXTREMELY specific and literal. Copy the user instructions as closely as possible into the image description. NEVER include any logo or brand logo in the image because the AI will generate a fake incorrect logo. The real logo will be added manually later.";
     let msg = "";
     if (fmt === "visual") {
