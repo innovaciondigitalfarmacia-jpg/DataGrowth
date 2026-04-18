@@ -391,7 +391,6 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
         <nav style={{ padding: "16px 0", borderBottom: "1px solid " + t.brd, background: t.bg + "ee", backdropFilter: "blur(12px)" }}>
           <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => setShowPlans(false)}>
-              <Ic name="back" size={20}/>
               <div style={{ width: 32, height: 32, borderRadius: 8, overflow: "hidden" }}><Logo size={32}/></div>
               <span style={{ fontSize: 16, fontWeight: 700 }}>DataGrowth</span>
             </div>
