@@ -172,18 +172,17 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
   const t = useT();
   const [customAmount, setCustomAmount] = useState(150);
   const [blogOpen, setBlogOpen] = useState(null);
+  const [landingPage, setLandingPage] = useState("home");
 
-  const openBlog = (post) => {
-    setBlogOpen(post);
-    window.history.pushState({ blog: post.id }, "", "#blog-" + post.id);
-  };
-  const closeBlog = () => {
-    setBlogOpen(null);
-    window.history.back();
-  };
+  const openBlog = (post) => { setBlogOpen(post); window.history.pushState({ lp: "blog", blog: post.id }, "", "#blog-" + post.id); };
+  const closeBlog = () => { setBlogOpen(null); window.history.back(); };
+  const goLanding = (pg) => { setLandingPage(pg); setBlogOpen(null); window.scrollTo(0, 0); window.history.pushState({ lp: pg }, "", "#" + pg); };
 
   useEffect(() => {
-    const handlePop = (e) => { if (!e.state?.blog) setBlogOpen(null); };
+    const handlePop = (e) => {
+      if (e.state?.lp) { setLandingPage(e.state.lp); setBlogOpen(null); }
+      else { setLandingPage("home"); setBlogOpen(null); }
+    };
     window.addEventListener("popstate", handlePop);
     return () => window.removeEventListener("popstate", handlePop);
   }, []);
@@ -199,13 +198,12 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
     { icon: "📢", title: "Anuncios", desc: "Genera imagenes y textos publicitarios listos para pauta en Meta Ads, Google Ads y mas." },
   ];
 
-  const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   const NAV_LINKS = [
-    { label: "Inicio", id: "inicio" },
-    { label: "Funciones", id: "funciones" },
-    { label: "Quiénes somos", id: "quienes" },
+    { label: "Inicio", action: () => goLanding("home") },
+    { label: "Funciones", action: () => goLanding("funciones") },
+    { label: "Quiénes somos", action: () => goLanding("quienes") },
     { label: "Planes", action: () => setShowPlans(true) },
-    { label: "Blog", id: "blog" },
+    { label: "Blog", action: () => goLanding("blog") },
   ];
 
   return (
@@ -221,7 +219,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
             {NAV_LINKS.map((l, i) => (
-              <button key={i} onClick={l.action || (() => scrollTo(l.id))}
+              <button key={i} onClick={l.action}
                 style={{ background: "transparent", border: "none", color: t.txS, fontSize: 13, fontWeight: 500, padding: "7px 13px", borderRadius: 7, cursor: "pointer", transition: "all .15s" }}
                 onMouseEnter={e => { e.currentTarget.style.color = t.ac; e.currentTarget.style.background = t.acS; }}
                 onMouseLeave={e => { e.currentTarget.style.color = t.txS; e.currentTarget.style.background = "transparent"; }}>
@@ -238,7 +236,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
       </nav>
 
       {/* HERO */}
-      <div id="inicio" style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px 60px", textAlign: "center", position: "relative" }}>
+      {landingPage==="home"&&<div id="inicio" style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px 60px", textAlign: "center", position: "relative" }}>
         <div style={{ position: "absolute", top: -100, left: "50%", transform: "translateX(-50%)", width: 600, height: 400, background: t.ac, borderRadius: "50%", filter: "blur(180px)", opacity: dark ? .06 : .03, pointerEvents: "none" }}/>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, border: `1px solid ${t.ac}50`, borderRadius: 6, padding: "5px 16px 5px 10px", fontSize: 11, color: t.ac, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 32 }}>
           <span style={{ width: 6, height: 6, borderRadius: "50%", background: t.ac, animation: "pulse 2s infinite" }}/> Plataforma AI para agencias digitales
@@ -249,8 +247,8 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
           <button onClick={() => setShowPlans(true)} style={{ background: t.ac, border: "none", color: "#fff", fontSize: 17, fontWeight: 700, padding: "16px 44px", borderRadius: 10, cursor: "pointer", boxShadow: `0 0 30px ${t.ac}40` }}>Ver planes</button>
           <button onClick={() => onRegister()} style={{ background: "transparent", border: `1px solid ${t.brd}`, color: t.tx, fontSize: 16, fontWeight: 500, padding: "16px 32px", borderRadius: 10, cursor: "pointer" }}>Empezar gratis →</button>
         </div>
-      </div>
-      <div id="funciones" style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px" }}>
+      </div>}
+      {(landingPage==="home"||landingPage==="funciones")&&<div id="funciones" style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px" }}>
         <div style={{ textAlign: "center", marginBottom: 56 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Funcionalidades</div>
           <h2 style={{ fontSize: 36, fontWeight: 700, letterSpacing: -1 }}>Todo lo que tu agencia necesita</h2>
@@ -265,10 +263,10 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
             </div>
           ))}
         </div>
-      </div>
+      </div>}
 
       {/* ABOUT US */}
-      <div id="quienes" style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px", position: "relative" }}>
+      {(landingPage==="home"||landingPage==="quienes")&&<div id="quienes" style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px", position: "relative" }}>
         <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 500, height: 300, background: t.ac, borderRadius: "50%", filter: "blur(160px)", opacity: .04, pointerEvents: "none" }}/>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: t.ac, textTransform: "uppercase", letterSpacing: 3, marginBottom: 12 }}>Quienes Somos</div>
@@ -298,10 +296,10 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
               ].map((t2, i) => <div key={i} style={{ textAlign: "center", padding: 16, background: t.bgI, borderRadius: 12, transition: "all .3s" }} onMouseEnter={e => { e.currentTarget.style.background = t.acS; e.currentTarget.style.transform = "translateY(-2px)"; }} onMouseLeave={e => { e.currentTarget.style.background = t.bgI; e.currentTarget.style.transform = "none"; }}><div style={{ fontSize: 24, marginBottom: 6 }}>{t2.icon}</div><div style={{ fontSize: 13, fontWeight: 600, color: t.tx, marginBottom: 4 }}>{t2.name}</div><div style={{ fontSize: 11, color: t.txS }}>{t2.desc}</div></div>)}
             </div>
         </div>
-      </div>
+      </div>}
 
       {/* BLOG */}
-      <div id="blog" style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px" }}>
+      {(landingPage==="home"||landingPage==="blog")&&<div id="blog" style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px" }}>
         {blogOpen ? (
           <div>
             <button onClick={closeBlog} style={{ display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", color: t.txS, fontSize: 14, cursor: "pointer", marginBottom: 40, padding: 0, fontWeight: 500 }}>
@@ -342,10 +340,10 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
             </div>
           </>
         )}
-      </div>
+      </div>}
 
       {/* CTA */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px 80px" }}>
+      {landingPage==="home"&&<div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px 80px" }}>
         <div style={{ textAlign: "center", padding: "70px 40px", position: "relative", overflow: "hidden", background: t.bgC, border: "1px solid " + t.brd, borderRadius: 20 }}>
           <div style={{ position: "absolute", top: -100, left: "50%", transform: "translateX(-50%)", width: 600, height: 400, background: t.ac, borderRadius: "50%", filter: "blur(150px)", opacity: .1, pointerEvents: "none" }}/>
           <RocketCanvas />
@@ -354,7 +352,7 @@ const Landing = ({ onLogin, onRegister, dark, setDark, showPlans, setShowPlans }
             <p style={{ fontSize: 16, color: t.txS, marginBottom: 32, maxWidth: 500, margin: "0 auto 32px" }}>Unete a las agencias y emprendedores que ya generan contenido profesional con IA. Sin tarjeta de credito.</p>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* FOOTER */}
       <div style={{ borderTop: `1px solid ${t.brd}`, padding: "40px 0 24px" }}>
@@ -1523,7 +1521,7 @@ export default function App() {
   useEffect(() => {
     const handlePop = (e) => {
       const s = e.state;
-      if (!s) return;
+      if (!s || !s.view) return;
       setView(s.view);
       if (s.page) setPage(s.page);
       if (s.landingSubView !== undefined) setLandingSubView(s.landingSubView);
