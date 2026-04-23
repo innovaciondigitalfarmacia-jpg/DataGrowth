@@ -1284,18 +1284,18 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       
       const generateAndAnimate = async () => {
         try {
-          let videoPrompt = motionPrompt;
+          let videoPrompt = "";
           
           if (currentImages[0]) {
-            // Step 1: Describe photos with Gemini vision
-            setVideoProgress("Analizando tus fotos...");
+            // Analyze photos + combine with user instructions into ONE prompt
+            setVideoProgress("Analizando tus fotos y preparando instrucciones...");
             try {
               const descRes = await fetch("/api/generate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  system: "You create video prompts from reference images.",
-                  messages: [{ content: "Describe these images in detail for a video AI. User request: '" + topic + "'. Brand: " + brand.name + ". Create a cinematic video prompt IN ENGLISH but specify that ANY visible text in the video MUST be in Spanish. Describe the exact scene, buildings, landscape, lighting, colors, atmosphere, camera movement. Under 400 chars. Return ONLY the prompt." }],
+                  system: "You create detailed video prompts. Return ONLY the prompt, nothing else. Max 450 characters.",
+                  messages: [{ content: "Create ONE unified video prompt that combines:\n\n1. SCENE FROM PHOTOS: Describe exactly what you see in these reference images (buildings, landscape, people, objects, lighting, colors, atmosphere)\n\n2. USER INSTRUCTIONS: '" + topic + "'\n\n3. BRAND: " + brand.name + " (" + brand.industry + "), colors: " + brandColors + ", style: " + brandStyle + "\n\nThe prompt must:\n- Describe the scene from the photos AS the video setting\n- Include the user's specific requests\n- Use the brand colors and style\n- Specify cinematic camera movement (slow dolly, pan)\n- Say: 'Any visible text MUST be in Spanish'\n- Be in English\n- Under 450 characters\n\nReturn ONLY the video prompt." }],
                   images: currentImages
                 })
               });
@@ -1305,19 +1305,25 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
                 if (desc.length > 20) videoPrompt = desc.substring(0, 480);
               }
             } catch (e) {}
+          }
+          
+          // If no prompt from photos or no photos, use the default combined prompt
+          if (!videoPrompt) {
+            videoPrompt = motionPrompt;
+          }
 
-            // Step 2: Resize first photo to 720p JPEG for Veo
+          // Try sending with image first
+          if (currentImages[0]) {
             setVideoProgress("Preparando imagen para video...");
             try {
               const img = new Image();
               img.src = "data:image/jpeg;base64," + currentImages[0];
               const resizedB64 = await new Promise(resolve => {
                 img.onload = () => {
-                  const targetW = 720; const targetH = 1280; // 9:16
+                  const targetW = 720; const targetH = 1280;
                   const c = document.createElement("canvas");
                   c.width = targetW; c.height = targetH;
                   const ctx = c.getContext("2d");
-                  // Cover fit
                   const scale = Math.max(targetW / img.width, targetH / img.height);
                   const sw = targetW / scale, sh = targetH / scale;
                   const sx = (img.width - sw) / 2, sy = (img.height - sh) / 2;
@@ -1326,9 +1332,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
                 };
                 img.onerror = () => resolve(null);
               });
-
               if (resizedB64) {
-                // Send image + prompt to video API
                 setVideoProgress("Generando video con IA...");
                 const videoBody = { prompt: videoPrompt.substring(0, 480), image_base64: resizedB64 };
                 const r = await fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(videoBody) });
