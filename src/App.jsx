@@ -1209,7 +1209,8 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
 
     // ── DIRECT EDIT: user uploaded a photo, send instruction directly to image API ──
     if (isDirectEdit) {
-      const editPrompt = currentTopic + ". If any visible text is needed, write it in Spanish. If hex color codes are mentioned, use those exact colors.";
+      const brandInfo = "BRAND: " + brand.name + ". BRAND COLORS: " + brandColors + ". STYLE: " + brandStyle + ". INDUSTRY: " + (brand.industry || "") + ". ";
+      const editPrompt = brandInfo + currentTopic + ". IMPORTANT: Use the brand colors (" + brandColors + ") as the primary colors. Any visible text must be in Spanish. If hex color codes are mentioned, use those exact colors.";
       // If there's a previous AI image, send it as the FIRST image (base to edit)
       // and the uploaded photos as additional reference
       const allImages = lastAiImage ? [lastAiImage, ...currentImages] : currentImages;
@@ -1235,7 +1236,8 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
 
     // ── DIRECT REFINEMENT: skip text gen, send instruction directly to image API ──
     if (isRefining) {
-      const editPrompt = currentTopic + ". If any visible text is needed, write it in Spanish. If hex color codes are mentioned, use those exact colors.";
+      const brandInfo = "BRAND: " + brand.name + ". BRAND COLORS: " + brandColors + ". STYLE: " + brandStyle + ". INDUSTRY: " + (brand.industry || "") + ". ";
+      const editPrompt = brandInfo + currentTopic + ". IMPORTANT: Use the brand colors (" + brandColors + ") as the primary colors. Any visible text must be in Spanish. If hex color codes are mentioned, use those exact colors.";
       setChatHistory(prev => [...prev, { role: "ai", text: "", headline: "", loading: true }]);
       try {
         const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: editPrompt, image_base64: lastAiImage }) });
