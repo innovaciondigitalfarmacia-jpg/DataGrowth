@@ -1210,7 +1210,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
 
     // ── DIRECT EDIT: user uploaded a photo, send instruction directly to image API ──
     if (isDirectEdit) {
-      const brandInfo = "BRAND: " + brand.name + ". BRAND COLORS: " + brandColors + ". STYLE: " + brandStyle + ". INDUSTRY: " + (brand.industry || "") + ". ";
+      const brandInfo = "BRAND: " + brand.name + ". BRAND COLORS: " + brandColors + ". STYLE: " + brandStyle + ". INDUSTRY: " + (brand.industry || "") + ". PRODUCTS: " + (brand.products || "N/A") + ". ";
       const editPrompt = brandInfo + currentTopic + ". IMPORTANT: Use the brand colors (" + brandColors + ") as the primary colors. Any visible text must be in Spanish. If hex color codes are mentioned, use those exact colors.";
       if (!lastImageContext) setLastImageContext(currentTopic);
       // If there's a previous AI image, send it as the FIRST image (base to edit)
@@ -1238,7 +1238,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
 
     // ── DIRECT REFINEMENT: skip text gen, send instruction directly to image API ──
     if (isRefining) {
-      const brandInfo = "BRAND: " + brand.name + ". BRAND COLORS: " + brandColors + ". STYLE: " + brandStyle + ". INDUSTRY: " + (brand.industry || "") + ". ";
+      const brandInfo = "BRAND: " + brand.name + ". BRAND COLORS: " + brandColors + ". STYLE: " + brandStyle + ". INDUSTRY: " + (brand.industry || "") + ". PRODUCTS: " + (brand.products || "N/A") + ". ";
       const contextInfo = lastImageContext ? "ORIGINAL IMAGE CONTEXT (do NOT change the overall scene, keep this as base): " + lastImageContext + ". " : "";
       const editPrompt = brandInfo + contextInfo + "USER WANTS THIS SPECIFIC CHANGE: " + currentTopic + ". CRITICAL: Make ONLY the change the user asked for. Keep the ENTIRE rest of the image IDENTICAL. Same scene, same layout, same elements, same style. ONLY modify what was requested. Use brand colors (" + brandColors + "). Any visible text must be in Spanish.";
       setChatHistory(prev => [...prev, { role: "ai", text: "", headline: "", loading: true }]);
@@ -1275,10 +1275,11 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
     // Start video generation for reels: Gemini image first, then fal.ai animates it
     const fmt = ct.fmt;
     if (fmt === "reel") {
+      const brandFullInfo = "Brand: " + brand.name + " (" + brand.industry + "). Colors: " + brandColors + ". Style: " + brandStyle + ". Products: " + (brand.products || "N/A") + ". " + (brand.description ? "Description: " + brand.description.substring(0, 150) + ". " : "") + (realInfo ? "Real info from website: " + realInfo.substring(0, 300) + ". " : "") + (brand.knowledge ? "Knowledge: " + brand.knowledge.substring(0, 300) + ". " : "");
       const imgPrompt = currentImages[0]
-        ? "You have reference photos from the user. Use them as the BASE of the image. Keep the same scene, place, and elements shown in the photos. Then apply ONLY what the user asks: " + topic + ". If the user asks to add something, add it to the existing scene. If the user asks to improve something, improve it while keeping the rest. Do NOT generate a completely different image. Brand: " + brand.name + " (" + brand.industry + "). Style: " + brandStyle + ". Any visible text must be in Spanish. Do NOT include any logo. Photorealistic, high quality, 9:16 vertical format."
-        : "Cinematic photo for " + brand.name + " (" + brand.industry + "). Topic: " + topic + ". Style: " + brandStyle + ". IMPORTANT: 1) Do NOT add objects, pools, furniture, vehicles, or structures UNLESS the user explicitly asks for them. 2) People must have REALISTIC proportions. Faces must be sharp and detailed. 3) Any visible text must be in Spanish. 4) Do NOT include any logo. Photorealistic, high quality, 9:16 vertical format.";
-      const motionPrompt = "Video cinematografico profesional para " + brand.name + " (" + brand.industry + "). " + topic + ". Estilo: " + brandStyle + ". Movimiento cinematico suave: paneo lento de camara, brisa en arboles, nubes en movimiento, luces calidas. Personas con movimiento realista. Formato vertical 9:16. Alta calidad. IMPORTANTE: Cualquier texto visible en el video DEBE estar en español.";
+        ? "You have reference photos from the user. Use them as the BASE of the image. Keep the same scene, place, and elements shown in the photos. Then apply ONLY what the user asks: " + topic + ". " + brandFullInfo + " Any visible text must be in Spanish. Do NOT include any logo. Photorealistic, high quality, 9:16 vertical format."
+        : "Cinematic photo for " + brand.name + " (" + brand.industry + "). Topic: " + topic + ". Style: " + brandStyle + ". " + brandFullInfo + " IMPORTANT: 1) Do NOT add objects, pools, furniture, vehicles, or structures UNLESS the user explicitly asks for them. 2) People must have REALISTIC proportions. Faces must be sharp and detailed. 3) Any visible text must be in Spanish. 4) Do NOT include any logo. Photorealistic, high quality, 9:16 vertical format.";
+      const motionPrompt = "Video cinematografico profesional para " + brand.name + " (" + brand.industry + "). " + topic + ". Estilo: " + brandStyle + ". Productos: " + (brand.products || "N/A") + ". " + (realInfo ? "Info real: " + realInfo.substring(0, 200) + ". " : "") + "Movimiento cinematico suave: paneo lento de camara, brisa en arboles, nubes en movimiento, luces calidas. Personas con movimiento realista. Formato vertical 9:16. Alta calidad. IMPORTANTE: Cualquier texto visible en el video DEBE estar en español.";
       
       setVideoLoading(true); setVideoProgress("Preparando video...");
       
@@ -1295,7 +1296,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   system: "You create detailed video prompts. Return ONLY the prompt, nothing else. Max 450 characters.",
-                  messages: [{ content: "Create ONE unified video prompt that combines:\n\n1. SCENE FROM PHOTOS: Describe exactly what you see in these reference images (buildings, landscape, people, objects, lighting, colors, atmosphere)\n\n2. USER INSTRUCTIONS: '" + topic + "'\n\n3. BRAND: " + brand.name + " (" + brand.industry + "), colors: " + brandColors + ", style: " + brandStyle + "\n\nThe prompt must:\n- Describe the scene from the photos AS the video setting\n- Include the user's specific requests\n- Use the brand colors and style\n- Specify cinematic camera movement (slow dolly, pan)\n- Say: 'Any visible text MUST be in Spanish'\n- Be in English\n- Under 450 characters\n\nReturn ONLY the video prompt." }],
+                  messages: [{ content: "Create ONE unified video prompt that combines:\n\n1. SCENE FROM PHOTOS: Describe exactly what you see in these reference images (buildings, landscape, people, objects, lighting, colors, atmosphere)\n\n2. USER INSTRUCTIONS: '" + topic + "'\n\n3. BRAND INFO: " + brand.name + " (" + brand.industry + "), colors: " + brandColors + ", style: " + brandStyle + ", products: " + (brand.products || "N/A") + (realInfo ? "\n\n4. REAL INFO FROM WEBSITE: " + realInfo.substring(0, 300) : "") + (brand.knowledge ? "\n\n5. BRAND KNOWLEDGE: " + brand.knowledge.substring(0, 300) : "") + "\n\nThe prompt must:\n- Describe the scene from the photos AS the video setting\n- Include the user's specific requests\n- Use the brand colors (" + brandColors + ") and real products/services\n- Specify cinematic camera movement (slow dolly, pan)\n- Say: 'Any visible text MUST be in Spanish'\n- Be in English\n- Under 450 characters\n\nReturn ONLY the video prompt." }],
                   images: currentImages
                 })
               });
