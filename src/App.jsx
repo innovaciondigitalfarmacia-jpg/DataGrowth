@@ -1134,13 +1134,13 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.onload = () => {
-        const maxW = 2048;
+        const maxW = 1280;
         const scale = img.width > maxW ? maxW / img.width : 1;
         const c = document.createElement("canvas");
         c.width = Math.round(img.width * scale);
         c.height = Math.round(img.height * scale);
         c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        const b64 = c.toDataURL("image/png").split(",")[1];
+        const b64 = c.toDataURL("image/jpeg", 0.92).split(",")[1];
         setLastAiImage(b64);
         resolve(b64);
       };
