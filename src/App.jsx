@@ -1278,7 +1278,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       const imgPrompt = currentImages[0]
         ? "You have reference photos from the user. Use them as the BASE of the image. Keep the same scene, place, and elements shown in the photos. Then apply ONLY what the user asks: " + topic + ". If the user asks to add something, add it to the existing scene. If the user asks to improve something, improve it while keeping the rest. Do NOT generate a completely different image. Brand: " + brand.name + " (" + brand.industry + "). Style: " + brandStyle + ". Any visible text must be in Spanish. Do NOT include any logo. Photorealistic, high quality, 9:16 vertical format."
         : "Cinematic photo for " + brand.name + " (" + brand.industry + "). Topic: " + topic + ". Style: " + brandStyle + ". IMPORTANT: 1) Do NOT add objects, pools, furniture, vehicles, or structures UNLESS the user explicitly asks for them. 2) People must have REALISTIC proportions. Faces must be sharp and detailed. 3) Any visible text must be in Spanish. 4) Do NOT include any logo. Photorealistic, high quality, 9:16 vertical format.";
-      const motionPrompt = "Video cinematografico profesional para " + brand.name + " (" + brand.industry + "). " + topic + ". Estilo: " + brandStyle + ". Movimiento cinematico suave: paneo lento de camara, brisa en arboles, nubes en movimiento, luces calidas. Personas con movimiento realista. Formato vertical 9:16. Alta calidad.";
+      const motionPrompt = "Video cinematografico profesional para " + brand.name + " (" + brand.industry + "). " + topic + ". Estilo: " + brandStyle + ". Movimiento cinematico suave: paneo lento de camara, brisa en arboles, nubes en movimiento, luces calidas. Personas con movimiento realista. Formato vertical 9:16. Alta calidad. IMPORTANTE: Cualquier texto visible en el video DEBE estar en español.";
       
       setVideoLoading(true); setVideoProgress("Preparando video...");
       
@@ -1295,7 +1295,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   system: "You create video prompts from reference images.",
-                  messages: [{ content: "Describe these images in detail for a video AI. User request: '" + topic + "'. Brand: " + brand.name + ". Create a cinematic video prompt IN ENGLISH. Describe the exact scene, buildings, landscape, lighting, colors, atmosphere, camera movement. Under 400 chars. Return ONLY the prompt." }],
+                  messages: [{ content: "Describe these images in detail for a video AI. User request: '" + topic + "'. Brand: " + brand.name + ". Create a cinematic video prompt IN ENGLISH but specify that ANY visible text in the video MUST be in Spanish. Describe the exact scene, buildings, landscape, lighting, colors, atmosphere, camera movement. Under 400 chars. Return ONLY the prompt." }],
                   images: currentImages
                 })
               });
