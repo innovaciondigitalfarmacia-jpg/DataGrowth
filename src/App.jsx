@@ -572,8 +572,11 @@ const Auth = ({ mode, setMode, onAuth, dark, setDark, selPlan }) => {
       setLl(false);
       if (error) { setErr(error.message === "User already registered" ? "Ya existe una cuenta con este email" : error.message); return; }
       if (data.user) {
+        // Save plan to profile
+        const planId = selPlan?.id || "free";
+        await supabase.from("profiles").upsert({ id: data.user.id, name, company, phone, role: "client", plan: planId });
         const profile = await supabase.from("profiles").select("*").eq("id", data.user.id).single();
-        onAuth({ id: data.user.id, name, email, company, phone, role: profile.data?.role || "client", plan: profile.data?.plan || "free" });
+        onAuth({ id: data.user.id, name, email, company, phone, role: profile.data?.role || "client", plan: profile.data?.plan || planId });
       }
     } else {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
@@ -1094,7 +1097,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       const u = {}; (data || []).forEach(r => { u[r.content_type] = r.count; }); setUsage(u);
     });
   }, [user?.id]);
-  const userPlan = isAdmin ? PLANS[2] : PLANS[0];
+  const userPlan = isAdmin ? PLANS[2] : (PLANS.find(p => p.id === user?.plan) || PLANS[0]);
   const getLimit = (typeId) => userPlan.limits?.[typeId] ?? 9999;
   const getLeft = (typeId) => getLimit(typeId) - getUsage(typeId);
   const [videoLoading, setVideoLoading] = useState(false);
@@ -1538,7 +1541,7 @@ const ClientSettings = ({ user, setUser, onChangePlan }) => {
   const [confirmPass, setConfirmPass] = useState("");
   const [passMsg, setPassMsg] = useState("");
   const [planMsg, setPlanMsg] = useState("");
-  const currentPlan = PLANS.find(p => p.id === "free") || PLANS[0];
+  const currentPlan = PLANS.find(p => p.id === (user?.plan || "free")) || PLANS[0];
 
   const saveProfile = async () => {
     if (user?.id) { await supabase.from("profiles").update({ name: editName, company: editCompany, phone: editPhone }).eq("id", user.id); }
@@ -1579,7 +1582,7 @@ const ClientSettings = ({ user, setUser, onChangePlan }) => {
             <div style={{ fontSize: 15, fontWeight: 700, color: t.tx }}>{p.name}</div>
             <div style={{ fontSize: 28, fontWeight: 800, color: p.color, margin: "8px 0" }}>{p.price}<span style={{ fontSize: 12, color: t.txM }}>/mes</span></div>
             <div style={{ fontSize: 11, color: t.txS, marginBottom: 12 }}>{p.desc}</div>
-            <Btn primary={p.pop} secondary={!p.pop} onClick={() => { if (p.id !== currentPlan.id) { setShowPlans(false); setPassMsg(""); setPlanMsg("✅ Plan " + p.name + " seleccionado. Cuando conectemos Stripe se activara automaticamente."); setTimeout(() => setPlanMsg(""), 4000); } }} style={{ width: "100%", justifyContent: "center", fontSize: 12, padding: "8px 12px" }}>{p.id === currentPlan.id ? "Plan actual" : "Elegir"}</Btn>
+            <Btn primary={p.pop} secondary={!p.pop} onClick={async () => { if (p.id !== currentPlan.id) { if (user?.id) await supabase.from("profiles").update({ plan: p.id }).eq("id", user.id); setUser({ ...user, plan: p.id }); setShowPlans(false); setPassMsg(""); setPlanMsg("✅ Plan " + p.name + " activado."); setTimeout(() => setPlanMsg(""), 4000); } }} style={{ width: "100%", justifyContent: "center", fontSize: 12, padding: "8px 12px" }}>{p.id === currentPlan.id ? "Plan actual" : "Elegir"}</Btn>
           </div>)}
         </div>
         <Btn ghost onClick={() => setShowPlans(false)} style={{ marginTop: 12, width: "100%", justifyContent: "center", fontSize: 12 }}>Cancelar</Btn>
