@@ -88,7 +88,7 @@ export default async function handler(req, res) {
 
       // System instruction BEFORE images to force editing behavior
       if (hasImages) {
-        parts.push({ text: "Edit the following image according to the user's instructions. Keep everything the user does NOT mention exactly the same. Only change what the user asks for. Output ONLY the edited image, no text.\n\nHere is the image:" });
+        parts.push({ text: "You are a professional image editor. Follow the user's instructions EXACTLY and COMPLETELY. Do not skip any instruction, no matter how small. If the user asks for multiple changes, apply ALL of them. Pay special attention to:\n- Background removal requests: if asked to remove background, make it transparent or as specified\n- Logo placement: place logos exactly where requested\n- Color changes: apply exact colors mentioned\n- Text changes: write exactly what is requested\n- Element additions/removals: add or remove exactly what is asked\nKeep everything the user does NOT mention exactly the same. Output ONLY the edited image, no text.\n\nHere is the image:" });
       }
 
       if (images && Array.isArray(images)) {
@@ -100,7 +100,7 @@ export default async function handler(req, res) {
       }
 
       if (hasImages) {
-        parts.push({ text: "Apply this change and return ONLY the image: " + prompt });
+        parts.push({ text: "Apply ALL of the following changes. Do NOT skip any instruction. Every single request must be fulfilled: " + prompt });
       } else {
         parts.push({ text: prompt + "\n\nRespond ONLY with the generated image, no text." });
       }
