@@ -41,7 +41,7 @@ export default async function handler(req, res) {
               }
             }
             break;
-          } else if (r.status === 503 && attempt < 2) {
+          } else if ((r.status === 503 || r.status === 500) && attempt < 2) {
             await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 5000));
             continue;
           } else {
@@ -139,7 +139,7 @@ export default async function handler(req, res) {
             }
             console.log("Gemini no image in response:", JSON.stringify(d).substring(0, 500));
             break; // Don't retry if response was ok but no image
-          } else if (r.status === 503 && attempt < 2) {
+          } else if ((r.status === 503 || r.status === 500) && attempt < 2) {
             console.log("Gemini 503 (attempt " + (attempt + 1) + "), retrying in " + ((attempt + 1) * 5) + "s...");
             await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 5000));
             continue;
