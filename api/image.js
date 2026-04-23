@@ -17,30 +17,38 @@ export default async function handler(req, res) {
     if (!prompt) return res.status(400).json({ error: "No prompt" });
 
     if (GEMINI_KEY) {
-      try {
-        const r = await fetch(
-          "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=" + GEMINI_KEY,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
-            })
-          }
-        );
-        if (r.ok) {
-          const d = await r.json();
-          const parts = d.candidates?.[0]?.content?.parts || [];
-          for (const part of parts) {
-            if (part.inlineData?.data) {
-              const buf = Buffer.from(part.inlineData.data, "base64");
-              res.setHeader("Content-Type", part.inlineData.mimeType || "image/png");
-              return res.send(buf);
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const r = await fetch(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=" + GEMINI_KEY,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
+              })
             }
+          );
+          if (r.ok) {
+            const d = await r.json();
+            const parts = d.candidates?.[0]?.content?.parts || [];
+            for (const part of parts) {
+              if (part.inlineData?.data) {
+                const buf = Buffer.from(part.inlineData.data, "base64");
+                res.setHeader("Content-Type", part.inlineData.mimeType || "image/png");
+                return res.send(buf);
+              }
+            }
+            break;
+          } else if (r.status === 503 && attempt < 2) {
+            await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 5000));
+            continue;
+          } else {
+            break;
           }
-        }
-      } catch (e) {}
+        } catch (e) { break; }
+      }
     }
 
     if (FAL_KEY) {
@@ -105,36 +113,45 @@ export default async function handler(req, res) {
         parts.push({ text: prompt + "\n\nRespond ONLY with the generated image, no text." });
       }
 
-      try {
-        const r = await fetch(
-          "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=" + GEMINI_KEY,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts }],
-              generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
-            })
-          }
-        );
-        if (r.ok) {
-          const d = await r.json();
-          const resParts = d.candidates?.[0]?.content?.parts || [];
-          for (const part of resParts) {
-            if (part.inlineData?.data) {
-              const buf = Buffer.from(part.inlineData.data, "base64");
-              res.setHeader("Content-Type", part.inlineData.mimeType || "image/png");
-              return res.send(buf);
+      // Retry up to 3 times on 503 (high demand)
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const r = await fetch(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=" + GEMINI_KEY,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ parts }],
+                generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
+              })
             }
+          );
+          if (r.ok) {
+            const d = await r.json();
+            const resParts = d.candidates?.[0]?.content?.parts || [];
+            for (const part of resParts) {
+              if (part.inlineData?.data) {
+                const buf = Buffer.from(part.inlineData.data, "base64");
+                res.setHeader("Content-Type", part.inlineData.mimeType || "image/png");
+                return res.send(buf);
+              }
+            }
+            console.log("Gemini no image in response:", JSON.stringify(d).substring(0, 500));
+            break; // Don't retry if response was ok but no image
+          } else if (r.status === 503 && attempt < 2) {
+            console.log("Gemini 503 (attempt " + (attempt + 1) + "), retrying in " + ((attempt + 1) * 5) + "s...");
+            await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 5000));
+            continue;
+          } else {
+            const errText = await r.text();
+            console.log("Gemini error " + r.status + ":", errText.substring(0, 500));
+            break;
           }
-          // Gemini responded but no image
-          console.log("Gemini no image in response:", JSON.stringify(d).substring(0, 500));
-        } else {
-          const errText = await r.text();
-          console.log("Gemini error " + r.status + ":", errText.substring(0, 500));
+        } catch (e) {
+          console.log("Gemini exception:", e.message);
+          break;
         }
-      } catch (e) {
-        console.log("Gemini exception:", e.message);
       }
     }
 
