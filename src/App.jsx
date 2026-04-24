@@ -1214,14 +1214,27 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
     // ── DIRECT EDIT: user uploaded a photo, send instruction directly to image API ──
     if (isDirectEdit) {
       const brandInfo = "BRAND: " + brand.name + ". BRAND COLORS: " + brandColors + ". STYLE: " + brandStyle + ". INDUSTRY: " + (brand.industry || "") + ". PRODUCTS: " + (brand.products || "N/A") + ". ";
-      const editPrompt = brandInfo + currentTopic + ". IMPORTANT: Use the brand colors (" + brandColors + ") as the primary colors. Any visible text must be in Spanish. If hex color codes are mentioned, use those exact colors.";
+      
+      // Number each image and explain its role in the prompt
+      let imageRoles = "";
+      if (lastAiImage && currentImages.length > 0) {
+        imageRoles = "IMAGE 1 is the current design (BASE). ";
+        currentImages.forEach((_, i) => {
+          imageRoles += "IMAGE " + (i + 2) + " is a reference/element to incorporate. ";
+        });
+      } else if (currentImages.length > 1) {
+        imageRoles = "IMAGE 1 is the main reference for STYLE and COMPOSITION. ";
+        currentImages.forEach((_, i) => {
+          if (i > 0) imageRoles += "IMAGE " + (i + 1) + " is an element/reference to incorporate into the design. ";
+        });
+      }
+      
+      const editPrompt = brandInfo + imageRoles + "\n\nUSER INSTRUCTIONS (FOLLOW EVERY SINGLE ONE LITERALLY, DO NOT SKIP ANY): " + currentTopic + "\n\nRULES:\n1. Follow the user's instructions WORD BY WORD. Every detail matters.\n2. Use brand colors: " + brandColors + "\n3. All visible text MUST be in Spanish.\n4. If user says 'put X on Y', put X exactly on Y.\n5. If user says 'replace X with Y', remove X completely and put Y.\n6. Do NOT add elements the user didn't ask for.\n7. Do NOT change things the user didn't mention.";
       if (!lastImageContext) setLastImageContext(currentTopic);
       // If there's a previous AI image, send it as the FIRST image (base to edit)
       // and the uploaded photos as additional reference
       const allImages = lastAiImage ? [lastAiImage, ...currentImages] : currentImages;
-      const promptWithContext = lastAiImage 
-        ? "The FIRST image is the current design that the user already has. The OTHER images are new references the user uploaded. Apply the user's instructions using the new references but keeping the first image as the base. Instructions: " + editPrompt
-        : editPrompt;
+      const promptWithContext = editPrompt;
       setChatHistory(prev => [...prev, { role: "ai", text: "", headline: "", loading: true }]);
       try {
         const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: promptWithContext, images: allImages }) });
