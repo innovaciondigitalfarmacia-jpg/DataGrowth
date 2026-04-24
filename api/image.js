@@ -96,19 +96,20 @@ export default async function handler(req, res) {
 
       // System instruction BEFORE images to force editing behavior
       if (hasImages) {
-        parts.push({ text: "You are a professional image editor. Follow the user's instructions EXACTLY and COMPLETELY. Do not skip any instruction, no matter how small. If the user asks for multiple changes, apply ALL of them. Pay special attention to:\n- Background removal requests: if asked to remove background, make it transparent or as specified\n- Logo placement: place logos exactly where requested\n- Color changes: apply exact colors mentioned\n- Text changes: write exactly what is requested\n- Element additions/removals: add or remove exactly what is asked\nKeep everything the user does NOT mention exactly the same. Output ONLY the edited image, no text.\n\nHere is the image:" });
+        parts.push({ text: "You are an expert image compositor and editor. CRITICAL RULES:\n1. Follow the user's instructions LITERALLY and COMPLETELY — every single detail.\n2. If the user says 'put A on B', you MUST place A on B exactly.\n3. If multiple images are provided, each has a specific role described in the instructions (e.g., IMAGE 1 = style reference, IMAGE 2 = element to insert).\n4. Do NOT improvise or add things not requested.\n5. Do NOT skip any instruction no matter how small.\n6. Output ONLY the final image, no text.\n\nImages provided:" });
       }
 
       if (images && Array.isArray(images)) {
-        for (const img of images) {
-          parts.push({ inlineData: { mimeType: "image/jpeg", data: img } });
+        for (let i = 0; i < images.length; i++) {
+          parts.push({ text: "IMAGE " + (i + 1) + ":" });
+          parts.push({ inlineData: { mimeType: "image/jpeg", data: images[i] } });
         }
       } else if (image_base64) {
         parts.push({ inlineData: { mimeType: "image/jpeg", data: image_base64 } });
       }
 
       if (hasImages) {
-        parts.push({ text: "Apply ALL of the following changes. Do NOT skip any instruction. Every single request must be fulfilled: " + prompt });
+        parts.push({ text: "NOW FOLLOW THESE INSTRUCTIONS EXACTLY. Do NOT skip any part:\n" + prompt });
       } else {
         parts.push({ text: prompt + "\n\nRespond ONLY with the generated image, no text." });
       }
