@@ -22,16 +22,18 @@ export default async function handler(req, res) {
 
     // Step 1: Redirect to Facebook Login
     if (action === 'connect') {
-      const redirect = BASE_URL + '/api/instagram?action=callback&brand_id=' + (brand_id || '');
+      const redirect = BASE_URL + '/api/instagram?action=callback';
       const scope = 'instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement';
-      const url = 'https://www.facebook.com/v21.0/dialog/oauth?client_id=' + APP_ID + '&redirect_uri=' + encodeURIComponent(redirect) + '&scope=' + scope + '&response_type=code';
+      const state = brand_id || '';
+      const url = 'https://www.facebook.com/v21.0/dialog/oauth?client_id=' + APP_ID + '&redirect_uri=' + encodeURIComponent(redirect) + '&scope=' + scope + '&response_type=code&state=' + encodeURIComponent(state);
       return res.redirect(302, url);
     }
 
     // Step 2: OAuth callback
     if (action === 'callback') {
       if (!code) return res.status(400).send('No code received');
-      const redirect = BASE_URL + '/api/instagram?action=callback&brand_id=' + (brand_id || '');
+      const redirect = BASE_URL + '/api/instagram?action=callback';
+      const brandId = req.query.state || brand_id || '';
 
       try {
         // Exchange code for short-lived token
@@ -64,8 +66,8 @@ export default async function handler(req, res) {
         const igInfo = await igInfoRes.json();
 
         // Save to brand in Supabase
-        if (brand_id && SERVICE_KEY) {
-          await fetch(SUPABASE_URL + '/rest/v1/brands?id=eq.' + brand_id, {
+        if (brandId && SERVICE_KEY) {
+          await fetch(SUPABASE_URL + '/rest/v1/brands?id=eq.' + brandId, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json', 'apikey': SERVICE_KEY, 'Authorization': 'Bearer ' + SERVICE_KEY, 'Prefer': 'return=minimal' },
             body: JSON.stringify({ ig_token: pageToken, ig_user_id: igId, instagram: '@' + (igInfo.username || '') })
