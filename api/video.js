@@ -199,7 +199,7 @@ export default async function handler(req, res) {
 
           // Send image to Veo if available (resized to 720p JPEG)
           if (image_base64) {
-            instance.image = { bytesBase64Encoded: image_base64 };
+            instance.image = { bytesBase64Encoded: image_base64, mimeType: 'image/jpeg' };
           }
 
           const errors = [];
@@ -236,15 +236,15 @@ export default async function handler(req, res) {
                 
                 // If image caused the error, retry with different image format
                 if (image_base64 && instance.image) {
-                  // Try inlineData format
-                  instance.image = { inlineData: { mimeType: 'image/jpeg', data: image_base64 } };
+                  // Try without image as fallback
+                  const instanceNoImg = { prompt: instance.prompt };
                   const r2 = await fetch(
                     GEMINI_BASE + '/models/' + model + ':predictLongRunning',
                     {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
                       body: JSON.stringify({
-                        instances: [instance],
+                        instances: [instanceNoImg],
                         parameters: { aspectRatio: '9:16' }
                       })
                     }
@@ -252,34 +252,10 @@ export default async function handler(req, res) {
                   if (r2.ok) {
                     const d2 = await r2.json();
                     if (d2.name) {
-                      console.log('Gemini Veo started (inlineData) with model:', model);
+                      console.log('Gemini Veo started (no image fallback) with model:', model);
                       return res.status(200).json({
                         status: 'started',
                         operation: d2.name,
-                        provider: 'gemini'
-                      });
-                    }
-                  }
-                  // Last retry: without image at all
-                  delete instance.image;
-                  const r3 = await fetch(
-                    GEMINI_BASE + '/models/' + model + ':predictLongRunning',
-                    {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
-                      body: JSON.stringify({
-                        instances: [instance],
-                        parameters: { aspectRatio: '9:16' }
-                      })
-                    }
-                  );
-                  if (r3.ok) {
-                    const d3 = await r3.json();
-                    if (d3.name) {
-                      console.log('Gemini Veo started (no image) with model:', model);
-                      return res.status(200).json({
-                        status: 'started',
-                        operation: d3.name,
                         provider: 'gemini'
                       });
                     }
