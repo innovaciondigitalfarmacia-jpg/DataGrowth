@@ -48,7 +48,7 @@ const Textarea = ({ value, onChange, placeholder, rows }) => { const t = useT();
 const Badge = ({ children, color }) => <span style={{ padding: "3px 12px", borderRadius: 20, fontSize: 10, fontWeight: 600, background: (color || "#37c2eb") + "15", color: color || "#37c2eb" }}>{children}</span>;
 const Label = ({ children, req }) => { const t = useT(); return <div style={{ fontSize: 12, fontWeight: 600, color: t.txM, marginBottom: 6 }}>{children}{req && <span style={{ color: "#ef4444" }}> *</span>}</div>; };
 const Section = ({ title, sub, right, children }) => { const t = useT(); return <div><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: sub ? 6 : 20, flexWrap: "wrap", gap: 10 }}><h2 style={{ fontSize: 24, fontWeight: 700, color: t.tx, margin: 0 }}>{title}</h2>{right}</div>{sub && <p style={{ color: t.txS, fontSize: 14, margin: "0 0 22px" }}>{sub}</p>}{children}</div>; };
-const CopyBtn = ({ text, label }) => { const t = useT(); const [c, setC] = useState(false); return <button onClick={() => { navigator.clipboard.writeText(text); setC(true); setTimeout(() => setC(false), 2000); }} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", background: c ? "rgba(55,194,235,.1)" : t.acS, border: `1px solid ${c ? "rgba(55,194,235,.2)" : t.bH}`, borderRadius: 10, color: c ? "#37c2eb" : t.ac, fontSize: 12, fontWeight: 600, cursor: "pointer" }}><Ic name={c ? "check" : "copy"} size={14}/> {c ? "¡Copiado!" : (label || "Copiar")}</button>; };
+const CopyBtn = ({ text, label, onCopy }) => { const t = useT(); const [c, setC] = useState(false); return <button onClick={() => { navigator.clipboard.writeText(text); setC(true); if (onCopy) onCopy(); setTimeout(() => setC(false), 2000); }} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", background: c ? "rgba(55,194,235,.1)" : t.acS, border: `1px solid ${c ? "rgba(55,194,235,.2)" : t.bH}`, borderRadius: 10, color: c ? "#37c2eb" : t.ac, fontSize: 12, fontWeight: 600, cursor: "pointer" }}><Ic name={c ? "check" : "copy"} size={14}/> {c ? "¡Copiado!" : (label || "Copiar")}</button>; };
 const Logo = ({ size = 32 }) => <img src="/logo.jpg" alt="DataGrowth" style={{ width: size, height: size, borderRadius: size * 0.25, objectFit: "cover" }}/>;
 
 // ══════ LANDING PAGE (Supabase-inspired) ══════
@@ -688,20 +688,24 @@ const ALLCOLORS = ["#ec4899","#f43f5e","#ef4444","#f97316","#f59e0b","#eab308","
 
 const UploadZone = ({ label, icon, files, onAdd, multi }) => {
   const t = useT();
-  const addFile = () => { const name = prompt(`Nombre del archivo ${label.toLowerCase()}:`); if (name) onAdd(name); };
   return (
     <div style={{ marginBottom: 16 }}>
       <Label>{label}</Label>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {(files || []).map((f, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: t.bgI, border: `1px solid ${t.brd}`, borderRadius: 10, fontSize: 12, color: t.tx }}>
-            <span style={{ fontSize: 16 }}>{icon}</span> {f}
+            <span style={{ fontSize: 16 }}>{icon}</span> {typeof f === "string" ? f : f.name || "Archivo"}
             <span onClick={() => { const nf = [...files]; nf.splice(i, 1); onAdd(null, nf); }} style={{ cursor: "pointer", color: "#ef4444", fontSize: 14 }}>×</span>
           </div>
         ))}
-        <div onClick={addFile} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", border: `2px dashed ${t.brd}`, borderRadius: 10, cursor: "pointer", color: t.txM, fontSize: 12, fontWeight: 500, transition: "border-color .2s" }} onMouseEnter={e => e.currentTarget.style.borderColor = t.ac} onMouseLeave={e => e.currentTarget.style.borderColor = t.brd}>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", border: `2px dashed ${t.brd}`, borderRadius: 10, cursor: "pointer", color: t.txM, fontSize: 12, fontWeight: 500, transition: "border-color .2s" }} onMouseEnter={e => e.currentTarget.style.borderColor = t.ac} onMouseLeave={e => e.currentTarget.style.borderColor = t.brd}>
           <span style={{ fontSize: 18 }}>+</span> {files?.length ? "Agregar más" : `Subir ${label.toLowerCase()}`}
-        </div>
+          <input type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" multiple={multi} onChange={e => {
+            const fileList = Array.from(e.target.files || []);
+            fileList.forEach(file => onAdd(file.name));
+            e.target.value = "";
+          }} style={{ display: "none" }}/>
+        </label>
       </div>
       <div style={{ fontSize: 11, color: t.txM, marginTop: 4 }}>Formatos: PNG, JPG, PDF, MP4 · Máx 50MB. Se habilitará con Supabase Storage.</div>
     </div>
@@ -749,6 +753,7 @@ const BrandEditor = ({ brand, onSave, onClose, isNew }) => {
     name: "", short: "", colors: [ALLCOLORS[0]], industry: "", tone: "", audience: "", emoji: "🎯",
     brandVoice: "", imgStyle: "", website: "", instagram: "", facebook: "", tiktok: "", sector: "B2C",
     slogan: "", products: "", differentiator: "", typography: "", values: "", knowledge: "",
+    ig_token: "", ig_user_id: "",
     logos: [], backgrounds: [], productPhotos: [], videos: [], socialPieces: [],
     brandManuals: [], catalogs: [], strategyDocs: [], productInfo: ""
   });
@@ -929,6 +934,32 @@ const BrandEditor = ({ brand, onSave, onClose, isNew }) => {
               </button>
             </div>}
 
+            {/* CONECTAR INSTAGRAM */}
+            <div style={{ padding: 14, background: t.bgI, borderRadius: 12, border: "1px solid " + t.brd, marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: 18 }}>📸</span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: t.tx }}>Publicar en Instagram</div>
+                  <div style={{ fontSize: 11, color: t.txM }}>Conecta Instagram para publicar posts directamente desde la plataforma.</div>
+                </div>
+              </div>
+              {f.ig_user_id ? 
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ padding: "6px 12px", background: "rgba(34,197,94,.1)", borderRadius: 8, color: "#22c55e", fontSize: 12, fontWeight: 600 }}>✅ Conectado: {f.instagram || "Instagram"}</div>
+                  <button onClick={() => { u("ig_token", ""); u("ig_user_id", ""); }} style={{ background: "transparent", border: "none", color: "#ef4444", fontSize: 11, cursor: "pointer" }}>Desconectar</button>
+                </div>
+              :
+                <button onClick={() => {
+                  if (!f.id) { alert("Guarda la marca primero"); return; }
+                  const w = window.open("/api/instagram?action=connect&brand_id=" + f.id, "ig_connect", "width=600,height=700");
+                  const handler = (e) => { if (e.data?.type === "ig_connected") { u("ig_user_id", "connected"); u("instagram", "@" + e.data.username); window.removeEventListener("message", handler); alert("✅ Instagram conectado: @" + e.data.username); } };
+                  window.addEventListener("message", handler);
+                }} style={{ padding: "8px 16px", background: "linear-gradient(135deg, #833AB4, #E1306C, #F77737)", border: "none", borderRadius: 8, color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                  📸 Conectar Instagram
+                </button>
+              }
+            </div>
+
             {/* Preview */}
             <div style={{ padding: 16, background: t.bgI, borderRadius: 12, border: `1px solid ${t.brd}`, marginTop: 20 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: t.txM, marginBottom: 10 }}>Preview de tu marca</div>
@@ -968,10 +999,10 @@ const BrandKit = ({ brands, setBrands, user }) => {
   const [tab, setTab] = useState("identity");
   const save = async (b) => {
     if (cr) {
-      const { data } = await supabase.from("brands").insert({ user_id: user.id, name: b.name, short: b.short, color: b.color, industry: b.industry, tone: b.tone, audience: b.audience, emoji: b.emoji, brand_voice: b.brandVoice, img_style: b.imgStyle, sector: b.sector, colors: b.colors, products: b.products, description: b.description, differentiator: b.differentiator, website: b.website, instagram: b.instagram, facebook: b.facebook, knowledge: b.knowledge || "" }).select().single();
+      const { data } = await supabase.from("brands").insert({ user_id: user.id, name: b.name, short: b.short, color: b.color, industry: b.industry, tone: b.tone, audience: b.audience, emoji: b.emoji, brand_voice: b.brandVoice, img_style: b.imgStyle, sector: b.sector, colors: b.colors, products: b.products, description: b.description, differentiator: b.differentiator, website: b.website, instagram: b.instagram, facebook: b.facebook, knowledge: b.knowledge || "", ig_token: b.ig_token || "", ig_user_id: b.ig_user_id || "" }).select().single();
       if (data) { const nb = { ...data, brandVoice: data.brand_voice, imgStyle: data.img_style }; setBrands([...brands, nb]); setSel(nb); }
     } else {
-      await supabase.from("brands").update({ name: b.name, short: b.short, color: b.color, industry: b.industry, tone: b.tone, audience: b.audience, emoji: b.emoji, brand_voice: b.brandVoice, img_style: b.imgStyle, sector: b.sector, colors: b.colors, products: b.products, description: b.description, differentiator: b.differentiator, website: b.website, instagram: b.instagram, facebook: b.facebook, knowledge: b.knowledge || "" }).eq("id", b.id);
+      await supabase.from("brands").update({ name: b.name, short: b.short, color: b.color, industry: b.industry, tone: b.tone, audience: b.audience, emoji: b.emoji, brand_voice: b.brandVoice, img_style: b.imgStyle, sector: b.sector, colors: b.colors, products: b.products, description: b.description, differentiator: b.differentiator, website: b.website, instagram: b.instagram, facebook: b.facebook, knowledge: b.knowledge || "", ig_token: b.ig_token || "", ig_user_id: b.ig_user_id || "" }).eq("id", b.id);
       setBrands(brands.map(x => x.id === b.id ? b : x)); setSel(b);
     }
     setEd(null); setCr(false);
@@ -1102,6 +1133,8 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
   const getLeft = (typeId) => getLimit(typeId) - getUsage(typeId);
   const [videoLoading, setVideoLoading] = useState(false);
   const [videoUrl, setVideoUrl] = useState(null);
+  const [lastVideoImage, setLastVideoImage] = useState(null);
+  const [lastVideoPrompt, setLastVideoPrompt] = useState("");
   const [videoProgress, setVideoProgress] = useState("");
   const [uploadedImages, setUploadedImages] = useState([]);
   const [uploadedPreviews, setUploadedPreviews] = useState([]);
@@ -1247,7 +1280,6 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       } catch (e) {
         setChatHistory(prev => { const n = [...prev]; const last = n.findLastIndex(m => m.role === "ai" && m.loading); if (last > -1) { n[last] = { ...n[last], text: "Error: " + e.message, loading: false }; } return n; });
       }
-      if (!isAdmin) addUsage(ct.id);
       setLoading(false);
       return;
     }
@@ -1269,7 +1301,6 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       } catch (e) {
         setChatHistory(prev => { const n = [...prev]; const last = n.findLastIndex(m => m.role === "ai" && m.loading); if (last > -1) { n[last] = { ...n[last], text: "Error: " + e.message, loading: false }; } return n; });
       }
-      if (!isAdmin) addUsage(ct.id);
       setLoading(false);
       return;
     }
@@ -1301,94 +1332,88 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       
       const generateAndAnimate = async () => {
         try {
-          let videoPrompt = "";
+          let generatedImageB64 = lastVideoImage || null;
+          let videoPrompt = lastVideoPrompt || "";
           
-          if (currentImages[0]) {
-            // Analyze photos + combine with user instructions into ONE prompt
-            setVideoProgress("Analizando tus fotos y preparando instrucciones...");
+          // Only generate new image if we don't have one saved
+          if (!generatedImageB64) {
+            // STEP 1: Generate a beautiful image with Gemini first
+            setVideoProgress("Generando imagen base con IA...");
+            
+            const imgBody = currentImages[0] 
+              ? { prompt: imgPrompt, images: currentImages }
+              : { prompt: imgPrompt };
+            
             try {
-              const descRes = await fetch("/api/generate", {
+              const imgRes = await fetch("/api/image", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  system: "You create detailed video prompts. Return ONLY the prompt, nothing else. Max 450 characters.",
-                  messages: [{ content: "Create ONE unified video prompt that combines:\n\n1. SCENE FROM PHOTOS: Describe exactly what you see in these reference images (buildings, landscape, people, objects, lighting, colors, atmosphere)\n\n2. USER INSTRUCTIONS: '" + topic + "'\n\n3. BRAND INFO: " + brand.name + " (" + brand.industry + "), colors: " + brandColors + ", style: " + brandStyle + ", products: " + (brand.products || "N/A") + (realInfo ? "\n\n4. REAL INFO FROM WEBSITE: " + realInfo.substring(0, 300) : "") + (brand.knowledge ? "\n\n5. BRAND KNOWLEDGE: " + brand.knowledge.substring(0, 300) : "") + "\n\nThe prompt must:\n- Describe the scene from the photos AS the video setting\n- Include the user's specific requests\n- Use the brand colors (" + brandColors + ") and real products/services\n- Specify cinematic camera movement (slow dolly, pan)\n- Say: 'Any visible text MUST be in Spanish'\n- Be in English\n- Under 450 characters\n\nReturn ONLY the video prompt." }],
-                  images: currentImages
-                })
+                body: JSON.stringify(imgBody)
               });
-              if (descRes.ok) {
-                const descData = await descRes.json();
-                const desc = descData.content?.[0]?.text || "";
-                if (desc.length > 20) videoPrompt = desc.substring(0, 480);
+              if (imgRes.ok && imgRes.headers.get("content-type")?.includes("image")) {
+                const blob = await imgRes.blob();
+                generatedImageB64 = await new Promise(resolve => {
+                  const reader = new FileReader();
+                  reader.onloadend = () => resolve(reader.result.split(",")[1]);
+                  reader.readAsDataURL(blob);
+                });
+                setLastVideoImage(generatedImageB64);
               }
             } catch (e) {}
           }
-          
-          // If no prompt from photos or no photos, use the default combined prompt
+
+          // Only describe if we don't have a saved prompt
           if (!videoPrompt) {
+            // STEP 2: Describe the generated image in extreme detail for Veo
+            setVideoProgress("Preparando descripcion del video...");
             videoPrompt = motionPrompt;
+            
+            if (generatedImageB64) {
+              try {
+                const descRes = await fetch("/api/generate", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    system: "You describe images for video generation AI. Return ONLY the video prompt. Max 450 chars.",
+                    messages: [{ content: "Describe this image in EXTREME detail for a video AI. Include EVERY visual element: exact colors (mention hex if possible), composition, layout, objects, text visible, lighting, atmosphere, background, foreground. The video must look EXACTLY like this image but with cinematic motion (slow camera dolly, gentle breeze, atmospheric effects). Any text visible must stay in Spanish. Brand: " + brand.name + ". Under 450 chars. Return ONLY the prompt." }],
+                    images: [generatedImageB64]
+                  })
+                });
+                if (descRes.ok) {
+                  const descData = await descRes.json();
+                  const desc = descData.content?.[0]?.text || "";
+                  if (desc.length > 20) videoPrompt = desc.substring(0, 480);
+                }
+              } catch (e) {}
+            }
+            setLastVideoPrompt(videoPrompt);
+          } else {
+            setVideoProgress("Regenerando video con la misma base...");
           }
 
-          // Try sending with image first
-          if (currentImages[0]) {
-            setVideoProgress("Preparando imagen para video...");
+          // STEP 3: Resize image to 720x1280 for Veo and send
+          setVideoProgress("Generando video con IA...");
+          let videoImageB64 = generatedImageB64;
+          if (generatedImageB64) {
             try {
               const img = new Image();
-              img.src = "data:image/jpeg;base64," + currentImages[0];
-              const resizedB64 = await new Promise(resolve => {
+              img.src = "data:image/jpeg;base64," + generatedImageB64;
+              videoImageB64 = await new Promise(resolve => {
                 img.onload = () => {
-                  const targetW = 720; const targetH = 1280;
                   const c = document.createElement("canvas");
-                  c.width = targetW; c.height = targetH;
+                  c.width = 720; c.height = 1280;
                   const ctx = c.getContext("2d");
-                  const scale = Math.max(targetW / img.width, targetH / img.height);
-                  const sw = targetW / scale, sh = targetH / scale;
+                  const scale = Math.max(720 / img.width, 1280 / img.height);
+                  const sw = 720 / scale, sh = 1280 / scale;
                   const sx = (img.width - sw) / 2, sy = (img.height - sh) / 2;
-                  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetW, targetH);
-                  resolve(c.toDataURL("image/jpeg", 0.75).split(",")[1]);
+                  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 720, 1280);
+                  resolve(c.toDataURL("image/jpeg", 0.85).split(",")[1]);
                 };
-                img.onerror = () => resolve(null);
+                img.onerror = () => resolve(generatedImageB64);
               });
-              if (resizedB64) {
-                setVideoProgress("Generando video con IA...");
-                const videoBody = { prompt: videoPrompt.substring(0, 480), image_base64: resizedB64 };
-                const r = await fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(videoBody) });
-                const d = await r.json();
-                if (d.operation) { pollVideo(d.operation, d.endpoint, d.response_url, d.status_url, d.provider); return; }
-              }
             } catch (e) {}
-
-            // Fallback: text only
-            setVideoProgress("Generando video con IA...");
-          } else {
-            // No photos: generate image with Gemini, then animate
-            setVideoProgress("Generando imagen base con IA...");
-            const imgRes = await fetch("/api/image", { 
-              method: "POST", 
-              headers: { "Content-Type": "application/json" }, 
-              body: JSON.stringify({ prompt: imgPrompt }) 
-            });
-            // Try to send generated image to video API
-            if (imgRes.ok && imgRes.headers.get("content-type")?.includes("image")) {
-              const blob = await imgRes.blob();
-              const imageBase64 = await new Promise(resolve => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result.split(",")[1]);
-                reader.readAsDataURL(blob);
-              });
-              if (imageBase64) {
-                setVideoProgress("Generando video con IA...");
-                const videoBody = { prompt: videoPrompt, image_base64: imageBase64 };
-                const r = await fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(videoBody) });
-                const d = await r.json();
-                if (d.operation) { pollVideo(d.operation, d.endpoint, d.response_url, d.status_url, d.provider); return; }
-              }
-            }
           }
-          
-          // Send prompt to video API (text-only for Veo)
-          setVideoProgress("Generando video con IA...");
-          const videoBody = { prompt: videoPrompt.substring(0, 500) };
+          const videoBody = { prompt: videoPrompt.substring(0, 480), image_base64: videoImageB64 || undefined };
           const r = await fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(videoBody) });
           const d = await r.json();
           if (d.operation) { pollVideo(d.operation, d.endpoint, d.response_url, d.status_url, d.provider); } else { setVideoProgress("Error: " + (d.error || "no se pudo iniciar")); setVideoLoading(false); }
@@ -1416,7 +1441,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
     } else {
       msg = 'Escribe un copy para redes sociales de ' + brand.name + ' sobre: "' + currentTopic + '". Escribe el caption de corrido con emojis, gancho al inicio, valor en el medio, CTA al final. NO uses JSON. Solo el texto listo para copiar y pegar en Instagram. Agrega saltos de linea para que se vea bien. Al final agrega 8 hashtags relevantes.';
     }
-    try { const gc = new AbortController(); const gt = setTimeout(() => gc.abort(), 30000); const r = await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"gemini-2.5-flash",max_tokens:2500,system:sys,messages:[{role:"user",content:msg}]}),signal:gc.signal}); clearTimeout(gt); const d = await r.json(); const raw = d.content?.map(c=>c.text||"").join("")||""; if(fmt==="text"){setTxt(raw);setResult({t:"text"});}else{try{let clean=raw;if(clean.indexOf("{")>-1)clean=clean.substring(clean.indexOf("{"),clean.lastIndexOf("}")+1);const pd=JSON.parse(clean);
+    try { const gc = new AbortController(); const gt = setTimeout(() => gc.abort(), 60000); const r = await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"gemini-2.5-flash",max_tokens:2500,system:sys,messages:[{role:"user",content:msg}]}),signal:gc.signal}); clearTimeout(gt); const d = await r.json(); const raw = d.content?.map(c=>c.text||"").join("")||""; if(fmt==="text"){setTxt(raw);setResult({t:"text"});}else{try{let clean=raw;if(clean.indexOf("{")>-1)clean=clean.substring(clean.indexOf("{"),clean.lastIndexOf("}")+1);const pd=JSON.parse(clean);
       // Image generation
       const hasUserImg = currentImages.length > 0;
       const imgToSend = hasUserImg ? currentImages[0] : (lastAiImage || null);
@@ -1447,7 +1472,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
         setResult({t:fmt,d:pd,img:imgUrl,imgLoading:!!imgUrl});
         if(imgUrl){const testImg=new Image();testImg.onload=()=>setResult(prev=>({...prev,imgLoading:false}));testImg.onerror=()=>setResult(prev=>({...prev,imgLoading:false}));testImg.src=imgUrl;}
       }
-      if(fmt==="reel"){/* video already started in parallel above */}}catch{if(fmt==="visual"){setChatHistory(prev=>[...prev,{role:"ai",text:raw}]);}else{setTxt(raw);setResult({t:"text"});}}} } catch(err){const errMsg=err.name==="AbortError"?"La generacion tardo demasiado. Intenta con una instruccion mas corta.":"Error al generar. Intenta de nuevo.";if(fmt==="visual"){setChatHistory(prev=>[...prev,{role:"ai",text:errMsg}]);}else{setTxt(errMsg);setResult({t:"text"});}} if(!isAdmin && fmt !== "reel"){addUsage(ct.id);} setLoading(false);
+      if(fmt==="reel"){/* video already started in parallel above */}}catch{if(fmt==="visual"){setChatHistory(prev=>[...prev,{role:"ai",text:raw}]);}else{setTxt(raw);setResult({t:"text"});}}} } catch(err){const errMsg=err.name==="AbortError"?"La generacion tardo demasiado. Intenta con una instruccion mas corta.":"Error al generar. Intenta de nuevo.";if(fmt==="visual"){setChatHistory(prev=>[...prev,{role:"ai",text:errMsg}]);}else{setTxt(errMsg);setResult({t:"text"});}} if(!isAdmin && fmt !== "reel"){/* usage counted on download only */} setLoading(false);
   };
   const [showGuide, setShowGuide] = useState(false);
   if(!brands.length) return <Section title="Crear Contenido"><Card style={{textAlign:"center",padding:48}}><div style={{fontSize:48,marginBottom:12}}>🏢</div><div style={{fontSize:16,fontWeight:600,color:t.tx}}>Primero crea una marca en "Mis Marcas"</div></Card></Section>;
@@ -1500,12 +1525,12 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
         </div>
       </Card>}
       <div style={{marginBottom:14}}><Label>Marca</Label><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{brands.map(b=><button key={b.id} onClick={()=>setBrand(b)} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 12px",borderRadius:10,border:brand?.id===b.id?`2px solid ${b.color}`:`1px solid ${t.brd}`,background:brand?.id===b.id?b.color+"12":t.bgC,color:brand?.id===b.id?t.tx:t.txS,fontSize:12,fontWeight:600,cursor:"pointer"}}><span>{b.emoji}</span>{b.short||b.name.slice(0,3)}</button>)}</div></div>
-      <div style={{marginBottom:14}}><Label>Tipo</Label><div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>{CTYPES.map(c=><button key={c.id} onClick={()=>{setCt(c);setUploadedImages([]);setUploadedPreviews([]);if(c.fmt!=="visual"){setChatHistory([]);setLastAiImage(null);setLastImageContext("");}setResult(null);setTxt("");}} style={{padding:"12px 10px",borderRadius:12,border:ct.id===c.id?`2px solid ${t.ac}`:`1px solid ${t.brd}`,background:ct.id===c.id?t.acS:t.bgC,cursor:"pointer",textAlign:"center"}}><div style={{fontSize:22,marginBottom:4}}>{c.icon}</div><div style={{fontSize:12,fontWeight:600,color:ct.id===c.id?t.tx:t.txS}}>{c.label}</div></button>)}</div></div>
+      <div style={{marginBottom:14}}><Label>Tipo</Label><div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>{CTYPES.map(c=><button key={c.id} onClick={()=>{setCt(c);setUploadedImages([]);setUploadedPreviews([]);if(c.fmt!=="visual"){setChatHistory([]);setLastAiImage(null);setLastImageContext("");}setResult(null);setTxt("");setLastVideoImage(null);setLastVideoPrompt("");setVideoUrl(null);}} style={{padding:"12px 10px",borderRadius:12,border:ct.id===c.id?`2px solid ${t.ac}`:`1px solid ${t.brd}`,background:ct.id===c.id?t.acS:t.bgC,cursor:"pointer",textAlign:"center"}}><div style={{fontSize:22,marginBottom:4}}>{c.icon}</div><div style={{fontSize:12,fontWeight:600,color:ct.id===c.id?t.tx:t.txS}}>{c.label}</div></button>)}</div></div>
       {(ct.fmt==="reel"||ct.fmt==="visual")&&<div style={{marginBottom:14,padding:14,background:t.bgI,borderRadius:12,border:"1px solid "+t.brd}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}><span style={{fontSize:14}}>📷</span><span style={{fontSize:12,fontWeight:600,color:t.tx}}>{ct.fmt==="reel"?"Primer frame del video":"Fotos de referencia"}</span><span style={{fontSize:11,color:t.txM,fontStyle:"italic"}}>(opcional)</span></div><div style={{fontSize:11,color:t.txS,marginBottom:10,lineHeight:1.5}}>{ct.fmt==="reel"?"Si subes una foto, el video EMPIEZA desde esa foto y le da movimiento. Si no subes foto, la IA crea todo desde cero.":"Sube fotos reales de tu producto o servicio. La IA las usa como referencia para generar la imagen. Puedes subir varias."}</div><div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}><label style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",border:"2px dashed "+(uploadedImages.length?t.ac:t.brd),borderRadius:10,cursor:"pointer",color:uploadedImages.length?t.ac:t.txM,fontSize:12,fontWeight:500,background:uploadedImages.length?t.acS:"transparent"}}><span style={{fontSize:16}}>📷</span>Subir fotos<input type="file" accept="image/*" multiple onChange={handleUploadImages} style={{display:"none"}}/></label>{uploadedPreviews.map((p,i)=><div key={i} style={{position:"relative"}}><img src={p} style={{width:44,height:44,borderRadius:8,objectFit:"cover",border:"2px solid "+t.ac}}/><div onClick={()=>removeUploadedImage(i)} style={{position:"absolute",top:-5,right:-5,width:15,height:15,borderRadius:"50%",background:"#ef4444",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,cursor:"pointer",fontWeight:700}}>x</div></div>)}{uploadedImages.length>0&&<span style={{fontSize:11,color:t.ac,fontWeight:600}}>{uploadedImages.length} foto{uploadedImages.length>1?"s":""}</span>}</div></div>}
       <div style={{display:"flex",gap:10,marginBottom:22}}><Input value={topic} onChange={e=>setTopic(e.target.value)} placeholder={chatHistory.length>0&&ct.fmt==="visual"?"Escribe como mejorar la imagen...":"Describe que contenido necesitas..."} onKeyDown={e=>e.key==="Enter"&&go()}/><Btn onClick={go} disabled={loading||!topic.trim()} primary style={{whiteSpace:"nowrap",padding:"14px 28px"}}>{loading?<><Spin/> Creando...</>:<><Ic name="sparkle" size={16}/> {chatHistory.length>0&&ct.fmt==="visual"?"Mejorar":"Generar"}</>}</Btn>{chatHistory.length>0&&ct.fmt==="visual"&&!loading&&<Btn onClick={()=>{setChatHistory([]);setLastAiImage(null);setLastImageContext("");setResult(null);}} style={{whiteSpace:"nowrap",padding:"14px 16px",fontSize:12}}>Nuevo</Btn>}</div>
       {!isAdmin&&<div style={{display:"flex",gap:10,marginBottom:14,fontSize:11,color:t.txM,flexWrap:"wrap"}}>{CTYPES.map(c=><span key={c.id} style={{padding:"3px 8px",background:getLeft(c.id)<=0?"rgba(239,68,68,.1)":t.bgI,borderRadius:6,color:getLeft(c.id)<=0?"#ef4444":t.txM}}>{c.icon} {getUsage(c.id)}/{getLimit(c.id)==9999?"∞":getLimit(c.id)}</span>)}<span style={{marginLeft:"auto",color:t.ac,cursor:"pointer"}}>⬆️ Actualizar plan</span></div>}
       {loading&&!(ct.fmt==="visual"&&chatHistory.length>0)&&!(ct.fmt==="reel"&&videoLoading)&&<Card style={{padding:48,textAlign:"center"}}><div style={{width:48,height:48,border:`3px solid ${t.brd}`,borderTop:`3px solid ${brand?.color||t.ac}`,borderRadius:"50%",animation:"spin .8s linear infinite",margin:"0 auto 16px"}}/><div style={{color:t.tx,fontSize:16,fontWeight:600}}>Generando para {brand?.name}...</div></Card>}
-      {result&&!loading&&result.t==="text"&&<Card><div style={{display:"flex",justifyContent:"space-between",marginBottom:14}}><span style={{fontSize:13,fontWeight:600,color:t.txS}}>{brand?.emoji} {brand?.name}</span><CopyBtn text={txt}/></div><div style={{fontSize:14,color:t.tx,lineHeight:1.8,whiteSpace:"pre-wrap"}}>{txt}</div></Card>}
+      {result&&!loading&&result.t==="text"&&<Card><div style={{display:"flex",justifyContent:"space-between",marginBottom:14}}><span style={{fontSize:13,fontWeight:600,color:t.txS}}>{brand?.emoji} {brand?.name}</span><CopyBtn text={txt} onCopy={() => { if(!isAdmin) addUsage(ct.id); }}/></div><div style={{fontSize:14,color:t.tx,lineHeight:1.8,whiteSpace:"pre-wrap"}}>{txt}</div></Card>}
       {/* VISUAL RESULT - shows only latest */}
       {ct.fmt==="visual"&&chatHistory.length>0&&(() => { const last = [...chatHistory].reverse().find(m => m.role === "ai"); if (!last) return null; return <div style={{marginBottom:16}}>
           <Card>
@@ -1516,12 +1541,12 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
             {last.hashtags&&<div style={{fontSize:12,color:brand?.color,marginTop:8}}>{last.hashtags}</div>}
             {(last.img||last.text)&&!last.loading&&<div style={{marginTop:12,display:"flex",gap:8,flexWrap:"wrap"}}>
               <CopyBtn text={(last.text||"")+(last.hashtags?"\n\n"+last.hashtags:"")}/>
-              {last.img&&<button onClick={()=>{fetch(last.img).then(r=>r.blob()).then(b=>{const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=(brand?.short||"img")+"_"+Date.now()+".png";document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(u),100);}).catch(()=>{});}} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",background:"rgba(55,194,235,.08)",border:"1px solid rgba(55,194,235,.2)",borderRadius:10,color:"#37c2eb",fontSize:12,fontWeight:600,cursor:"pointer"}}>⬇️ Descargar</button>}
+              {last.img&&<button onClick={()=>{fetch(last.img).then(r=>r.blob()).then(b=>{const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=(brand?.short||"img")+"_"+Date.now()+".png";document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(u),100);if(!isAdmin) addUsage(ct.id);}).catch(()=>{});}} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",background:"rgba(55,194,235,.08)",border:"1px solid rgba(55,194,235,.2)",borderRadius:10,color:"#37c2eb",fontSize:12,fontWeight:600,cursor:"pointer"}}>⬇️ Descargar</button>}
             </div>}
           </Card>
           {loading&&<div style={{textAlign:"center",padding:16}}><div style={{width:32,height:32,border:"3px solid "+t.brd,borderTop:"3px solid "+(brand?.color||t.ac),borderRadius:"50%",animation:"spin .8s linear infinite",margin:"0 auto 8px"}}/><div style={{color:t.txS,fontSize:13}}>Mejorando imagen...</div></div>}
         </div>; })()}
-      {result&&!loading&&result.t==="visual"&&result.d&&chatHistory.length===0&&<Card>{(result.img||result.imgLoading)&&<div style={{marginBottom:16,borderRadius:14,overflow:"hidden"}}>{result.img?<div><div style={{position:"relative"}}><img id="ai-generated-img" crossOrigin="anonymous" src={result.img} alt="AI Generated" onContextMenu={e=>e.preventDefault()} onDragStart={e=>e.preventDefault()} style={{width:"100%",maxHeight:500,objectFit:"contain",display:"block",borderRadius:14,WebkitUserSelect:"none",userSelect:"none"}}/><div onContextMenu={e=>e.preventDefault()} style={{position:"absolute",top:0,left:0,right:0,bottom:0,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}><span style={{fontSize:38,fontWeight:900,color:"rgba(255,255,255,0.3)",textShadow:"0 2px 8px rgba(0,0,0,0.3)",letterSpacing:6,textTransform:"uppercase",transform:"rotate(-25deg)",userSelect:"none",whiteSpace:"nowrap"}}>DATAGROWTH</span></div></div><div style={{textAlign:"center",padding:"6px 0",fontSize:11,color:t.txM}}>⬇️ Descarga la imagen para obtenerla sin marca de agua</div></div>:<div style={{width:"100%",height:280,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:t.bgI,borderRadius:14,border:"1px solid "+t.brd}}><div style={{width:40,height:40,border:"3px solid "+t.brd,borderTop:"3px solid "+(brand?.color||t.ac),borderRadius:"50%",animation:"spin .8s linear infinite",marginBottom:12}}/><div style={{color:t.txS,fontSize:13,fontWeight:500}}>Generando imagen con IA...</div></div>}</div>}<div style={{fontSize:22,fontWeight:800,color:t.tx,marginBottom:6}}>{result.d.headline}</div>{result.d.subtext&&<div style={{color:t.txS,marginBottom:12}}>{result.d.subtext}</div>}<div style={{fontSize:14,color:t.tx,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{result.d.caption}</div>{result.d.hashtags&&<div style={{fontSize:12,color:brand?.color,marginTop:10}}>{result.d.hashtags}</div>}<div style={{marginTop:12,display:"flex",gap:8}}><CopyBtn text={`${result.d.caption}\n\n${result.d.hashtags||""}`} label="📱 Copiar"/>{result.img&&<button onClick={()=>{fetch(result.img).then(r=>r.blob()).then(b=>{const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=(brand?.short||"img")+"_"+Date.now()+".png";document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(u),100);}).catch(()=>{});}} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",background:"rgba(55,194,235,.08)",border:"1px solid rgba(55,194,235,.2)",borderRadius:10,color:"#37c2eb",fontSize:12,fontWeight:600,cursor:"pointer"}}>⬇️ Descargar imagen</button>}</div></Card>}
+      {result&&!loading&&result.t==="visual"&&result.d&&chatHistory.length===0&&<Card>{(result.img||result.imgLoading)&&<div style={{marginBottom:16,borderRadius:14,overflow:"hidden"}}>{result.img?<div><div style={{position:"relative"}}><img id="ai-generated-img" crossOrigin="anonymous" src={result.img} alt="AI Generated" onContextMenu={e=>e.preventDefault()} onDragStart={e=>e.preventDefault()} style={{width:"100%",maxHeight:500,objectFit:"contain",display:"block",borderRadius:14,WebkitUserSelect:"none",userSelect:"none"}}/><div onContextMenu={e=>e.preventDefault()} style={{position:"absolute",top:0,left:0,right:0,bottom:0,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}><span style={{fontSize:38,fontWeight:900,color:"rgba(255,255,255,0.3)",textShadow:"0 2px 8px rgba(0,0,0,0.3)",letterSpacing:6,textTransform:"uppercase",transform:"rotate(-25deg)",userSelect:"none",whiteSpace:"nowrap"}}>DATAGROWTH</span></div></div><div style={{textAlign:"center",padding:"6px 0",fontSize:11,color:t.txM}}>⬇️ Descarga la imagen para obtenerla sin marca de agua</div></div>:<div style={{width:"100%",height:280,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:t.bgI,borderRadius:14,border:"1px solid "+t.brd}}><div style={{width:40,height:40,border:"3px solid "+t.brd,borderTop:"3px solid "+(brand?.color||t.ac),borderRadius:"50%",animation:"spin .8s linear infinite",marginBottom:12}}/><div style={{color:t.txS,fontSize:13,fontWeight:500}}>Generando imagen con IA...</div></div>}</div>}<div style={{fontSize:22,fontWeight:800,color:t.tx,marginBottom:6}}>{result.d.headline}</div>{result.d.subtext&&<div style={{color:t.txS,marginBottom:12}}>{result.d.subtext}</div>}<div style={{fontSize:14,color:t.tx,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{result.d.caption}</div>{result.d.hashtags&&<div style={{fontSize:12,color:brand?.color,marginTop:10}}>{result.d.hashtags}</div>}<div style={{marginTop:12,display:"flex",gap:8}}><CopyBtn text={`${result.d.caption}\n\n${result.d.hashtags||""}`} label="📱 Copiar"/>{result.img&&<button onClick={()=>{fetch(result.img).then(r=>r.blob()).then(b=>{const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=(brand?.short||"img")+"_"+Date.now()+".png";document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(u),100);if(!isAdmin) addUsage(ct.id);}).catch(()=>{});}} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",background:"rgba(55,194,235,.08)",border:"1px solid rgba(55,194,235,.2)",borderRadius:10,color:"#37c2eb",fontSize:12,fontWeight:600,cursor:"pointer"}}>⬇️ Descargar imagen</button>}{result.img&&brand?.ig_token&&brand?.ig_user_id&&<button onClick={async()=>{try{const caption=`${result.d.caption}\n\n${result.d.hashtags||""}`;const r=await fetch(result.img);const b=await r.blob();const reader=new FileReader();reader.onloadend=async()=>{const b64=reader.result.split(",")[1];const res=await fetch("/api/instagram",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ig_token:brand.ig_token,ig_user_id:brand.ig_user_id,image_base64:b64,caption})});const d=await res.json();if(d.success){alert("✅ Publicado en Instagram!");}else{alert("❌ Error: "+(d.error||"No se pudo publicar"));}};reader.readAsDataURL(b);}catch(e){alert("❌ Error: "+e.message);}}} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",background:"linear-gradient(135deg,#833AB4,#E1306C,#F77737)",border:"none",borderRadius:10,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer"}}>📸 Publicar en Instagram</button>}</div></Card>}
       {result&&!loading&&result.t==="carousel"&&result.d?.slides&&<Card>{result.d.slides.map((sl,i)=><div key={i} style={{padding:"12px 0",borderBottom:i<result.d.slides.length-1?`1px solid ${t.brd}`:"none"}}><div style={{fontSize:14,fontWeight:600,color:t.tx}}>{sl.emoji} Slide {i+1}: {sl.title}</div><div style={{fontSize:13,color:t.txS,marginTop:3}}>{sl.body}</div></div>)}{result.d.caption&&<div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${t.brd}`,fontSize:14,color:t.tx,whiteSpace:"pre-wrap"}}>{result.d.caption}</div>}<div style={{marginTop:12}}><CopyBtn text={result.d.slides.map((s,i)=>`${s.emoji} Slide ${i+1}: ${s.title}\n${s.body}`).join("\n\n")+`\n\n${result.d.caption||""}\n${result.d.hashtags||""}`} label="📋 Todo"/></div></Card>}
       {ct.fmt==="reel"&&videoLoading&&<Card><div style={{padding:24,textAlign:"center"}}><div style={{width:40,height:40,border:"3px solid "+t.brd,borderTop:"3px solid "+(brand?.color||t.ac),borderRadius:"50%",animation:"spin .8s linear infinite",margin:"0 auto 12px"}}/><div style={{color:t.ac,fontSize:14,fontWeight:600}}>{videoProgress}</div><div style={{color:t.txM,fontSize:12,marginTop:4}}>El video se esta generando con IA (puede tardar 2-5 min). No cierres esta pagina.</div></div></Card>}
       {ct.fmt==="reel"&&!videoLoading&&videoUrl&&<Card><div style={{borderRadius:14,overflow:"hidden",position:"relative",marginBottom:12}}><video src={videoUrl} controls style={{width:"100%",maxHeight:400,borderRadius:14,display:"block"}}/><div style={{position:"absolute",top:0,left:0,right:0,bottom:40,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}><span style={{fontSize:30,fontWeight:900,color:"rgba(255,255,255,0.25)",textShadow:"0 2px 8px rgba(0,0,0,0.3)",letterSpacing:6,textTransform:"uppercase",transform:"rotate(-25deg)",userSelect:"none",whiteSpace:"nowrap"}}>DATAGROWTH</span></div></div><div style={{textAlign:"center",fontSize:11,color:t.txM,marginBottom:8}}>⬇️ Descarga el video para obtenerlo sin marca de agua</div><div style={{display:"flex",gap:8,justifyContent:"center"}}><button onClick={async()=>{try{const r=await fetch(videoUrl);const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=(brand?.short||"reel")+"_"+Date.now()+".mp4";a.click();URL.revokeObjectURL(u);if(!isAdmin) addUsage("reel");}catch(e){window.open(videoUrl,"_blank");}}} style={{display:"flex",alignItems:"center",gap:6,padding:"10px 20px",background:t.gr,border:"none",borderRadius:10,color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer"}}>⬇️ Descargar video</button></div></Card>}
@@ -1619,11 +1644,54 @@ const ClientSettings = ({ user, setUser, onChangePlan }) => {
 };
 
 // ══════ AGENCY PAGES ══════
-const AgencyDash = ({ setPage, brands }) => { const t = useT(); return <Section title="Dashboard Agencia" right={<Badge color="#8b5cf6">Admin</Badge>}><div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 24 }}>{[{ l: "Contenido", v: "247", c: "#37c2eb" }, { l: "Marcas", v: String(brands.length), c: "#06b6d4" }, { l: "Clientes", v: "5", c: "#8b5cf6" }, { l: "Revenue", v: "$216", c: "#f59e0b" }].map((s, i) => <Card key={i}><div style={{ fontSize: 12, color: t.txM, marginBottom: 8 }}>{s.l}</div><div style={{ fontSize: 28, fontWeight: 800, color: s.c }}>{s.v}</div></Card>)}</div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{brands.map(b => <Card key={b.id} onClick={() => setPage("factory")} style={{ display: "flex", alignItems: "center", gap: 12 }}><div style={{ width: 40, height: 40, borderRadius: 10, background: b.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{b.emoji}</div><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{b.name}</div><div style={{ fontSize: 11, color: t.txM }}>{b.industry}</div></div><Badge>Activa</Badge></Card>)}</div></Section>; };
-const AgencyClients = () => { const t = useT(); const [clients, setClients] = useState([]); const [loading, setLoading] = useState(true);
-  useEffect(() => { supabase.from("profiles").select("*").eq("role", "client").then(({ data }) => { setClients(data || []); setLoading(false); }); }, []);
-  return <Section title="Clientes" right={<Badge>{clients.length} registrados</Badge>}><Card style={{ padding: 0 }}><div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", padding: "12px 20px", background: t.bgI, fontSize: 11, fontWeight: 600, color: t.txM, textTransform: "uppercase" }}><div>Empresa</div><div>Plan</div><div>Registro</div></div>{loading ? <div style={{ padding: 20, textAlign: "center", color: t.txM }}>Cargando...</div> : clients.length === 0 ? <div style={{ padding: 30, textAlign: "center", color: t.txM }}>No hay clientes registrados aún</div> : clients.map((c, i) => <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", padding: "14px 20px", borderBottom: `1px solid ${t.brd}`, alignItems: "center" }}><div><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{c.name || c.email}</div><div style={{ fontSize: 11, color: t.txM }}>{c.email}</div></div><Badge color={c.plan === "agency" ? "#8b5cf6" : c.plan === "pro" ? "#37c2eb" : "#888"}>{c.plan || "free"}</Badge><div style={{ color: t.txS, fontSize: 12 }}>{c.created_at ? new Date(c.created_at).toLocaleDateString() : ""}</div></div>)}</Card></Section>; };
-const AgencyTeam = () => { const t = useT(); return <Section title="Equipo" right={<Btn primary><Ic name="plus" size={14}/> Invitar</Btn>}><div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>{[{ n: "Julian", r: "Admin", c: "#ec4899" }, { n: "María", r: "Editor", c: "#3b82f6" }].map((m, i) => <Card key={i}><div style={{ display: "flex", alignItems: "center", gap: 12 }}><div style={{ width: 44, height: 44, borderRadius: "50%", background: m.c, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 18, color: "#fff" }}>{m.n[0]}</div><div><div style={{ fontSize: 15, fontWeight: 600, color: t.tx }}>{m.n}</div><Badge color={m.r === "Admin" ? "#8b5cf6" : "#37c2eb"}>{m.r}</Badge></div></div></Card>)}</div></Section>; };
+const AgencyDash = ({ setPage, brands }) => { const t = useT(); const [stats, setStats] = useState({ content: 0, clients: 0 });
+  useEffect(() => { (async () => {
+    const { count: clientCount } = await supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "client");
+    const { count: usageCount } = await supabase.from("usage").select("*", { count: "exact", head: true });
+    setStats({ content: usageCount || 0, clients: clientCount || 0 });
+  })(); }, []);
+  return <Section title="Dashboard Agencia" right={<Badge color="#8b5cf6">Admin</Badge>}><div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 24 }}>{[{ l: "Contenido", v: String(stats.content), c: "#37c2eb" }, { l: "Marcas", v: String(brands.length), c: "#06b6d4" }, { l: "Clientes", v: String(stats.clients), c: "#8b5cf6" }, { l: "Revenue", v: "$0", c: "#f59e0b" }].map((s, i) => <Card key={i}><div style={{ fontSize: 12, color: t.txM, marginBottom: 8 }}>{s.l}</div><div style={{ fontSize: 28, fontWeight: 800, color: s.c }}>{s.v}</div></Card>)}</div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{brands.map(b => <Card key={b.id} onClick={() => setPage("factory")} style={{ display: "flex", alignItems: "center", gap: 12 }}><div style={{ width: 40, height: 40, borderRadius: 10, background: b.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{b.emoji}</div><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{b.name}</div><div style={{ fontSize: 11, color: t.txM }}>{b.industry}</div></div><Badge>Activa</Badge></Card>)}</div></Section>; };
+const AgencyClients = () => { const t = useT(); const [clients, setClients] = useState([]); const [loading, setLoading] = useState(true); const [editingClient, setEditingClient] = useState(null); const [newPass, setNewPass] = useState(""); const [passMsg, setPassMsg] = useState("");
+  useEffect(() => { supabase.from("profiles").select("*").eq("role", "client").order("created_at", { ascending: false }).then(({ data }) => { setClients(data || []); setLoading(false); }); }, []);
+  const changeClientPassword = async (clientId) => {
+    if (!newPass || newPass.length < 6) { setPassMsg("❌ La contraseña debe tener al menos 6 caracteres"); return; }
+    try {
+      const user = JSON.parse(localStorage.getItem("sb-wmonacfzxjpndbhwsdsf-auth-token") || "{}");
+      const adminId = user?.user?.id || "";
+      const r = await fetch("/api/change-password", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: clientId, new_password: newPass, admin_id: adminId }) });
+      const d = await r.json();
+      if (d.success) { setPassMsg("✅ Contraseña actualizada"); setNewPass(""); } else { setPassMsg("❌ " + (d.error || "Error")); }
+      setTimeout(() => setPassMsg(""), 4000);
+    } catch (e) { setPassMsg("❌ " + e.message); }
+  };
+  const updateClientPlan = async (cid, plan) => { await supabase.from("profiles").update({ plan }).eq("id", cid); setClients(prev => prev.map(c => c.id === cid ? { ...c, plan } : c)); };
+  return <Section title="Clientes" right={<Badge>{clients.length} registrados</Badge>}>
+    {passMsg && <div style={{ padding: 10, marginBottom: 12, borderRadius: 8, background: passMsg.startsWith("✅") ? "rgba(34,197,94,.1)" : "rgba(239,68,68,.1)", color: passMsg.startsWith("✅") ? "#22c55e" : "#ef4444", fontSize: 13 }}>{passMsg}</div>}
+    <Card style={{ padding: 0 }}><div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", padding: "12px 20px", background: t.bgI, fontSize: 11, fontWeight: 600, color: t.txM, textTransform: "uppercase" }}><div>Empresa</div><div>Plan</div><div>Registro</div><div>Acciones</div></div>
+    {loading ? <div style={{ padding: 20, textAlign: "center", color: t.txM }}>Cargando...</div> : clients.length === 0 ? <div style={{ padding: 30, textAlign: "center", color: t.txM }}>No hay clientes registrados aún</div> : clients.map((c, i) => <div key={i}>
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", padding: "14px 20px", borderBottom: "1px solid " + t.brd, alignItems: "center" }}>
+        <div><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{c.name || c.email}</div><div style={{ fontSize: 11, color: t.txM }}>{c.email}</div></div>
+        <div><select value={c.plan || "free"} onChange={e => updateClientPlan(c.id, e.target.value)} style={{ background: t.bgI, border: "1px solid " + t.brd, borderRadius: 6, color: t.tx, padding: "4px 8px", fontSize: 12, cursor: "pointer" }}><option value="free">Free</option><option value="pro">Pro</option><option value="agency">Agency</option></select></div>
+        <div style={{ color: t.txS, fontSize: 12 }}>{c.created_at ? new Date(c.created_at).toLocaleDateString() : ""}</div>
+        <div><button onClick={() => { setEditingClient(editingClient === c.id ? null : c.id); setNewPass(""); }} style={{ background: t.bgI, border: "1px solid " + t.brd, borderRadius: 6, color: t.txM, padding: "4px 10px", fontSize: 11, cursor: "pointer" }}>🔑 Contraseña</button></div>
+      </div>
+      {editingClient === c.id && <div style={{ padding: "12px 20px", background: t.bgI, borderBottom: "1px solid " + t.brd }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: t.tx, marginBottom: 8 }}>Cambiar contraseña de: {c.name || c.email}</div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input type="password" value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="Nueva contraseña (min 6 chars)" style={{ padding: "8px 12px", background: t.bg, border: "1px solid " + t.brd, borderRadius: 8, color: t.tx, fontSize: 13, flex: 1 }}/>
+          <button onClick={() => changeClientPassword(c.id)} style={{ padding: "8px 16px", background: "#3b82f6", border: "none", borderRadius: 8, color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>Guardar</button>
+        </div>
+      </div>}
+    </div>)}</Card></Section>; };
+const AgencyTeam = ({ user }) => { const t = useT(); const [members, setMembers] = useState([]); const [loading, setLoading] = useState(true); const [showAdd, setShowAdd] = useState(false); const [newName, setNewName] = useState(""); const [newEmail, setNewEmail] = useState(""); const [newRole, setNewRole] = useState("Editor");
+  useEffect(() => { supabase.from("team_members").select("*").eq("agency_id", user?.id).order("created_at").then(({ data }) => { setMembers(data || []); setLoading(false); }); }, [user]);
+  const addMember = async () => { if (!newName || !newEmail) return; const { data } = await supabase.from("team_members").insert({ agency_id: user?.id, name: newName, email: newEmail, role: newRole }).select().single(); if (data) { setMembers([...members, data]); setNewName(""); setNewEmail(""); setNewRole("Editor"); setShowAdd(false); } };
+  const removeMember = async (id) => { if (!confirm("¿Eliminar este miembro?")) return; await supabase.from("team_members").delete().eq("id", id); setMembers(members.filter(m => m.id !== id)); };
+  const colors = ["#ec4899", "#3b82f6", "#8b5cf6", "#06b6d4", "#f59e0b", "#22c55e", "#ef4444", "#f97316"];
+  return <Section title="Equipo" right={<Btn primary onClick={() => setShowAdd(!showAdd)}><Ic name="plus" size={14}/> Invitar</Btn>}>
+    {showAdd && <Card style={{ marginBottom: 14 }}><div style={{ fontSize: 14, fontWeight: 600, color: t.tx, marginBottom: 12 }}>Agregar miembro</div><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Nombre" style={{ padding: "8px 12px", background: t.bgI, border: "1px solid " + t.brd, borderRadius: 8, color: t.tx, fontSize: 13, flex: 1 }}/><input value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="Email" style={{ padding: "8px 12px", background: t.bgI, border: "1px solid " + t.brd, borderRadius: 8, color: t.tx, fontSize: 13, flex: 1 }}/><select value={newRole} onChange={e => setNewRole(e.target.value)} style={{ padding: "8px 12px", background: t.bgI, border: "1px solid " + t.brd, borderRadius: 8, color: t.tx, fontSize: 13 }}><option>Admin</option><option>Editor</option><option>Viewer</option></select><button onClick={addMember} style={{ padding: "8px 16px", background: "#3b82f6", border: "none", borderRadius: 8, color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Agregar</button></div></Card>}
+    {loading ? <div style={{ padding: 20, textAlign: "center", color: t.txM }}>Cargando...</div> : members.length === 0 ? <Card><div style={{ padding: 20, textAlign: "center", color: t.txM }}>No hay miembros en el equipo. Usa el botón "Invitar" para agregar.</div></Card> : <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>{members.map((m, i) => <Card key={m.id}><div style={{ display: "flex", alignItems: "center", gap: 12 }}><div style={{ width: 44, height: 44, borderRadius: "50%", background: colors[i % colors.length], display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 18, color: "#fff" }}>{(m.name || m.email || "?")[0].toUpperCase()}</div><div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 600, color: t.tx }}>{m.name || m.email}</div><Badge color={m.role === "Admin" ? "#8b5cf6" : m.role === "Editor" ? "#37c2eb" : "#888"}>{m.role}</Badge></div><span onClick={() => removeMember(m.id)} style={{ cursor: "pointer", color: "#ef4444", fontSize: 16 }}>×</span></div></Card>)}</div>}
+  </Section>; };
 const AgencyPlans = () => { const t = useT(); return <Section title="Planes"><div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>{PLANS.map(p => <Card key={p.id} style={{ textAlign: "center", border: p.pop ? `2px solid ${p.color}` : `1px solid ${t.brd}`, position: "relative" }}>{p.pop && <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: p.color, color: "#fff", padding: "4px 16px", borderRadius: 20, fontSize: 11, fontWeight: 700 }}>Popular</div>}<div style={{ fontSize: 17, fontWeight: 600, color: t.tx, paddingTop: p.pop ? 10 : 0 }}>{p.name}</div><div style={{ fontSize: 40, fontWeight: 800, color: p.color, margin: "8px 0" }}>{p.price}<span style={{ fontSize: 14, color: t.txM }}>/mes</span></div>{p.features.map((f, i) => <div key={i} style={{ fontSize: 13, color: t.tx, padding: "5px 0" }}>✓ {f}</div>)}</Card>)}</div></Section>; };
 const AgencySettings = ({ gemKey, setGemKey }) => { const t = useT(); const [k, setK] = useState(gemKey); const [sv, setSv] = useState(false); return <Section title="Configuración API"><Card style={{ marginBottom: 12 }}><div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontWeight: 600, color: t.tx }}>Claude</span><Badge>Conectada</Badge></div></Card><Card style={{ border: `1px solid ${gemKey ? "rgba(55,194,235,.3)" : "rgba(245,158,11,.3)"}` }}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><span style={{ fontWeight: 600, color: t.tx }}>Gemini Imágenes</span>{gemKey ? <Badge>Conectada</Badge> : <Badge color="#f59e0b">Pendiente</Badge>}</div><div style={{ display: "flex", gap: 10 }}><Input value={k} onChange={e => setK(e.target.value)} type="password" placeholder="AIzaSy..."/><Btn primary onClick={() => { setGemKey(k); try { localStorage.setItem("dg_gemkey", k); } catch {} setSv(true); setTimeout(() => setSv(false), 2000); }}>{sv ? "✅" : "Guardar"}</Btn></div></Card></Section>; };
 
@@ -1779,7 +1847,7 @@ export default function App() {
   if (view === "landing") return <ThemeCtx.Provider value={th}><Landing onLogin={() => navigate("auth", { authMode: "login" })} onRegister={(plan) => navigate("auth", { authMode: "register", selPlan: plan || null })} showPlans={landingSubView === "plans"} setShowPlans={(v) => { if (v) { navigate("landing", { landingSubView: "plans" }); } else { window.history.back(); } }} dark={dark} setDark={setDark}/></ThemeCtx.Provider>;
   if (view === "auth") return <ThemeCtx.Provider value={th}><Auth mode={authMode} setMode={(m) => navigate("auth", { authMode: m })} onAuth={onAuth} dark={dark} setDark={setDark} selPlan={selPlan}/></ThemeCtx.Provider>;
 
-  const agPages = { dashboard: <AgencyDash setPage={setPage} brands={brands}/>, factory: <Factory brands={brands} gemKey={gemKey} isAdmin={true} user={user}/>, branding: <BrandKit brands={brands} setBrands={setBrands} user={user}/>, clients: <AgencyClients/>, plans: <AgencyPlans/>, team: <AgencyTeam/> };
+  const agPages = { dashboard: <AgencyDash setPage={setPage} brands={brands}/>, factory: <Factory brands={brands} gemKey={gemKey} isAdmin={true} user={user}/>, branding: <BrandKit brands={brands} setBrands={setBrands} user={user}/>, clients: <AgencyClients/>, plans: <AgencyPlans/>, team: <AgencyTeam user={user}/> };
   const clPages = { dashboard: (() => { const t = th; return <Section title="Mi Dashboard" right={<Badge color="#37c2eb">Cliente</Badge>}><div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 24 }}>{[{ l: "Marcas", v: String(brands.length), c: "#06b6d4" }, { l: "Contenido", v: brands.length ? "34" : "0", c: "#37c2eb" }, { l: "Posts/mes", v: brands.length ? "12" : "0", c: "#8b5cf6" }].map((s, i) => <Card key={i}><div style={{ fontSize: 12, color: t.txM, marginBottom: 8 }}>{s.l}</div><div style={{ fontSize: 28, fontWeight: 800, color: s.c }}>{s.v}</div></Card>)}</div>{brands.length ? <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{brands.map(b => <Card key={b.id} onClick={() => setPage("factory")} style={{ display: "flex", alignItems: "center", gap: 12 }}><div style={{ width: 40, height: 40, borderRadius: 10, background: b.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{b.emoji}</div><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{b.name}</div><div style={{ fontSize: 11, color: t.txM }}>{b.industry}</div></div><Badge>Activa</Badge></Card>)}<Card onClick={() => setPage("branding")} style={{ display: "flex", alignItems: "center", justifyContent: "center", border: `2px dashed ${t.brd}`, minHeight: 70 }}><div style={{ textAlign: "center", color: t.txM }}><div style={{ fontSize: 24 }}>+</div><div style={{ fontSize: 12 }}>Nueva marca</div></div></Card></div> : <Card style={{ textAlign: "center", padding: 48 }}><div style={{ fontSize: 48, marginBottom: 12 }}>🚀</div><div style={{ fontSize: 18, fontWeight: 700, color: t.tx, marginBottom: 8 }}>¡Bienvenido!</div><div style={{ fontSize: 14, color: t.txM, marginBottom: 20 }}>Crea tu primera marca para empezar.</div><Btn primary onClick={() => setPage("branding")} style={{ margin: "0 auto" }}><Ic name="plus" size={14}/> Crear marca</Btn></Card>}</Section>; })(), factory: <Factory brands={brands} gemKey={gemKey} isAdmin={false} user={user}/>, branding: <BrandKit brands={brands} setBrands={setBrands} user={user}/>, settings: <ClientSettings user={user} setUser={setUser}/> };
   const pages = isAdmin ? agPages : clPages;
 
