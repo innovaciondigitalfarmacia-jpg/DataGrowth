@@ -1618,9 +1618,19 @@ const ClientSettings = ({ user, setUser, onChangePlan }) => {
 
 // ══════ AGENCY PAGES ══════
 const AgencyDash = ({ setPage, brands }) => { const t = useT(); return <Section title="Dashboard Agencia" right={<Badge color="#8b5cf6">Admin</Badge>}><div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 24 }}>{[{ l: "Contenido", v: "—", c: "#37c2eb" }, { l: "Marcas", v: String(brands.length), c: "#06b6d4" }, { l: "Clientes", v: "—", c: "#8b5cf6" }, { l: "Revenue", v: "$0", c: "#f59e0b" }].map((s, i) => <Card key={i}><div style={{ fontSize: 12, color: t.txM, marginBottom: 8 }}>{s.l}</div><div style={{ fontSize: 28, fontWeight: 800, color: s.c }}>{s.v}</div></Card>)}</div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{brands.map(b => <Card key={b.id} onClick={() => setPage("factory")} style={{ display: "flex", alignItems: "center", gap: 12 }}><div style={{ width: 40, height: 40, borderRadius: 10, background: b.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{b.emoji}</div><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{b.name}</div><div style={{ fontSize: 11, color: t.txM }}>{b.industry}</div></div><Badge>Activa</Badge></Card>)}</div></Section>; };
-const AgencyClients = () => { const t = useT(); const [clients, setClients] = useState([]); const [loading, setLoading] = useState(true); const [editingClient, setEditingClient] = useState(null); const [passMsg, setPassMsg] = useState("");
+const AgencyClients = () => { const t = useT(); const [clients, setClients] = useState([]); const [loading, setLoading] = useState(true); const [editingClient, setEditingClient] = useState(null); const [newPass, setNewPass] = useState(""); const [passMsg, setPassMsg] = useState("");
   useEffect(() => { supabase.from("profiles").select("*").eq("role", "client").order("created_at", { ascending: false }).then(({ data }) => { setClients(data || []); setLoading(false); }); }, []);
-  const resetClientPassword = async (email) => { try { const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin }); setPassMsg(error ? "❌ " + error.message : "✅ Email de recuperación enviado a " + email); setTimeout(() => setPassMsg(""), 4000); } catch (e) { setPassMsg("❌ " + e.message); } };
+  const changeClientPassword = async (clientId) => {
+    if (!newPass || newPass.length < 6) { setPassMsg("❌ La contraseña debe tener al menos 6 caracteres"); return; }
+    try {
+      const user = JSON.parse(localStorage.getItem("sb-wmonacfzxjpndbhwsdsf-auth-token") || "{}");
+      const adminId = user?.user?.id || "";
+      const r = await fetch("/api/change-password", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: clientId, new_password: newPass, admin_id: adminId }) });
+      const d = await r.json();
+      if (d.success) { setPassMsg("✅ Contraseña actualizada"); setNewPass(""); } else { setPassMsg("❌ " + (d.error || "Error")); }
+      setTimeout(() => setPassMsg(""), 4000);
+    } catch (e) { setPassMsg("❌ " + e.message); }
+  };
   const updateClientPlan = async (cid, plan) => { await supabase.from("profiles").update({ plan }).eq("id", cid); setClients(prev => prev.map(c => c.id === cid ? { ...c, plan } : c)); };
   return <Section title="Clientes" right={<Badge>{clients.length} registrados</Badge>}>
     {passMsg && <div style={{ padding: 10, marginBottom: 12, borderRadius: 8, background: passMsg.startsWith("✅") ? "rgba(34,197,94,.1)" : "rgba(239,68,68,.1)", color: passMsg.startsWith("✅") ? "#22c55e" : "#ef4444", fontSize: 13 }}>{passMsg}</div>}
@@ -1630,12 +1640,14 @@ const AgencyClients = () => { const t = useT(); const [clients, setClients] = us
         <div><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{c.name || c.email}</div><div style={{ fontSize: 11, color: t.txM }}>{c.email}</div></div>
         <div><select value={c.plan || "free"} onChange={e => updateClientPlan(c.id, e.target.value)} style={{ background: t.bgI, border: "1px solid " + t.brd, borderRadius: 6, color: t.tx, padding: "4px 8px", fontSize: 12, cursor: "pointer" }}><option value="free">Free</option><option value="pro">Pro</option><option value="agency">Agency</option></select></div>
         <div style={{ color: t.txS, fontSize: 12 }}>{c.created_at ? new Date(c.created_at).toLocaleDateString() : ""}</div>
-        <div style={{ display: "flex", gap: 6 }}><button onClick={() => setEditingClient(editingClient === c.id ? null : c.id)} style={{ background: t.bgI, border: "1px solid " + t.brd, borderRadius: 6, color: t.txM, padding: "4px 10px", fontSize: 11, cursor: "pointer" }}>⚙️</button><button onClick={() => resetClientPassword(c.email)} style={{ background: t.bgI, border: "1px solid " + t.brd, borderRadius: 6, color: t.txM, padding: "4px 10px", fontSize: 11, cursor: "pointer" }} title="Reset contraseña">🔑</button></div>
+        <div><button onClick={() => { setEditingClient(editingClient === c.id ? null : c.id); setNewPass(""); }} style={{ background: t.bgI, border: "1px solid " + t.brd, borderRadius: 6, color: t.txM, padding: "4px 10px", fontSize: 11, cursor: "pointer" }}>🔑 Contraseña</button></div>
       </div>
       {editingClient === c.id && <div style={{ padding: "12px 20px", background: t.bgI, borderBottom: "1px solid " + t.brd }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: t.tx, marginBottom: 8 }}>Gestionar: {c.name || c.email}</div>
-        <button onClick={() => resetClientPassword(c.email)} style={{ padding: "6px 14px", background: "#3b82f6", border: "none", borderRadius: 6, color: "#fff", fontSize: 12, cursor: "pointer" }}>📧 Enviar email de recuperación de contraseña</button>
-        <div style={{ fontSize: 11, color: t.txM, marginTop: 4 }}>Se enviará un link a {c.email} para que cambie su contraseña</div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: t.tx, marginBottom: 8 }}>Cambiar contraseña de: {c.name || c.email}</div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input type="password" value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="Nueva contraseña (min 6 chars)" style={{ padding: "8px 12px", background: t.bg, border: "1px solid " + t.brd, borderRadius: 8, color: t.tx, fontSize: 13, flex: 1 }}/>
+          <button onClick={() => changeClientPassword(c.id)} style={{ padding: "8px 16px", background: "#3b82f6", border: "none", borderRadius: 8, color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>Guardar</button>
+        </div>
       </div>}
     </div>)}</Card></Section>; };
 const AgencyPlans = () => { const t = useT(); return <Section title="Planes"><div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>{PLANS.map(p => <Card key={p.id} style={{ textAlign: "center", border: p.pop ? `2px solid ${p.color}` : `1px solid ${t.brd}`, position: "relative" }}>{p.pop && <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: p.color, color: "#fff", padding: "4px 16px", borderRadius: 20, fontSize: 11, fontWeight: 700 }}>Popular</div>}<div style={{ fontSize: 17, fontWeight: 600, color: t.tx, paddingTop: p.pop ? 10 : 0 }}>{p.name}</div><div style={{ fontSize: 40, fontWeight: 800, color: p.color, margin: "8px 0" }}>{p.price}<span style={{ fontSize: 14, color: t.txM }}>/mes</span></div>{p.features.map((f, i) => <div key={i} style={{ fontSize: 13, color: t.tx, padding: "5px 0" }}>✓ {f}</div>)}</Card>)}</div></Section>; };
