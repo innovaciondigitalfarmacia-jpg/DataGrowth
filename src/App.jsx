@@ -1102,6 +1102,8 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
   const getLeft = (typeId) => getLimit(typeId) - getUsage(typeId);
   const [videoLoading, setVideoLoading] = useState(false);
   const [videoUrl, setVideoUrl] = useState(null);
+  const [lastVideoImage, setLastVideoImage] = useState(null);
+  const [lastVideoPrompt, setLastVideoPrompt] = useState("");
   const [videoProgress, setVideoProgress] = useState("");
   const [uploadedImages, setUploadedImages] = useState([]);
   const [uploadedPreviews, setUploadedPreviews] = useState([]);
@@ -1301,94 +1303,68 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       
       const generateAndAnimate = async () => {
         try {
-          let videoPrompt = "";
+          let generatedImageB64 = lastVideoImage || null;
+          let videoPrompt = lastVideoPrompt || "";
           
-          if (currentImages[0]) {
-            // Analyze photos + combine with user instructions into ONE prompt
-            setVideoProgress("Analizando tus fotos y preparando instrucciones...");
+          // Only generate new image if we don't have one saved
+          if (!generatedImageB64) {
+            // STEP 1: Generate a beautiful image with Gemini first
+            setVideoProgress("Generando imagen base con IA...");
+            
+            const imgBody = currentImages[0] 
+              ? { prompt: imgPrompt, images: currentImages }
+              : { prompt: imgPrompt };
+            
             try {
-              const descRes = await fetch("/api/generate", {
+              const imgRes = await fetch("/api/image", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  system: "You create detailed video prompts. Return ONLY the prompt, nothing else. Max 450 characters.",
-                  messages: [{ content: "Create ONE unified video prompt that combines:\n\n1. SCENE FROM PHOTOS: Describe exactly what you see in these reference images (buildings, landscape, people, objects, lighting, colors, atmosphere)\n\n2. USER INSTRUCTIONS: '" + topic + "'\n\n3. BRAND INFO: " + brand.name + " (" + brand.industry + "), colors: " + brandColors + ", style: " + brandStyle + ", products: " + (brand.products || "N/A") + (realInfo ? "\n\n4. REAL INFO FROM WEBSITE: " + realInfo.substring(0, 300) : "") + (brand.knowledge ? "\n\n5. BRAND KNOWLEDGE: " + brand.knowledge.substring(0, 300) : "") + "\n\nThe prompt must:\n- Describe the scene from the photos AS the video setting\n- Include the user's specific requests\n- Use the brand colors (" + brandColors + ") and real products/services\n- Specify cinematic camera movement (slow dolly, pan)\n- Say: 'Any visible text MUST be in Spanish'\n- Be in English\n- Under 450 characters\n\nReturn ONLY the video prompt." }],
-                  images: currentImages
-                })
+                body: JSON.stringify(imgBody)
               });
-              if (descRes.ok) {
-                const descData = await descRes.json();
-                const desc = descData.content?.[0]?.text || "";
-                if (desc.length > 20) videoPrompt = desc.substring(0, 480);
+              if (imgRes.ok && imgRes.headers.get("content-type")?.includes("image")) {
+                const blob = await imgRes.blob();
+                generatedImageB64 = await new Promise(resolve => {
+                  const reader = new FileReader();
+                  reader.onloadend = () => resolve(reader.result.split(",")[1]);
+                  reader.readAsDataURL(blob);
+                });
+                setLastVideoImage(generatedImageB64);
               }
             } catch (e) {}
           }
-          
-          // If no prompt from photos or no photos, use the default combined prompt
+
+          // Only describe if we don't have a saved prompt
           if (!videoPrompt) {
+            // STEP 2: Describe the generated image in extreme detail for Veo
+            setVideoProgress("Preparando descripcion del video...");
             videoPrompt = motionPrompt;
-          }
-
-          // Try sending with image first
-          if (currentImages[0]) {
-            setVideoProgress("Preparando imagen para video...");
-            try {
-              const img = new Image();
-              img.src = "data:image/jpeg;base64," + currentImages[0];
-              const resizedB64 = await new Promise(resolve => {
-                img.onload = () => {
-                  const targetW = 720; const targetH = 1280;
-                  const c = document.createElement("canvas");
-                  c.width = targetW; c.height = targetH;
-                  const ctx = c.getContext("2d");
-                  const scale = Math.max(targetW / img.width, targetH / img.height);
-                  const sw = targetW / scale, sh = targetH / scale;
-                  const sx = (img.width - sw) / 2, sy = (img.height - sh) / 2;
-                  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetW, targetH);
-                  resolve(c.toDataURL("image/jpeg", 0.75).split(",")[1]);
-                };
-                img.onerror = () => resolve(null);
-              });
-              if (resizedB64) {
-                setVideoProgress("Generando video con IA...");
-                const videoBody = { prompt: videoPrompt.substring(0, 480), image_base64: resizedB64 };
-                const r = await fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(videoBody) });
-                const d = await r.json();
-                if (d.operation) { pollVideo(d.operation, d.endpoint, d.response_url, d.status_url, d.provider); return; }
-              }
-            } catch (e) {}
-
-            // Fallback: text only
-            setVideoProgress("Generando video con IA...");
-          } else {
-            // No photos: generate image with Gemini, then animate
-            setVideoProgress("Generando imagen base con IA...");
-            const imgRes = await fetch("/api/image", { 
-              method: "POST", 
-              headers: { "Content-Type": "application/json" }, 
-              body: JSON.stringify({ prompt: imgPrompt }) 
-            });
-            // Try to send generated image to video API
-            if (imgRes.ok && imgRes.headers.get("content-type")?.includes("image")) {
-              const blob = await imgRes.blob();
-              const imageBase64 = await new Promise(resolve => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result.split(",")[1]);
-                reader.readAsDataURL(blob);
-              });
-              if (imageBase64) {
-                setVideoProgress("Generando video con IA...");
-                const videoBody = { prompt: videoPrompt, image_base64: imageBase64 };
-                const r = await fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(videoBody) });
-                const d = await r.json();
-                if (d.operation) { pollVideo(d.operation, d.endpoint, d.response_url, d.status_url, d.provider); return; }
-              }
+            
+            if (generatedImageB64) {
+              try {
+                const descRes = await fetch("/api/generate", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    system: "You describe images for video generation AI. Return ONLY the video prompt. Max 450 chars.",
+                    messages: [{ content: "Describe this image in EXTREME detail for a video AI. Include EVERY visual element: exact colors (mention hex if possible), composition, layout, objects, text visible, lighting, atmosphere, background, foreground. The video must look EXACTLY like this image but with cinematic motion (slow camera dolly, gentle breeze, atmospheric effects). Any text visible must stay in Spanish. Brand: " + brand.name + ". Under 450 chars. Return ONLY the prompt." }],
+                    images: [generatedImageB64]
+                  })
+                });
+                if (descRes.ok) {
+                  const descData = await descRes.json();
+                  const desc = descData.content?.[0]?.text || "";
+                  if (desc.length > 20) videoPrompt = desc.substring(0, 480);
+                }
+              } catch (e) {}
             }
+            setLastVideoPrompt(videoPrompt);
+          } else {
+            setVideoProgress("Regenerando video con la misma base...");
           }
-          
-          // Send prompt to video API (text-only for Veo)
+
+          // STEP 3: Send to Veo with the detailed description
           setVideoProgress("Generando video con IA...");
-          const videoBody = { prompt: videoPrompt.substring(0, 500) };
+          const videoBody = { prompt: videoPrompt.substring(0, 480), image_base64: generatedImageB64 || undefined };
           const r = await fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(videoBody) });
           const d = await r.json();
           if (d.operation) { pollVideo(d.operation, d.endpoint, d.response_url, d.status_url, d.provider); } else { setVideoProgress("Error: " + (d.error || "no se pudo iniciar")); setVideoLoading(false); }
@@ -1500,7 +1476,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
         </div>
       </Card>}
       <div style={{marginBottom:14}}><Label>Marca</Label><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{brands.map(b=><button key={b.id} onClick={()=>setBrand(b)} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 12px",borderRadius:10,border:brand?.id===b.id?`2px solid ${b.color}`:`1px solid ${t.brd}`,background:brand?.id===b.id?b.color+"12":t.bgC,color:brand?.id===b.id?t.tx:t.txS,fontSize:12,fontWeight:600,cursor:"pointer"}}><span>{b.emoji}</span>{b.short||b.name.slice(0,3)}</button>)}</div></div>
-      <div style={{marginBottom:14}}><Label>Tipo</Label><div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>{CTYPES.map(c=><button key={c.id} onClick={()=>{setCt(c);setUploadedImages([]);setUploadedPreviews([]);if(c.fmt!=="visual"){setChatHistory([]);setLastAiImage(null);setLastImageContext("");}setResult(null);setTxt("");}} style={{padding:"12px 10px",borderRadius:12,border:ct.id===c.id?`2px solid ${t.ac}`:`1px solid ${t.brd}`,background:ct.id===c.id?t.acS:t.bgC,cursor:"pointer",textAlign:"center"}}><div style={{fontSize:22,marginBottom:4}}>{c.icon}</div><div style={{fontSize:12,fontWeight:600,color:ct.id===c.id?t.tx:t.txS}}>{c.label}</div></button>)}</div></div>
+      <div style={{marginBottom:14}}><Label>Tipo</Label><div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>{CTYPES.map(c=><button key={c.id} onClick={()=>{setCt(c);setUploadedImages([]);setUploadedPreviews([]);if(c.fmt!=="visual"){setChatHistory([]);setLastAiImage(null);setLastImageContext("");}setResult(null);setTxt("");setLastVideoImage(null);setLastVideoPrompt("");setVideoUrl(null);}} style={{padding:"12px 10px",borderRadius:12,border:ct.id===c.id?`2px solid ${t.ac}`:`1px solid ${t.brd}`,background:ct.id===c.id?t.acS:t.bgC,cursor:"pointer",textAlign:"center"}}><div style={{fontSize:22,marginBottom:4}}>{c.icon}</div><div style={{fontSize:12,fontWeight:600,color:ct.id===c.id?t.tx:t.txS}}>{c.label}</div></button>)}</div></div>
       {(ct.fmt==="reel"||ct.fmt==="visual")&&<div style={{marginBottom:14,padding:14,background:t.bgI,borderRadius:12,border:"1px solid "+t.brd}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}><span style={{fontSize:14}}>📷</span><span style={{fontSize:12,fontWeight:600,color:t.tx}}>{ct.fmt==="reel"?"Primer frame del video":"Fotos de referencia"}</span><span style={{fontSize:11,color:t.txM,fontStyle:"italic"}}>(opcional)</span></div><div style={{fontSize:11,color:t.txS,marginBottom:10,lineHeight:1.5}}>{ct.fmt==="reel"?"Si subes una foto, el video EMPIEZA desde esa foto y le da movimiento. Si no subes foto, la IA crea todo desde cero.":"Sube fotos reales de tu producto o servicio. La IA las usa como referencia para generar la imagen. Puedes subir varias."}</div><div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}><label style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",border:"2px dashed "+(uploadedImages.length?t.ac:t.brd),borderRadius:10,cursor:"pointer",color:uploadedImages.length?t.ac:t.txM,fontSize:12,fontWeight:500,background:uploadedImages.length?t.acS:"transparent"}}><span style={{fontSize:16}}>📷</span>Subir fotos<input type="file" accept="image/*" multiple onChange={handleUploadImages} style={{display:"none"}}/></label>{uploadedPreviews.map((p,i)=><div key={i} style={{position:"relative"}}><img src={p} style={{width:44,height:44,borderRadius:8,objectFit:"cover",border:"2px solid "+t.ac}}/><div onClick={()=>removeUploadedImage(i)} style={{position:"absolute",top:-5,right:-5,width:15,height:15,borderRadius:"50%",background:"#ef4444",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,cursor:"pointer",fontWeight:700}}>x</div></div>)}{uploadedImages.length>0&&<span style={{fontSize:11,color:t.ac,fontWeight:600}}>{uploadedImages.length} foto{uploadedImages.length>1?"s":""}</span>}</div></div>}
       <div style={{display:"flex",gap:10,marginBottom:22}}><Input value={topic} onChange={e=>setTopic(e.target.value)} placeholder={chatHistory.length>0&&ct.fmt==="visual"?"Escribe como mejorar la imagen...":"Describe que contenido necesitas..."} onKeyDown={e=>e.key==="Enter"&&go()}/><Btn onClick={go} disabled={loading||!topic.trim()} primary style={{whiteSpace:"nowrap",padding:"14px 28px"}}>{loading?<><Spin/> Creando...</>:<><Ic name="sparkle" size={16}/> {chatHistory.length>0&&ct.fmt==="visual"?"Mejorar":"Generar"}</>}</Btn>{chatHistory.length>0&&ct.fmt==="visual"&&!loading&&<Btn onClick={()=>{setChatHistory([]);setLastAiImage(null);setLastImageContext("");setResult(null);}} style={{whiteSpace:"nowrap",padding:"14px 16px",fontSize:12}}>Nuevo</Btn>}</div>
       {!isAdmin&&<div style={{display:"flex",gap:10,marginBottom:14,fontSize:11,color:t.txM,flexWrap:"wrap"}}>{CTYPES.map(c=><span key={c.id} style={{padding:"3px 8px",background:getLeft(c.id)<=0?"rgba(239,68,68,.1)":t.bgI,borderRadius:6,color:getLeft(c.id)<=0?"#ef4444":t.txM}}>{c.icon} {getUsage(c.id)}/{getLimit(c.id)==9999?"∞":getLimit(c.id)}</span>)}<span style={{marginLeft:"auto",color:t.ac,cursor:"pointer"}}>⬆️ Actualizar plan</span></div>}
