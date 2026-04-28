@@ -1240,7 +1240,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       setUploadedPreviews([]);
     }
     if (!isAdmin && getLeft(ct.id) <= 0) { setTxt("Has alcanzado el limite de " + ct.label + " de tu plan (" + getLimit(ct.id) + "/" + "mes). Actualiza a Pro o Agency para generar mas contenido."); setResult({t:"text"}); return; }
-    setLoading(true); setResult(null); setTxt(""); setVideoUrl(null); setVideoLoading(false); setVideoProgress("");
+    setLoading(true); setResult(null); setTxt(""); setVideoUrl(null); setVideoLoading(false); setVideoProgress(""); setLastVideoImage(null); setLastVideoPrompt("");
     const brandColors = (brand.colors || [brand.color]).join(", ");
     const brandStyle = brand.imgStyle || "professional modern";
 
