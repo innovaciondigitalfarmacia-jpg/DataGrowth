@@ -1362,9 +1362,29 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
             setVideoProgress("Regenerando video con la misma base...");
           }
 
-          // STEP 3: Send to Veo with the detailed description
+          // STEP 3: Resize image to 720x1280 for Veo and send
           setVideoProgress("Generando video con IA...");
-          const videoBody = { prompt: videoPrompt.substring(0, 480), image_base64: generatedImageB64 || undefined };
+          let videoImageB64 = generatedImageB64;
+          if (generatedImageB64) {
+            try {
+              const img = new Image();
+              img.src = "data:image/jpeg;base64," + generatedImageB64;
+              videoImageB64 = await new Promise(resolve => {
+                img.onload = () => {
+                  const c = document.createElement("canvas");
+                  c.width = 720; c.height = 1280;
+                  const ctx = c.getContext("2d");
+                  const scale = Math.max(720 / img.width, 1280 / img.height);
+                  const sw = 720 / scale, sh = 1280 / scale;
+                  const sx = (img.width - sw) / 2, sy = (img.height - sh) / 2;
+                  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 720, 1280);
+                  resolve(c.toDataURL("image/jpeg", 0.85).split(",")[1]);
+                };
+                img.onerror = () => resolve(generatedImageB64);
+              });
+            } catch (e) {}
+          }
+          const videoBody = { prompt: videoPrompt.substring(0, 480), image_base64: videoImageB64 || undefined };
           const r = await fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(videoBody) });
           const d = await r.json();
           if (d.operation) { pollVideo(d.operation, d.endpoint, d.response_url, d.status_url, d.provider); } else { setVideoProgress("Error: " + (d.error || "no se pudo iniciar")); setVideoLoading(false); }
