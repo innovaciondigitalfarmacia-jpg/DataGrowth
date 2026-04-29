@@ -23,7 +23,7 @@ export default async function handler(req, res) {
 
     // Step 1: Redirect to Instagram Login
     if (action === 'connect') {
-      const redirect = BASE_URL + '/api/instagram?action=callback';
+      const redirect = BASE_URL + '/api/instagram';
       const scope = 'instagram_business_basic,instagram_business_content_publish';
       const url = 'https://www.instagram.com/oauth/authorize?client_id=' + APP_ID + '&redirect_uri=' + encodeURIComponent(redirect) + '&scope=' + scope + '&response_type=code&state=' + encodeURIComponent(brand_id);
       return res.redirect(302, url);
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     // Step 2: OAuth callback (detect by action=callback OR presence of code)
     if (action === 'callback' || code) {
       if (!code) return res.status(400).send('No code received');
-      const redirect = BASE_URL + '/api/instagram?action=callback';
+      const redirect = BASE_URL + '/api/instagram';
       const brandId = state || brand_id || '';
 
       try {
