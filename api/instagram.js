@@ -67,8 +67,8 @@ export default async function handler(req, res) {
           });
         }
 
-        // Success page
-        return res.status(200).send('<html><body style="font-family:sans-serif;padding:40px;text-align:center;background:#0a0e1a;color:#fff"><h2 style="color:#37c2eb">✅ Instagram conectado</h2><p>Cuenta: @' + username + '</p><p style="color:#888">Esta ventana se cerrara automaticamente...</p><script>setTimeout(()=>{ window.opener?.postMessage({type:"ig_connected",username:"' + username + '"},"*"); window.close(); },2000)</script></body></html>');
+        // Success page - pass token back to frontend via postMessage
+        return res.status(200).send('<html><body style="font-family:sans-serif;padding:40px;text-align:center;background:#0a0e1a;color:#fff"><h2 style="color:#37c2eb">✅ Instagram conectado</h2><p>Cuenta: @' + username + '</p><p style="color:#888">Esta ventana se cerrara automaticamente...</p><script>setTimeout(()=>{ window.opener?.postMessage({type:"ig_connected",username:"' + username + '",ig_token:"' + longToken + '",ig_user_id:"' + userId + '"},"*"); window.close(); },2000)</script></body></html>');
       } catch (e) {
         return res.status(500).send('<html><body style="font-family:sans-serif;padding:40px;text-align:center;background:#0a0e1a;color:#fff"><h2 style="color:#ef4444">Error</h2><p>' + e.message + '</p><script>setTimeout(()=>window.close(),5000)</script></body></html>');
       }
