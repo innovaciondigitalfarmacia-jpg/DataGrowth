@@ -1060,12 +1060,52 @@ const BrandKit = ({ brands, setBrands, user }) => {
   const [del, setDel] = useState(null);
   const [tab, setTab] = useState("identity");
   const save = async (b) => {
+    // ⬇ AUTO-FETCH: scrape web + IG y mete en knowledge automáticamente
+    let autoKnowledge = b.knowledge || "";
+    try {
+      if (b.website) {
+        try {
+          const ctrl = new AbortController();
+          const tmout = setTimeout(() => ctrl.abort(), 12000);
+          const url = b.website.startsWith("http") ? b.website : "https://" + b.website;
+          const wr = await fetch("/api/scrape?url=" + encodeURIComponent(url), { signal: ctrl.signal });
+          clearTimeout(tmout);
+          if (wr.ok) {
+            const wd = await wr.json();
+            if (wd.text && !autoKnowledge.includes("=== WEB ===")) {
+              autoKnowledge = ("=== WEB ===\n" + wd.text.substring(0, 5000) + "\n\n" + autoKnowledge).substring(0, 14000);
+            }
+          }
+        } catch (e) {}
+      }
+      if (b.ig_token) {
+        try {
+          const profileRes = await fetch("https://graph.instagram.com/me?fields=username,biography,followers_count,media_count,website&access_token=" + b.ig_token);
+          if (profileRes.ok) {
+            const profile = await profileRes.json();
+            let igInfo = "=== INSTAGRAM ===\nUsuario: @" + (profile.username || "") + "\nBio: " + (profile.biography || "") + "\nSeguidores: " + (profile.followers_count || 0);
+            const mediaRes = await fetch("https://graph.instagram.com/me/media?fields=caption,timestamp,media_type,like_count&limit=10&access_token=" + b.ig_token);
+            if (mediaRes.ok) {
+              const media = await mediaRes.json();
+              if (media.data && media.data.length > 0) {
+                igInfo += "\n\nULTIMOS POSTS:\n";
+                media.data.forEach((p, i) => { if (p.caption) igInfo += (i + 1) + ". " + p.caption.substring(0, 200) + "\n"; });
+              }
+            }
+            if (!autoKnowledge.includes("=== INSTAGRAM ===")) {
+              autoKnowledge = (autoKnowledge + "\n\n" + igInfo).substring(0, 14000);
+            }
+          }
+        } catch (e) {}
+      }
+    } catch (e) {}
+    const finalB = { ...b, knowledge: autoKnowledge };
     if (cr) {
-      const { data } = await supabase.from("brands").insert({ user_id: user.id, name: b.name, short: b.short, color: b.color, industry: b.industry, tone: b.tone, audience: b.audience, emoji: b.emoji, brand_voice: b.brandVoice, img_style: b.imgStyle, sector: b.sector, colors: b.colors, products: b.products, description: b.description, differentiator: b.differentiator, website: b.website, instagram: b.instagram, facebook: b.facebook, knowledge: b.knowledge || "", ig_token: b.ig_token || "", ig_user_id: b.ig_user_id || "" }).select().single();
+      const { data } = await supabase.from("brands").insert({ user_id: user.id, name: finalB.name, short: finalB.short, color: finalB.color, industry: finalB.industry, tone: finalB.tone, audience: finalB.audience, emoji: finalB.emoji, brand_voice: finalB.brandVoice, img_style: finalB.imgStyle, sector: finalB.sector, colors: finalB.colors, products: finalB.products, description: finalB.description, differentiator: finalB.differentiator, website: finalB.website, instagram: finalB.instagram, facebook: finalB.facebook, knowledge: finalB.knowledge || "", ig_token: finalB.ig_token || "", ig_user_id: finalB.ig_user_id || "" }).select().single();
       if (data) { const nb = { ...data, brandVoice: data.brand_voice, imgStyle: data.img_style }; setBrands([...brands, nb]); setSel(nb); }
     } else {
-      await supabase.from("brands").update({ name: b.name, short: b.short, color: b.color, industry: b.industry, tone: b.tone, audience: b.audience, emoji: b.emoji, brand_voice: b.brandVoice, img_style: b.imgStyle, sector: b.sector, colors: b.colors, products: b.products, description: b.description, differentiator: b.differentiator, website: b.website, instagram: b.instagram, facebook: b.facebook, knowledge: b.knowledge || "", ig_token: b.ig_token || "", ig_user_id: b.ig_user_id || "" }).eq("id", b.id);
-      setBrands(brands.map(x => x.id === b.id ? b : x)); setSel(b);
+      await supabase.from("brands").update({ name: finalB.name, short: finalB.short, color: finalB.color, industry: finalB.industry, tone: finalB.tone, audience: finalB.audience, emoji: finalB.emoji, brand_voice: finalB.brandVoice, img_style: finalB.imgStyle, sector: finalB.sector, colors: finalB.colors, products: finalB.products, description: finalB.description, differentiator: finalB.differentiator, website: finalB.website, instagram: finalB.instagram, facebook: finalB.facebook, knowledge: finalB.knowledge || "", ig_token: finalB.ig_token || "", ig_user_id: finalB.ig_user_id || "" }).eq("id", finalB.id);
+      setBrands(brands.map(x => x.id === finalB.id ? finalB : x)); setSel(finalB);
     }
     setEd(null); setCr(false);
   };
