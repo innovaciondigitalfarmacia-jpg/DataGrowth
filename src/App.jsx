@@ -11,6 +11,7 @@ const TH = {
 };
 
 const ADMIN_EMAIL = "innovaciondigitalfarmacia@gmail.com";
+const ADMIN_EMAILS = ["innovaciondigitalfarmacia@gmail.com", "yelimarochoa19@gmail.com"];
 const ADMIN_PASS = "F@rmacia.i.2026.";
 
 const AGENCY_BRANDS = [
@@ -573,10 +574,12 @@ const Auth = ({ mode, setMode, onAuth, dark, setDark, selPlan }) => {
       if (error) { setErr(error.message === "User already registered" ? "Ya existe una cuenta con este email" : error.message); return; }
       if (data.user) {
         // Save plan to profile
-        const planId = selPlan?.id || "free";
-        await supabase.from("profiles").upsert({ id: data.user.id, name, company, phone, role: "client", plan: planId });
+        const isAdminEmail = ADMIN_EMAILS.includes(email.toLowerCase());
+        const planId = isAdminEmail ? "agency" : (selPlan?.id || "free");
+        const userRole = isAdminEmail ? "agency" : "client";
+        await supabase.from("profiles").upsert({ id: data.user.id, name, company, phone, role: userRole, plan: planId });
         const profile = await supabase.from("profiles").select("*").eq("id", data.user.id).single();
-        onAuth({ id: data.user.id, name, email, company, phone, role: profile.data?.role || "client", plan: profile.data?.plan || planId });
+        onAuth({ id: data.user.id, name, email, company, phone, role: profile.data?.role || userRole, plan: profile.data?.plan || planId });
       }
     } else {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
@@ -902,17 +905,17 @@ const BrandEditor = ({ brand, onSave, onClose, isNew }) => {
             <UploadZone label="Captura de página web" icon="🌐" files={f.websiteScreenshot || []} onAdd={(n, r) => addFile("websiteScreenshot", n, r)} multi/>
 
             {/* LEER REDES SOCIALES */}
-            {(f.website || f.instagram || f.facebook) && <div style={{ padding: 14, background: t.bgI, borderRadius: 12, border: "1px solid " + t.brd, marginBottom: 14 }}>
+            {(f.website || f.instagram || f.facebook || f.ig_token) && <div style={{ padding: 14, background: t.bgI, borderRadius: 12, border: "1px solid " + t.brd, marginBottom: 14 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                 <span style={{ fontSize: 18 }}>📡</span>
                 <div style={{ fontSize: 13, fontWeight: 600, color: t.tx }}>Leer información de redes y web</div>
               </div>
-              <div style={{ fontSize: 11, color: t.txM, marginBottom: 10 }}>La IA visitará tus redes y web para extraer información real (bio, posts, productos, precios) y usarla al generar contenido.</div>
+              <div style={{ fontSize: 11, color: t.txM, marginBottom: 10 }}>{f.ig_token ? "Lee información real de tu Instagram (bio, posts recientes) y página web para usarla al generar contenido." : "La IA visitará tu web para extraer información real (productos, precios) y usarla al generar contenido."}</div>
               <button onClick={async () => {
-                const urls = [f.website, f.instagram, f.facebook].filter(Boolean);
-                if (!urls.length) return alert("Agrega al menos una URL");
                 u("_socialLoading", true);
                 let allText = "";
+                // 1. Scrape website and Facebook (not Instagram - it blocks scraping)
+                const urls = [f.website, f.facebook].filter(Boolean);
                 for (const rawUrl of urls) {
                   try {
                     const url = rawUrl.startsWith("http") ? rawUrl : "https://" + rawUrl;
@@ -921,12 +924,36 @@ const BrandEditor = ({ brand, onSave, onClose, isNew }) => {
                     if (d.text) allText += "\n\n🌐 " + rawUrl + ":\n" + d.text.substring(0, 2000);
                   } catch (e) {}
                 }
+                // 2. Use Instagram API to fetch real data (bio + recent posts)
+                if (f.ig_token && f.ig_user_id) {
+                  try {
+                    // Fetch profile info
+                    const profileRes = await fetch("https://graph.instagram.com/me?fields=username,biography,followers_count,media_count,website&access_token=" + f.ig_token);
+                    const profile = await profileRes.json();
+                    if (profile.username) {
+                      allText += "\n\n📸 Instagram @" + profile.username + ":";
+                      if (profile.biography) allText += "\nBio: " + profile.biography;
+                      if (profile.followers_count) allText += "\nSeguidores: " + profile.followers_count;
+                      if (profile.media_count) allText += "\nPublicaciones: " + profile.media_count;
+                      if (profile.website) allText += "\nWeb: " + profile.website;
+                    }
+                    // Fetch recent posts (last 10)
+                    const mediaRes = await fetch("https://graph.instagram.com/me/media?fields=caption,timestamp,media_type,like_count&limit=10&access_token=" + f.ig_token);
+                    const media = await mediaRes.json();
+                    if (media.data && media.data.length > 0) {
+                      allText += "\n\nÚltimos posts de Instagram:";
+                      media.data.forEach((post, i) => {
+                        if (post.caption) allText += "\n" + (i + 1) + ". " + post.caption.substring(0, 200);
+                      });
+                    }
+                  } catch (e) { /* Instagram API error, continue */ }
+                }
                 if (allText) {
                   const prev = f.knowledge || "";
                   u("knowledge", (prev + allText).substring(0, 15000));
-                  alert("✅ Se leyeron " + urls.length + " fuentes y se agregaron al conocimiento de la marca");
+                  alert("✅ Información leída y agregada al conocimiento de la marca");
                 } else {
-                  alert("❌ No se pudo leer ninguna fuente. Algunas redes sociales bloquean la lectura automática.");
+                  alert("❌ No se pudo leer ninguna fuente. Agrega una página web o conecta Instagram.");
                 }
                 u("_socialLoading", false);
               }} disabled={f._socialLoading} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", background: t.ac, border: "none", borderRadius: 8, color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
@@ -1225,11 +1252,10 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
     setVideoLoading(true); setVideoProgress(provider === 'gemini' ? "Generando video con Gemini Veo... (2-5 min)" : "Generando video con IA... (1-3 min)");
     let attempts = 0;
     const maxAttempts = provider === 'gemini' ? 90 : 60;
-    let falInfo = "";
     while (attempts < maxAttempts) {
       await new Promise(r => setTimeout(r, 5000));
       attempts++;
-      setVideoProgress("Generando video... " + Math.min(Math.round((attempts/maxAttempts)*100), 95) + "%" + falInfo);
+      setVideoProgress("Generando video... " + Math.min(Math.round((attempts/maxAttempts)*100), 95) + "%");
       try {
         let url = "/api/video?action=check&op=" + encodeURIComponent(opName);
         if (ep) url += "&endpoint=" + encodeURIComponent(ep);
@@ -1258,7 +1284,6 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
         }
         if (d.status === "error") { setVideoProgress("Error: " + (d.error || "fallo")); setVideoLoading(false); return; }
         if (d.status === "completed_no_url") { setVideoProgress("Video completo pero sin URL. Debug: " + (d.debug || "sin info")); setVideoLoading(false); return; }
-        if (d.fal_status) falInfo = " [" + d.fal_status + (d.queue_position ? " pos:" + d.queue_position : "") + "]";
       } catch (e) { /* keep polling */ }
     }
     setVideoProgress("El video tardo demasiado. Intenta de nuevo con una instruccion mas corta o sin foto."); setVideoLoading(false);
@@ -1356,7 +1381,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
         if (wd.text) realInfo = wd.text.substring(0, 1500);
       } catch (e) { /* continue without web info */ }
     }
-    // Start video generation for reels: Gemini image first, then fal.ai animates it
+    // Start video generation for reels
     const fmt = ct.fmt;
     if (fmt === "reel") {
       const brandFullInfo = "Brand: " + brand.name + " (" + brand.industry + "). Colors: " + brandColors + ". Style: " + brandStyle + ". Products: " + (brand.products || "N/A") + ". " + (brand.description ? "Description: " + brand.description.substring(0, 150) + ". " : "") + (realInfo ? "Real info from website: " + realInfo.substring(0, 300) + ". " : "") + (brand.knowledge ? "Knowledge: " + brand.knowledge.substring(0, 300) + ". " : "");
@@ -1587,7 +1612,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       {result&&!loading&&result.t==="visual"&&result.d&&chatHistory.length===0&&<Card>{(result.img||result.imgLoading)&&<div style={{marginBottom:16,borderRadius:14,overflow:"hidden"}}>{result.img?<div><div style={{position:"relative"}}><img id="ai-generated-img" crossOrigin="anonymous" src={result.img} alt="AI Generated" onContextMenu={e=>e.preventDefault()} onDragStart={e=>e.preventDefault()} style={{width:"100%",maxHeight:500,objectFit:"contain",display:"block",borderRadius:14,WebkitUserSelect:"none",userSelect:"none"}}/><div onContextMenu={e=>e.preventDefault()} style={{position:"absolute",top:0,left:0,right:0,bottom:0,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}><span style={{fontSize:38,fontWeight:900,color:"rgba(255,255,255,0.3)",textShadow:"0 2px 8px rgba(0,0,0,0.3)",letterSpacing:6,textTransform:"uppercase",transform:"rotate(-25deg)",userSelect:"none",whiteSpace:"nowrap"}}>DATAGROWTH</span></div></div><div style={{textAlign:"center",padding:"6px 0",fontSize:11,color:t.txM}}>⬇️ Descarga la imagen para obtenerla sin marca de agua</div></div>:<div style={{width:"100%",height:280,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:t.bgI,borderRadius:14,border:"1px solid "+t.brd}}><div style={{width:40,height:40,border:"3px solid "+t.brd,borderTop:"3px solid "+(brand?.color||t.ac),borderRadius:"50%",animation:"spin .8s linear infinite",marginBottom:12}}/><div style={{color:t.txS,fontSize:13,fontWeight:500}}>Generando imagen con IA...</div></div>}</div>}<div style={{fontSize:22,fontWeight:800,color:t.tx,marginBottom:6}}>{result.d.headline}</div>{result.d.subtext&&<div style={{color:t.txS,marginBottom:12}}>{result.d.subtext}</div>}<div style={{fontSize:14,color:t.tx,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{result.d.caption}</div>{result.d.hashtags&&<div style={{fontSize:12,color:brand?.color,marginTop:10}}>{result.d.hashtags}</div>}<div style={{marginTop:12,display:"flex",gap:8}}><CopyBtn text={`${result.d.caption}\n\n${result.d.hashtags||""}`} label="📱 Copiar"/>{result.img&&<button onClick={()=>{fetch(result.img).then(r=>r.blob()).then(b=>{const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=(brand?.short||"img")+"_"+Date.now()+".png";document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(u),100);if(!isAdmin) addUsage(ct.id);}).catch(()=>{});}} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",background:"rgba(55,194,235,.08)",border:"1px solid rgba(55,194,235,.2)",borderRadius:10,color:"#37c2eb",fontSize:12,fontWeight:600,cursor:"pointer"}}>⬇️ Descargar imagen</button>}{result.img&&brand?.ig_token&&brand?.ig_user_id&&<button disabled={publishing} onClick={async()=>{if(publishing)return;if(!isAdmin&&getLeft(ct.id)<=0){alert("Has alcanzado el limite de tu plan. Actualiza para publicar mas.");return;}setPublishing(true);try{const caption=`${result.d.caption}\n\n${result.d.hashtags||""}`;const r=await fetch(result.img);const b=await r.blob();const reader=new FileReader();reader.onloadend=async()=>{const b64=reader.result.split(",")[1];const res=await fetch("/api/instagram",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ig_token:brand.ig_token,ig_user_id:brand.ig_user_id,image_base64:b64,caption})});const d=await res.json();if(d.success){alert("✅ Publicado en Instagram!");}else{alert("❌ Error: "+(d.error||"No se pudo publicar"));}setPublishing(false);};reader.readAsDataURL(b);}catch(e){alert("❌ Error: "+e.message);setPublishing(false);}}} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",background:publishing?"#666":"linear-gradient(135deg,#833AB4,#E1306C,#F77737)",border:"none",borderRadius:10,color:"#fff",fontSize:12,fontWeight:600,cursor:publishing?"wait":"pointer",opacity:publishing?.6:1}}>📸 {publishing?"Publicando...":"Publicar en Instagram"}</button>}</div></Card>}
       {result&&!loading&&result.t==="carousel"&&result.d?.slides&&<Card>{result.d.slides.map((sl,i)=><div key={i} style={{padding:"12px 0",borderBottom:i<result.d.slides.length-1?`1px solid ${t.brd}`:"none"}}><div style={{fontSize:14,fontWeight:600,color:t.tx}}>{sl.emoji} Slide {i+1}: {sl.title}</div><div style={{fontSize:13,color:t.txS,marginTop:3}}>{sl.body}</div></div>)}{result.d.caption&&<div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${t.brd}`,fontSize:14,color:t.tx,whiteSpace:"pre-wrap"}}>{result.d.caption}</div>}<div style={{marginTop:12}}><CopyBtn text={result.d.slides.map((s,i)=>`${s.emoji} Slide ${i+1}: ${s.title}\n${s.body}`).join("\n\n")+`\n\n${result.d.caption||""}\n${result.d.hashtags||""}`} label="📋 Todo"/></div></Card>}
       {ct.fmt==="reel"&&videoLoading&&<Card><div style={{padding:24,textAlign:"center"}}><div style={{width:40,height:40,border:"3px solid "+t.brd,borderTop:"3px solid "+(brand?.color||t.ac),borderRadius:"50%",animation:"spin .8s linear infinite",margin:"0 auto 12px"}}/><div style={{color:t.ac,fontSize:14,fontWeight:600}}>{videoProgress}</div><div style={{color:t.txM,fontSize:12,marginTop:4}}>El video se esta generando con IA (puede tardar 2-5 min). No cierres esta pagina.</div></div></Card>}
-      {ct.fmt==="reel"&&!videoLoading&&videoUrl&&<Card><div style={{borderRadius:14,overflow:"hidden",position:"relative",marginBottom:12}}><video src={videoUrl} controls style={{width:"100%",maxHeight:400,borderRadius:14,display:"block"}}/><div style={{position:"absolute",top:0,left:0,right:0,bottom:40,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}><span style={{fontSize:30,fontWeight:900,color:"rgba(255,255,255,0.25)",textShadow:"0 2px 8px rgba(0,0,0,0.3)",letterSpacing:6,textTransform:"uppercase",transform:"rotate(-25deg)",userSelect:"none",whiteSpace:"nowrap"}}>DATAGROWTH</span></div></div><div style={{textAlign:"center",fontSize:11,color:t.txM,marginBottom:8}}>⬇️ Descarga el video para obtenerlo sin marca de agua</div><div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}><button onClick={async()=>{try{const r=await fetch(videoUrl);const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=(brand?.short||"reel")+"_"+Date.now()+".mp4";a.click();URL.revokeObjectURL(u);if(!isAdmin) addUsage("reel");}catch(e){window.open(videoUrl,"_blank");}}} style={{display:"flex",alignItems:"center",gap:6,padding:"10px 20px",background:t.gr,border:"none",borderRadius:10,color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer"}}>⬇️ Descargar video</button>{brand?.ig_token&&brand?.ig_user_id&&<button disabled={publishing} onClick={async()=>{if(publishing)return;if(!isAdmin&&getLeft("reel")<=0){alert("Has alcanzado el limite de reels de tu plan. Actualiza para publicar mas.");return;}setPublishing(true);try{const caption=(result?.d?.caption||"")+(result?.d?.hashtags?"\n\n"+result.d.hashtags:"");if(videoUrl.startsWith("blob:")){setPublishing(false);alert("Para publicar en Instagram, primero descarga el video y súbelo manualmente desde la app de Instagram.");return;}const res=await fetch("/api/instagram",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ig_token:brand.ig_token,ig_user_id:brand.ig_user_id,video_url:videoUrl,caption,media_type:"REELS"})});const d=await res.json();if(d.success){if(!isAdmin) addUsage("reel");alert("✅ Reel publicado en Instagram!");}else{alert("❌ Error: "+(d.error||"No se pudo publicar"));}}catch(e){alert("❌ Error: "+e.message);}finally{setPublishing(false);}}} style={{display:"flex",alignItems:"center",gap:6,padding:"10px 20px",background:publishing?"#666":"linear-gradient(135deg,#833AB4,#E1306C,#F77737)",border:"none",borderRadius:10,color:"#fff",fontSize:13,fontWeight:600,cursor:publishing?"wait":"pointer",opacity:publishing?.6:1}}>📸 {publishing?"Publicando...":"Publicar Reel en Instagram"}</button>}</div></Card>}
+      {ct.fmt==="reel"&&!videoLoading&&videoUrl&&<Card><div style={{borderRadius:14,overflow:"hidden",position:"relative",marginBottom:12}}><video src={videoUrl} controls style={{width:"100%",maxHeight:400,borderRadius:14,display:"block"}}/><div style={{position:"absolute",top:0,left:0,right:0,bottom:40,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}><span style={{fontSize:30,fontWeight:900,color:"rgba(255,255,255,0.25)",textShadow:"0 2px 8px rgba(0,0,0,0.3)",letterSpacing:6,textTransform:"uppercase",transform:"rotate(-25deg)",userSelect:"none",whiteSpace:"nowrap"}}>DATAGROWTH</span></div></div><div style={{textAlign:"center",fontSize:11,color:t.txM,marginBottom:8}}>⬇️ Descarga el video para obtenerlo sin marca de agua</div><div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}><button onClick={async()=>{try{const r=await fetch(videoUrl);const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=(brand?.short||"reel")+"_"+Date.now()+".mp4";a.click();URL.revokeObjectURL(u);if(!isAdmin) addUsage("reel");}catch(e){window.open(videoUrl,"_blank");}}} style={{display:"flex",alignItems:"center",gap:6,padding:"10px 20px",background:t.gr,border:"none",borderRadius:10,color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer"}}>⬇️ Descargar video</button>{brand?.ig_token&&brand?.ig_user_id&&<><button disabled={publishing} onClick={async()=>{if(publishing)return;if(!isAdmin&&getLeft("reel")<=0){alert("Has alcanzado el limite de reels de tu plan. Actualiza para publicar mas.");return;}setPublishing(true);try{const caption=(result?.d?.caption||"")+(result?.d?.hashtags?"\n\n"+result.d.hashtags:"");if(videoUrl.startsWith("blob:")){setPublishing(false);alert("Para publicar en Instagram, primero descarga el video y súbelo manualmente desde la app de Instagram.");return;}const res=await fetch("/api/instagram",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ig_token:brand.ig_token,ig_user_id:brand.ig_user_id,video_url:videoUrl,caption,media_type:"REELS"})});const d=await res.json();if(d.success){if(!isAdmin) addUsage("reel");alert("✅ Reel publicado en Instagram!");}else{alert("❌ Error: "+(d.error||"No se pudo publicar"));}}catch(e){alert("❌ Error: "+e.message);}finally{setPublishing(false);}}} style={{display:"flex",alignItems:"center",gap:6,padding:"10px 20px",background:publishing?"#666":"linear-gradient(135deg,#833AB4,#E1306C,#F77737)",border:"none",borderRadius:10,color:"#fff",fontSize:13,fontWeight:600,cursor:publishing?"wait":"pointer",opacity:publishing?.6:1}}>📸 {publishing?"Publicando...":"Publicar como Reel"}</button><button disabled={publishing} onClick={async()=>{if(publishing)return;if(!isAdmin&&getLeft("reel")<=0){alert("Has alcanzado el limite de tu plan. Actualiza para publicar mas.");return;}setPublishing(true);try{const caption=(result?.d?.caption||"")+(result?.d?.hashtags?"\n\n"+result.d.hashtags:"");if(videoUrl.startsWith("blob:")){setPublishing(false);alert("Para publicar en Instagram, primero descarga el video y súbelo manualmente desde la app de Instagram.");return;}const res=await fetch("/api/instagram",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ig_token:brand.ig_token,ig_user_id:brand.ig_user_id,video_url:videoUrl,caption,media_type:"STORIES"})});const d=await res.json();if(d.success){if(!isAdmin) addUsage("reel");alert("✅ Historia publicada en Instagram!");}else{alert("❌ Error: "+(d.error||"No se pudo publicar"));}}catch(e){alert("❌ Error: "+e.message);}finally{setPublishing(false);}}} style={{display:"flex",alignItems:"center",gap:6,padding:"10px 20px",background:publishing?"#666":"linear-gradient(135deg,#405DE6,#5B51D8,#833AB4)",border:"none",borderRadius:10,color:"#fff",fontSize:13,fontWeight:600,cursor:publishing?"wait":"pointer",opacity:publishing?.6:1}}>📱 {publishing?"Publicando...":"Publicar como Historia"}</button></>}</div></Card>}
       {ct.fmt==="reel"&&!videoUrl&&!videoLoading&&videoProgress&&<div style={{marginBottom:14,padding:12,background:"rgba(239,68,68,.1)",borderRadius:10,color:"#ef4444",fontSize:13}}>{videoProgress}</div>}
       {result&&!loading&&result.t==="reel"&&result.d?.scenes&&<Card>
         {result.d.scenes.map((sc,i)=><div key={i} style={{padding:"14px 0",borderBottom:i<result.d.scenes.length-1?"1px solid "+t.brd:"none"}}><div style={{fontSize:15,fontWeight:700,color:t.tx,marginBottom:4}}>🎬 Escena {i+1}: {sc.title} <span style={{fontSize:12,color:t.txM}}>({sc.duration})</span></div><div style={{fontSize:13,color:t.txS,marginBottom:4}}>📹 {sc.visual}</div><div style={{fontSize:14,fontWeight:700,color:brand?.color}}>📝 {sc.text_overlay}</div>{sc.audio&&<div style={{fontSize:12,color:t.txM,marginTop:4}}>🎵 {sc.audio}</div>}</div>)}
@@ -1711,7 +1736,7 @@ const AgencyClients = () => { const t = useT(); const [clients, setClients] = us
         <div><div style={{ fontSize: 14, fontWeight: 600, color: t.tx }}>{c.name || c.email}</div><div style={{ fontSize: 11, color: t.txM }}>{c.email}</div></div>
         <div><select value={c.plan || "free"} onChange={e => updateClientPlan(c.id, e.target.value)} style={{ background: t.bgI, border: "1px solid " + t.brd, borderRadius: 6, color: t.tx, padding: "4px 8px", fontSize: 12, cursor: "pointer" }}><option value="free">Free</option><option value="pro">Pro</option><option value="agency">Agency</option></select></div>
         <div style={{ color: t.txS, fontSize: 12 }}>{c.created_at ? new Date(c.created_at).toLocaleDateString() : ""}</div>
-        <div><button onClick={() => { setEditingClient(editingClient === c.id ? null : c.id); setNewPass(""); }} style={{ background: t.bgI, border: "1px solid " + t.brd, borderRadius: 6, color: t.txM, padding: "4px 10px", fontSize: 11, cursor: "pointer" }}>🔑 Contraseña</button></div>
+        <div style={{ display: "flex", gap: 4 }}><button onClick={() => { setEditingClient(editingClient === c.id ? null : c.id); setNewPass(""); }} style={{ background: t.bgI, border: "1px solid " + t.brd, borderRadius: 6, color: t.txM, padding: "4px 10px", fontSize: 11, cursor: "pointer" }}>🔑 Contraseña</button><button onClick={async () => { if (!confirm("¿Eliminar a " + (c.name || c.email) + "? Se borrarán todas sus marcas y datos. Esta acción no se puede deshacer.")) return; try { const r = await fetch("/api/delete-user", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: c.id }) }); const d = await r.json(); if (d.success) { setClients(prev => prev.filter(x => x.id !== c.id)); alert("✅ Usuario eliminado"); } else { alert("❌ Error: " + (d.error || "No se pudo eliminar")); } } catch (e) { alert("❌ Error: " + e.message); } }} style={{ background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.3)", borderRadius: 6, color: "#ef4444", padding: "4px 10px", fontSize: 11, cursor: "pointer" }}>🗑️ Eliminar</button></div>
       </div>
       {editingClient === c.id && <div style={{ padding: "12px 20px", background: t.bgI, borderBottom: "1px solid " + t.brd }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: t.tx, marginBottom: 8 }}>Cambiar contraseña de: {c.name || c.email}</div>
@@ -1780,7 +1805,15 @@ export default function App() {
   const [clBrands, setClBrands] = useState([]);
 
   const loadBrands = async (userId, role) => {
-    const { data } = await supabase.from("brands").select("*").eq("user_id", userId);
+    let data;
+    if (role === "agency") {
+      // Admin sees ALL brands from ALL users
+      const res = await supabase.from("brands").select("*").order("created_at");
+      data = res.data;
+    } else {
+      const res = await supabase.from("brands").select("*").eq("user_id", userId);
+      data = res.data;
+    }
     const mapped = (data || []).map(b => ({ ...b, brandVoice: b.brand_voice, imgStyle: b.img_style, logoBase64: b.logo_base64 }));
     if (role === "agency") {
       if (mapped.length === 0) {
@@ -1788,7 +1821,7 @@ export default function App() {
         for (const b of AGENCY_BRANDS) {
           await supabase.from("brands").insert({ user_id: userId, name: b.name, short: b.short, color: b.color, industry: b.industry, tone: b.tone, audience: b.audience, emoji: b.emoji, brand_voice: b.brandVoice, img_style: b.imgStyle, sector: b.sector, colors: b.colors, products: b.products, description: b.description, differentiator: b.differentiator, website: b.website });
         }
-        const { data: seeded } = await supabase.from("brands").select("*").eq("user_id", userId);
+        const { data: seeded } = await supabase.from("brands").select("*").order("created_at");
         setAgBrands((seeded || []).map(b => ({ ...b, brandVoice: b.brand_voice, imgStyle: b.img_style, logoBase64: b.logo_base64 })));
       } else {
         setAgBrands(mapped);
@@ -1876,9 +1909,11 @@ export default function App() {
   const onAuth = (u) => { setUser(u); navigate("app", { page: "dashboard" }); loadBrands(u.id, u.role); };
   const logout = async () => { await supabase.auth.signOut(); setUser(null); navigate("landing", { landingSubView: "home" }); };
 
+  const isPrimaryAdmin = isAdmin && user?.email === ADMIN_EMAIL;
   const agNav = [{ id: "dashboard", label: "Dashboard", ic: "grid" }, { id: "factory", label: "Fábrica Creativa", ic: "factory", tag: "AI" }, { id: "branding", label: "Branding Kit", ic: "palette" }, { id: "clients", label: "Clientes", ic: "users" }, { id: "plans", label: "Planes", ic: "card" }, { id: "team", label: "Equipo", ic: "users" }];
+  const filteredAgNav = isPrimaryAdmin ? agNav : agNav.filter(n => n.id !== "clients");
   const clNav = [{ id: "dashboard", label: "Mi Dashboard", ic: "grid" }, { id: "factory", label: "Crear Contenido", ic: "factory", tag: "AI" }, { id: "branding", label: "Mis Marcas", ic: "palette" }, { id: "settings", label: "Mi Cuenta", ic: "settings" }];
-  const nav = isAdmin ? agNav : clNav;
+  const nav = isAdmin ? filteredAgNav : clNav;
   const goPage = (p) => navigate("app", { page: p });
   const [clStats, setClStats] = useState({ content: 0, monthPosts: 0 });
   useEffect(() => { if (user?.id && !isAdmin) { const cm = new Date().toISOString().slice(0, 7); supabase.from("usage").select("*").eq("user_id", user.id).then(({ data }) => { const total = (data || []).reduce((s, r) => s + (r.count || 0), 0); const month = (data || []).filter(r => r.month === cm).reduce((s, r) => s + (r.count || 0), 0); setClStats({ content: total, monthPosts: month }); }); } }, [user?.id]);
