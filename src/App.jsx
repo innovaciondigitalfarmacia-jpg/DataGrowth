@@ -1060,12 +1060,58 @@ const BrandKit = ({ brands, setBrands, user }) => {
   const [del, setDel] = useState(null);
   const [tab, setTab] = useState("identity");
   const save = async (b) => {
+    // ⬇ AUTO-FETCH: scrape web + IG y mete en knowledge automáticamente
+    let autoKnowledge = b.knowledge || "";
+    try {
+      // Scrape de la web
+      if (b.website) {
+        try {
+          const ctrl = new AbortController();
+          const tmout = setTimeout(() => ctrl.abort(), 12000);
+          const url = b.website.startsWith("http") ? b.website : "https://" + b.website;
+          const wr = await fetch("/api/scrape?url=" + encodeURIComponent(url), { signal: ctrl.signal });
+          clearTimeout(tmout);
+          if (wr.ok) {
+            const wd = await wr.json();
+            if (wd.text && !autoKnowledge.includes("=== WEB ===")) {
+              autoKnowledge = ("=== WEB ===\n" + wd.text.substring(0, 5000) + "\n\n" + autoKnowledge).substring(0, 14000);
+            }
+          }
+        } catch (e) { /* sigue sin web */ }
+      }
+      // Instagram (si está conectado)
+      if (b.ig_token) {
+        try {
+          const profileRes = await fetch("https://graph.instagram.com/me?fields=username,biography,followers_count,media_count,website&access_token=" + b.ig_token);
+          if (profileRes.ok) {
+            const profile = await profileRes.json();
+            let igInfo = "=== INSTAGRAM ===\nUsuario: @" + (profile.username || "") + "\nBio: " + (profile.biography || "") + "\nSeguidores: " + (profile.followers_count || 0);
+            const mediaRes = await fetch("https://graph.instagram.com/me/media?fields=caption,timestamp,media_type,like_count&limit=10&access_token=" + b.ig_token);
+            if (mediaRes.ok) {
+              const media = await mediaRes.json();
+              if (media.data && media.data.length > 0) {
+                igInfo += "\n\nULTIMOS POSTS:\n";
+                media.data.forEach((p, i) => {
+                  if (p.caption) igInfo += (i + 1) + ". " + p.caption.substring(0, 200) + "\n";
+                });
+              }
+            }
+            if (!autoKnowledge.includes("=== INSTAGRAM ===")) {
+              autoKnowledge = (autoKnowledge + "\n\n" + igInfo).substring(0, 14000);
+            }
+          }
+        } catch (e) { /* sigue sin IG */ }
+      }
+    } catch (e) { /* fallback al knowledge original */ }
+
+    const finalB = { ...b, knowledge: autoKnowledge };
+
     if (cr) {
-      const { data } = await supabase.from("brands").insert({ user_id: user.id, name: b.name, short: b.short, color: b.color, industry: b.industry, tone: b.tone, audience: b.audience, emoji: b.emoji, brand_voice: b.brandVoice, img_style: b.imgStyle, sector: b.sector, colors: b.colors, products: b.products, description: b.description, differentiator: b.differentiator, website: b.website, instagram: b.instagram, facebook: b.facebook, knowledge: b.knowledge || "", ig_token: b.ig_token || "", ig_user_id: b.ig_user_id || "" }).select().single();
+      const { data } = await supabase.from("brands").insert({ user_id: user.id, name: finalB.name, short: finalB.short, color: finalB.color, industry: finalB.industry, tone: finalB.tone, audience: finalB.audience, emoji: finalB.emoji, brand_voice: finalB.brandVoice, img_style: finalB.imgStyle, sector: finalB.sector, colors: finalB.colors, products: finalB.products, description: finalB.description, differentiator: finalB.differentiator, website: finalB.website, instagram: finalB.instagram, facebook: finalB.facebook, knowledge: finalB.knowledge || "", ig_token: finalB.ig_token || "", ig_user_id: finalB.ig_user_id || "" }).select().single();
       if (data) { const nb = { ...data, brandVoice: data.brand_voice, imgStyle: data.img_style }; setBrands([...brands, nb]); setSel(nb); }
     } else {
-      await supabase.from("brands").update({ name: b.name, short: b.short, color: b.color, industry: b.industry, tone: b.tone, audience: b.audience, emoji: b.emoji, brand_voice: b.brandVoice, img_style: b.imgStyle, sector: b.sector, colors: b.colors, products: b.products, description: b.description, differentiator: b.differentiator, website: b.website, instagram: b.instagram, facebook: b.facebook, knowledge: b.knowledge || "", ig_token: b.ig_token || "", ig_user_id: b.ig_user_id || "" }).eq("id", b.id);
-      setBrands(brands.map(x => x.id === b.id ? b : x)); setSel(b);
+      await supabase.from("brands").update({ name: finalB.name, short: finalB.short, color: finalB.color, industry: finalB.industry, tone: finalB.tone, audience: finalB.audience, emoji: finalB.emoji, brand_voice: finalB.brandVoice, img_style: finalB.imgStyle, sector: finalB.sector, colors: finalB.colors, products: finalB.products, description: finalB.description, differentiator: finalB.differentiator, website: finalB.website, instagram: finalB.instagram, facebook: finalB.facebook, knowledge: finalB.knowledge || "", ig_token: finalB.ig_token || "", ig_user_id: finalB.ig_user_id || "" }).eq("id", finalB.id);
+      setBrands(brands.map(x => x.id === finalB.id ? finalB : x)); setSel(finalB);
     }
     setEd(null); setCr(false);
   };
@@ -1306,6 +1352,25 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
     const brandColors = (brand.colors || [brand.color]).join(", ");
     const brandStyle = brand.imgStyle || "professional modern";
 
+    // ⬇ NUEVO: Scrape web + IG SIEMPRE al inicio (disponible para TODOS los flows)
+    let realInfo = "";
+    const scrapeUrl = brand.website || brand.instagram || brand.facebook || "";
+    if (scrapeUrl) {
+      try {
+        const ctrl = new AbortController();
+        const tmout = setTimeout(() => ctrl.abort(), 8000);
+        const url = scrapeUrl.startsWith("http") ? scrapeUrl : "https://" + scrapeUrl;
+        const wr = await fetch("/api/scrape?url=" + encodeURIComponent(url), { signal: ctrl.signal });
+        clearTimeout(tmout);
+        if (wr.ok) {
+          const wd = await wr.json();
+          if (wd.text) realInfo = wd.text.substring(0, 2000);
+        }
+      } catch (e) { /* sigue sin web */ }
+    }
+    // Brand completo con realInfo embebido para pasar a las APIs
+    const brandFull = { ...brand, realInfo };
+
     // ── DIRECT EDIT: user uploaded a photo, send instruction directly to image API ──
     if (isDirectEdit) {
       const brandInfo = "BRAND: " + brand.name + ". BRAND COLORS: " + brandColors + ". STYLE: " + brandStyle + ". INDUSTRY: " + (brand.industry || "") + ". PRODUCTS: " + (brand.products || "N/A") + ". ";
@@ -1332,7 +1397,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       const promptWithContext = editPrompt;
       setChatHistory(prev => [...prev, { role: "ai", text: "", headline: "", loading: true }]);
       try {
-        const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: promptWithContext, images: allImages }) });
+        const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: promptWithContext, images: allImages, brand: brandFull }) });
         if (!r.ok) throw new Error("API error " + r.status);
         const b = await r.blob();
         if (!r.headers.get("content-type")?.includes("image")) throw new Error("No image");
@@ -1353,7 +1418,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       const editPrompt = brandInfo + contextInfo + "USER WANTS THIS SPECIFIC CHANGE: " + currentTopic + ". CRITICAL: Make ONLY the change the user asked for. Keep the ENTIRE rest of the image IDENTICAL. Same scene, same layout, same elements, same style. ONLY modify what was requested. Use brand colors (" + brandColors + "). Any visible text must be in Spanish.";
       setChatHistory(prev => [...prev, { role: "ai", text: "", headline: "", loading: true }]);
       try {
-        const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: editPrompt, image_base64: lastAiImage }) });
+        const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: editPrompt, image_base64: lastAiImage, brand: brandFull }) });
         if (!r.ok) throw new Error("API error " + r.status);
         const b = await r.blob();
         if (!r.headers.get("content-type")?.includes("image")) throw new Error("No image");
@@ -1367,20 +1432,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       return;
     }
 
-    // ── NORMAL GENERATION FLOW ──
-    // Fetch real info from brand website (5 sec timeout)
-    let realInfo = "";
-    const scrapeUrl = brand.website || brand.instagram || brand.facebook || "";
-    if (scrapeUrl) {
-      try {
-        const ctrl = new AbortController();
-        const tmout = setTimeout(() => ctrl.abort(), 5000);
-        const wr = await fetch("/api/scrape?url=" + encodeURIComponent(scrapeUrl.startsWith("http") ? scrapeUrl : "https://" + scrapeUrl), { signal: ctrl.signal });
-        clearTimeout(tmout);
-        const wd = await wr.json();
-        if (wd.text) realInfo = wd.text.substring(0, 1500);
-      } catch (e) { /* continue without web info */ }
-    }
+    // ── NORMAL GENERATION FLOW ── (realInfo ya se calculó arriba)
     // Start video generation for reels
     const fmt = ct.fmt;
     if (fmt === "reel") {
@@ -1403,8 +1455,8 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
             setVideoProgress("Generando imagen base con IA...");
             
             const imgBody = currentImages[0] 
-              ? { prompt: imgPrompt, images: currentImages }
-              : { prompt: imgPrompt };
+              ? { prompt: imgPrompt, images: currentImages, brand: brandFull }
+              : { prompt: imgPrompt, brand: brandFull };
             
             try {
               const imgRes = await fetch("/api/image", {
@@ -1438,7 +1490,8 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
                   body: JSON.stringify({
                     system: "You describe images for video generation AI. Return ONLY the video prompt. Max 450 chars.",
                     messages: [{ content: "Describe this image in EXTREME detail for a video AI. Include EVERY visual element: exact colors (mention hex if possible), composition, layout, objects, text visible, lighting, atmosphere, background, foreground. The video must look EXACTLY like this image but with cinematic motion (slow camera dolly, gentle breeze, atmospheric effects). Any text visible must stay in Spanish. Brand: " + brand.name + ". Under 450 chars. Return ONLY the prompt." }],
-                    images: [generatedImageB64]
+                    images: [generatedImageB64],
+                    brand: brandFull
                   })
                 });
                 if (descRes.ok) {
@@ -1503,7 +1556,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
     } else {
       msg = 'Escribe un copy para redes sociales de ' + brand.name + ' sobre: "' + currentTopic + '". Escribe el caption de corrido con emojis, gancho al inicio, valor en el medio, CTA al final. NO uses JSON. Solo el texto listo para copiar y pegar en Instagram. Agrega saltos de linea para que se vea bien. Al final agrega 8 hashtags relevantes.';
     }
-    try { const gc = new AbortController(); const gt = setTimeout(() => gc.abort(), 60000); const r = await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"gemini-2.5-flash",max_tokens:2500,system:sys,messages:[{role:"user",content:msg}]}),signal:gc.signal}); clearTimeout(gt); const d = await r.json(); const raw = d.content?.map(c=>c.text||"").join("")||""; if(fmt==="text"){setTxt(raw);setResult({t:"text"});}else{try{let clean=raw;if(clean.indexOf("{")>-1)clean=clean.substring(clean.indexOf("{"),clean.lastIndexOf("}")+1);const pd=JSON.parse(clean);
+    try { const gc = new AbortController(); const gt = setTimeout(() => gc.abort(), 60000); const r = await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"gemini-2.5-flash",max_tokens:2500,system:sys,messages:[{role:"user",content:msg}],brand:brandFull}),signal:gc.signal}); clearTimeout(gt); const d = await r.json(); const raw = d.content?.map(c=>c.text||"").join("")||""; if(fmt==="text"){setTxt(raw);setResult({t:"text"});}else{try{let clean=raw;if(clean.indexOf("{")>-1)clean=clean.substring(clean.indexOf("{"),clean.lastIndexOf("}")+1);const pd=JSON.parse(clean);
       // Image generation
       const hasUserImg = currentImages.length > 0;
       const imgToSend = hasUserImg ? currentImages[0] : (lastAiImage || null);
@@ -1524,9 +1577,9 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
           }
         };
         if(imgToSend){
-          saveAndShow("/api/image", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:imgPrompt,image_base64:imgToSend})});
+          saveAndShow("/api/image", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:imgPrompt,image_base64:imgToSend,brand:brandFull})});
         }else{
-          saveAndShow("/api/image?prompt="+encodeURIComponent(imgPrompt));
+          saveAndShow("/api/image", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:imgPrompt,brand:brandFull})});
         }
         setResult(null);
       }else{
