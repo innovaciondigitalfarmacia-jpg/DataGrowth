@@ -1,4 +1,4 @@
-// v10 - Gemini primary, DALL-E 3 fallback
+// v10 - DALL-E 3 primary, Gemini fallback. Editing: Gemini primary (can see images)
 export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
 
 export default async function handler(req, res) {
@@ -96,11 +96,11 @@ export default async function handler(req, res) {
     if (test) return res.status(200).json({ gemini: GEMINI_KEY ? "SI" : "NO", openai: OPENAI_KEY ? "SI" : "NO" });
     if (!prompt) return res.status(400).json({ error: "No prompt" });
 
-    // 1. Try Gemini
-    let result = await tryGemini(prompt, null);
+    // 1. Try DALL-E 3 (primary - best quality)
+    let result = await tryDalle(prompt);
     
-    // 2. Fallback: DALL-E 3
-    if (!result) result = await tryDalle(prompt);
+    // 2. Fallback: Gemini
+    if (!result) result = await tryGemini(prompt, null);
 
     if (result) {
       res.setHeader("Content-Type", result.type);
