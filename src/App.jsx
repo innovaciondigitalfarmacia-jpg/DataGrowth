@@ -11,6 +11,7 @@ const TH = {
 };
 
 const ADMIN_EMAIL = "innovaciondigitalfarmacia@gmail.com";
+const ADMIN_EMAILS = ["innovaciondigitalfarmacia@gmail.com", "yelimar8a19@gmail.com"];
 const ADMIN_PASS = "F@rmacia.i.2026.";
 
 const AGENCY_BRANDS = [
@@ -573,10 +574,12 @@ const Auth = ({ mode, setMode, onAuth, dark, setDark, selPlan }) => {
       if (error) { setErr(error.message === "User already registered" ? "Ya existe una cuenta con este email" : error.message); return; }
       if (data.user) {
         // Save plan to profile
-        const planId = selPlan?.id || "free";
-        await supabase.from("profiles").upsert({ id: data.user.id, name, company, phone, role: "client", plan: planId });
+        const isAdminEmail = ADMIN_EMAILS.includes(email.toLowerCase());
+        const planId = isAdminEmail ? "agency" : (selPlan?.id || "free");
+        const userRole = isAdminEmail ? "agency" : "client";
+        await supabase.from("profiles").upsert({ id: data.user.id, name, company, phone, role: userRole, plan: planId });
         const profile = await supabase.from("profiles").select("*").eq("id", data.user.id).single();
-        onAuth({ id: data.user.id, name, email, company, phone, role: profile.data?.role || "client", plan: profile.data?.plan || planId });
+        onAuth({ id: data.user.id, name, email, company, phone, role: profile.data?.role || userRole, plan: profile.data?.plan || planId });
       }
     } else {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
@@ -1898,9 +1901,11 @@ export default function App() {
   const onAuth = (u) => { setUser(u); navigate("app", { page: "dashboard" }); loadBrands(u.id, u.role); };
   const logout = async () => { await supabase.auth.signOut(); setUser(null); navigate("landing", { landingSubView: "home" }); };
 
+  const isPrimaryAdmin = isAdmin && user?.email === ADMIN_EMAIL;
   const agNav = [{ id: "dashboard", label: "Dashboard", ic: "grid" }, { id: "factory", label: "Fábrica Creativa", ic: "factory", tag: "AI" }, { id: "branding", label: "Branding Kit", ic: "palette" }, { id: "clients", label: "Clientes", ic: "users" }, { id: "plans", label: "Planes", ic: "card" }, { id: "team", label: "Equipo", ic: "users" }];
+  const filteredAgNav = isPrimaryAdmin ? agNav : agNav.filter(n => n.id !== "clients");
   const clNav = [{ id: "dashboard", label: "Mi Dashboard", ic: "grid" }, { id: "factory", label: "Crear Contenido", ic: "factory", tag: "AI" }, { id: "branding", label: "Mis Marcas", ic: "palette" }, { id: "settings", label: "Mi Cuenta", ic: "settings" }];
-  const nav = isAdmin ? agNav : clNav;
+  const nav = isAdmin ? filteredAgNav : clNav;
   const goPage = (p) => navigate("app", { page: p });
   const [clStats, setClStats] = useState({ content: 0, monthPosts: 0 });
   useEffect(() => { if (user?.id && !isAdmin) { const cm = new Date().toISOString().slice(0, 7); supabase.from("usage").select("*").eq("user_id", user.id).then(({ data }) => { const total = (data || []).reduce((s, r) => s + (r.count || 0), 0); const month = (data || []).filter(r => r.month === cm).reduce((s, r) => s + (r.count || 0), 0); setClStats({ content: total, monthPosts: month }); }); } }, [user?.id]);
