@@ -1,4 +1,4 @@
-// v9 - Gemini primary, fal.ai Flux fallback - IMPROVED EDITING
+// v9 - Gemini primary, DALL-E 3 fallback, fal.ai last resort
 export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
 
 export default async function handler(req, res) {
@@ -8,76 +8,147 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const GEMINI_KEY = process.env.GEMINI_API_KEY;
+  const OPENAI_KEY = process.env.OPENAI_API_KEY;
   const FAL_KEY = process.env.FAL_KEY;
 
-  // ── GET: Image generation ──
-  if (req.method === 'GET') {
-    const { prompt, test } = req.query;
-    if (test) return res.status(200).json({ key: GEMINI_KEY ? "SI" : "NO", model: "gemini-image" });
-    if (!prompt) return res.status(400).json({ error: "No prompt" });
-
-    if (GEMINI_KEY) {
-      for (let attempt = 0; attempt < 3; attempt++) {
-        try {
-          const r = await fetch(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=" + GEMINI_KEY,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
-              })
-            }
-          );
-          if (r.ok) {
-            const d = await r.json();
-            const parts = d.candidates?.[0]?.content?.parts || [];
-            for (const part of parts) {
-              if (part.inlineData?.data) {
-                const buf = Buffer.from(part.inlineData.data, "base64");
-                res.setHeader("Content-Type", part.inlineData.mimeType || "image/png");
-                return res.send(buf);
-              }
-            }
-            break;
-          } else if ((r.status === 503 || r.status === 500) && attempt < 1) {
-            await new Promise(resolve => setTimeout(resolve, 3000));
-            continue;
-          } else {
-            break;
-          }
-        } catch (e) { break; }
+  // ═══ Helper: Try Gemini ═══
+  const tryGemini = async (prompt, imageDataArray) => {
+    if (!GEMINI_KEY) return null;
+    const parts = [];
+    if (imageDataArray && imageDataArray.length > 0) {
+      for (const img of imageDataArray) {
+        parts.push({ inlineData: { mimeType: "image/jpeg", data: img } });
       }
     }
+    parts.push({ text: prompt });
 
-    if (FAL_KEY) {
+    for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const r = await fetch("https://fal.run/fal-ai/flux/dev", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": "Key " + FAL_KEY },
-          body: JSON.stringify({ prompt, image_size: "square_hd", num_images: 1, output_format: "jpeg", guidance_scale: 3.5, num_inference_steps: 28 })
-        });
+        const r = await fetch(
+          "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=" + GEMINI_KEY,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts }],
+              generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
+            })
+          }
+        );
         if (r.ok) {
           const d = await r.json();
-          const imageUrl = d.images?.[0]?.url;
-          if (imageUrl) {
-            const imgRes = await fetch(imageUrl);
-            if (imgRes.ok) {
-              const buf = Buffer.from(await imgRes.arrayBuffer());
-              res.setHeader("Content-Type", "image/jpeg");
-              return res.send(buf);
+          const resParts = d.candidates?.[0]?.content?.parts || [];
+          for (const part of resParts) {
+            if (part.inlineData?.data) {
+              return { data: Buffer.from(part.inlineData.data, "base64"), type: part.inlineData.mimeType || "image/png", engine: "gemini" };
             }
           }
+          return null; // Gemini responded but no image
         }
-      } catch (e) {}
+        if (r.status === 500 || r.status === 503) {
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          continue; // Retry
+        }
+        return null; // Other error, don't retry
+      } catch (e) {
+        if (attempt === 0) { await new Promise(resolve => setTimeout(resolve, 2000)); continue; }
+        return null;
+      }
+    }
+    return null;
+  };
+
+  // ═══ Helper: Try DALL-E 3 ═══
+  const tryDalle = async (prompt, size) => {
+    if (!OPENAI_KEY) return null;
+    try {
+      const r = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + OPENAI_KEY },
+        body: JSON.stringify({
+          model: "dall-e-3",
+          prompt: prompt.substring(0, 4000),
+          n: 1,
+          size: size || "1024x1024",
+          quality: "hd",
+          style: "vivid"
+        })
+      });
+      if (r.ok) {
+        const d = await r.json();
+        const imageUrl = d.data?.[0]?.url;
+        if (imageUrl) {
+          const imgRes = await fetch(imageUrl);
+          if (imgRes.ok) {
+            const buf = Buffer.from(await imgRes.arrayBuffer());
+            return { data: buf, type: "image/png", engine: "dall-e-3" };
+          }
+        }
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  // ═══ Helper: Try fal.ai Flux ═══
+  const tryFal = async (prompt, imageBase64) => {
+    if (!FAL_KEY) return null;
+    try {
+      const url = imageBase64 ? "https://fal.run/fal-ai/flux/dev/image-to-image" : "https://fal.run/fal-ai/flux/dev";
+      const body = imageBase64
+        ? { prompt, image_url: "data:image/jpeg;base64," + imageBase64, strength: 0.85, num_images: 1, output_format: "jpeg", guidance_scale: 3.5, num_inference_steps: 28 }
+        : { prompt, image_size: "square_hd", num_images: 1, output_format: "jpeg", guidance_scale: 3.5, num_inference_steps: 28 };
+
+      const r = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Key " + FAL_KEY },
+        body: JSON.stringify(body)
+      });
+      if (r.ok) {
+        const d = await r.json();
+        const imageUrl = d.images?.[0]?.url;
+        if (imageUrl) {
+          const imgRes = await fetch(imageUrl);
+          if (imgRes.ok) {
+            const buf = Buffer.from(await imgRes.arrayBuffer());
+            return { data: buf, type: "image/jpeg", engine: "fal" };
+          }
+        }
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  // ═══ GET: Image generation (text to image) ═══
+  if (req.method === 'GET') {
+    const { prompt, test } = req.query;
+    if (test) return res.status(200).json({ gemini: GEMINI_KEY ? "SI" : "NO", openai: OPENAI_KEY ? "SI" : "NO", fal: FAL_KEY ? "SI" : "NO" });
+    if (!prompt) return res.status(400).json({ error: "No prompt" });
+
+    // 1. Try Gemini
+    let result = await tryGemini(prompt, null);
+    
+    // 2. Fallback: DALL-E 3
+    if (!result) result = await tryDalle(prompt);
+    
+    // 3. Last resort: fal.ai
+    if (!result) result = await tryFal(prompt);
+
+    if (result) {
+      res.setHeader("Content-Type", result.type);
+      res.setHeader("X-Engine", result.engine);
+      return res.send(result.data);
     }
 
+    // Ultimate fallback: placeholder
     const seed = Math.abs(prompt.split("").reduce((a, c) => a + c.charCodeAt(0), 0));
     return res.redirect(302, "https://picsum.photos/seed/" + seed + "/768/768");
   }
 
-  // ── POST: Image editing ──
+  // ═══ POST: Image editing (with reference images) ═══
   if (req.method === 'POST') {
     let body;
     try {
@@ -89,98 +160,35 @@ export default async function handler(req, res) {
     const { prompt, image_base64, images } = body || {};
     if (!prompt) return res.status(400).json({ error: "No prompt" });
 
-    const hasImages = (images && Array.isArray(images) && images.length > 0) || image_base64;
-
-    if (GEMINI_KEY) {
-      const parts = [];
-
-      // System instruction BEFORE images to force editing behavior
-      if (hasImages) {
-        parts.push({ text: "You are an expert image compositor and editor. CRITICAL RULES:\n1. Follow the user's instructions LITERALLY and COMPLETELY — every single detail.\n2. If the user says 'put A on B', you MUST place A on B exactly.\n3. If multiple images are provided, each has a specific role described in the instructions (e.g., IMAGE 1 = style reference, IMAGE 2 = element to insert).\n4. Do NOT improvise or add things not requested.\n5. Do NOT skip any instruction no matter how small.\n6. Output ONLY the final image, no text.\n\nImages provided:" });
-      }
-
-      if (images && Array.isArray(images)) {
-        for (let i = 0; i < images.length; i++) {
-          parts.push({ text: "IMAGE " + (i + 1) + ":" });
-          parts.push({ inlineData: { mimeType: "image/jpeg", data: images[i] } });
-        }
-      } else if (image_base64) {
-        parts.push({ inlineData: { mimeType: "image/jpeg", data: image_base64 } });
-      }
-
-      if (hasImages) {
-        parts.push({ text: "NOW FOLLOW THESE INSTRUCTIONS EXACTLY. Do NOT skip any part:\n" + prompt });
-      } else {
-        parts.push({ text: prompt + "\n\nRespond ONLY with the generated image, no text." });
-      }
-
-      // Retry up to 3 times on 503 (high demand)
-      for (let attempt = 0; attempt < 3; attempt++) {
-        try {
-          const r = await fetch(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=" + GEMINI_KEY,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                contents: [{ parts }],
-                generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
-              })
-            }
-          );
-          if (r.ok) {
-            const d = await r.json();
-            const resParts = d.candidates?.[0]?.content?.parts || [];
-            for (const part of resParts) {
-              if (part.inlineData?.data) {
-                const buf = Buffer.from(part.inlineData.data, "base64");
-                res.setHeader("Content-Type", part.inlineData.mimeType || "image/png");
-                return res.send(buf);
-              }
-            }
-            console.log("Gemini no image in response:", JSON.stringify(d).substring(0, 500));
-            break; // Don't retry if response was ok but no image
-          } else if ((r.status === 503 || r.status === 500) && attempt < 1) {
-            console.log("Gemini 503 (attempt " + (attempt + 1) + "), retrying in " + ((attempt + 1) * 5) + "s...");
-            await new Promise(resolve => setTimeout(resolve, 3000));
-            continue;
-          } else {
-            const errText = await r.text();
-            console.log("Gemini error " + r.status + ":", errText.substring(0, 500));
-            break;
-          }
-        } catch (e) {
-          console.log("Gemini exception:", e.message);
-          break;
-        }
-      }
+    // Collect images
+    const imageArray = [];
+    if (images && Array.isArray(images)) {
+      imageArray.push(...images);
+    } else if (image_base64) {
+      imageArray.push(image_base64);
     }
 
-    // FALLBACK: fal.ai Flux - lower strength to preserve more of original
-    if (hasImages && FAL_KEY) {
-      try {
-        const imgData = image_base64 || images?.[0];
-        const r = await fetch("https://fal.run/fal-ai/flux/dev/image-to-image", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": "Key " + FAL_KEY },
-          body: JSON.stringify({ prompt, image_url: `data:image/jpeg;base64,${imgData}`, strength: 0.55, num_images: 1, output_format: "jpeg", guidance_scale: 3.5, num_inference_steps: 28 })
-        });
-        if (r.ok) {
-          const d = await r.json();
-          const imageUrl = d.images?.[0]?.url;
-          if (imageUrl) {
-            const imgRes = await fetch(imageUrl);
-            if (imgRes.ok) {
-              const buf = Buffer.from(await imgRes.arrayBuffer());
-              res.setHeader("Content-Type", "image/jpeg");
-              return res.send(buf);
-            }
-          }
-        }
-      } catch (e) {}
+    // 1. Try Gemini (best at editing - understands images + follows instructions)
+    let result = await tryGemini(prompt, imageArray.length > 0 ? imageArray : null);
+
+    // 2. Fallback: DALL-E 3 (can't edit directly, but generates from detailed prompt)
+    if (!result) {
+      const editPrompt = imageArray.length > 0
+        ? "Based on the following instructions, create a NEW image that matches this description. " + prompt
+        : prompt;
+      result = await tryDalle(editPrompt);
     }
 
-    return res.status(500).json({ error: "Image generation failed. Gemini and fallback both failed." });
+    // 3. Last resort: fal.ai
+    if (!result) result = await tryFal(prompt, imageArray[0] || null);
+
+    if (result) {
+      res.setHeader("Content-Type", result.type);
+      res.setHeader("X-Engine", result.engine);
+      return res.send(result.data);
+    }
+
+    return res.status(500).json({ error: "No API available for image generation" });
   }
 
   return res.status(405).json({ error: "Method not allowed" });
