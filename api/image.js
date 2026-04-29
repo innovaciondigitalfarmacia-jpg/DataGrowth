@@ -1,4 +1,4 @@
-// v9 - Gemini primary, DALL-E 3 fallback, fal.ai last resort
+// v10 - Gemini primary, DALL-E 3 fallback
 export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
 
 export default async function handler(req, res) {
@@ -9,7 +9,6 @@ export default async function handler(req, res) {
 
   const GEMINI_KEY = process.env.GEMINI_API_KEY;
   const OPENAI_KEY = process.env.OPENAI_API_KEY;
-  const FAL_KEY = process.env.FAL_KEY;
 
   // ═══ Helper: Try Gemini ═══
   const tryGemini = async (prompt, imageDataArray) => {
@@ -91,41 +90,10 @@ export default async function handler(req, res) {
     }
   };
 
-  // ═══ Helper: Try fal.ai Flux ═══
-  const tryFal = async (prompt, imageBase64) => {
-    if (!FAL_KEY) return null;
-    try {
-      const url = imageBase64 ? "https://fal.run/fal-ai/flux/dev/image-to-image" : "https://fal.run/fal-ai/flux/dev";
-      const body = imageBase64
-        ? { prompt, image_url: "data:image/jpeg;base64," + imageBase64, strength: 0.85, num_images: 1, output_format: "jpeg", guidance_scale: 3.5, num_inference_steps: 28 }
-        : { prompt, image_size: "square_hd", num_images: 1, output_format: "jpeg", guidance_scale: 3.5, num_inference_steps: 28 };
-
-      const r = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": "Key " + FAL_KEY },
-        body: JSON.stringify(body)
-      });
-      if (r.ok) {
-        const d = await r.json();
-        const imageUrl = d.images?.[0]?.url;
-        if (imageUrl) {
-          const imgRes = await fetch(imageUrl);
-          if (imgRes.ok) {
-            const buf = Buffer.from(await imgRes.arrayBuffer());
-            return { data: buf, type: "image/jpeg", engine: "fal" };
-          }
-        }
-      }
-      return null;
-    } catch (e) {
-      return null;
-    }
-  };
-
   // ═══ GET: Image generation (text to image) ═══
   if (req.method === 'GET') {
     const { prompt, test } = req.query;
-    if (test) return res.status(200).json({ gemini: GEMINI_KEY ? "SI" : "NO", openai: OPENAI_KEY ? "SI" : "NO", fal: FAL_KEY ? "SI" : "NO" });
+    if (test) return res.status(200).json({ gemini: GEMINI_KEY ? "SI" : "NO", openai: OPENAI_KEY ? "SI" : "NO" });
     if (!prompt) return res.status(400).json({ error: "No prompt" });
 
     // 1. Try Gemini
@@ -133,9 +101,6 @@ export default async function handler(req, res) {
     
     // 2. Fallback: DALL-E 3
     if (!result) result = await tryDalle(prompt);
-    
-    // 3. Last resort: fal.ai
-    if (!result) result = await tryFal(prompt);
 
     if (result) {
       res.setHeader("Content-Type", result.type);
@@ -179,8 +144,6 @@ export default async function handler(req, res) {
       result = await tryDalle(editPrompt);
     }
 
-    // 3. Last resort: fal.ai
-    if (!result) result = await tryFal(prompt, imageArray[0] || null);
 
     if (result) {
       res.setHeader("Content-Type", result.type);
