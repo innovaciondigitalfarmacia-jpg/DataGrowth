@@ -60,15 +60,19 @@ export default async function handler(req, res) {
 
         // Save to brand in Supabase
         if (brandId && SERVICE_KEY) {
-          await fetch(SUPABASE_URL + '/rest/v1/brands?id=eq.' + brandId, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', 'apikey': SERVICE_KEY, 'Authorization': 'Bearer ' + SERVICE_KEY, 'Prefer': 'return=minimal' },
-            body: JSON.stringify({ ig_token: longToken, ig_user_id: String(userId), instagram: '@' + username })
-          });
+          try {
+            await fetch(SUPABASE_URL + '/rest/v1/brands?id=eq.' + brandId, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json', 'apikey': SERVICE_KEY, 'Authorization': 'Bearer ' + SERVICE_KEY, 'Prefer': 'return=minimal' },
+              body: JSON.stringify({ ig_token: longToken, ig_user_id: String(userId), instagram: '@' + username })
+            });
+          } catch (e2) { /* continue */ }
         }
 
-        // Success page - pass token back to frontend via postMessage
-        return res.status(200).send('<html><body style="font-family:sans-serif;padding:40px;text-align:center;background:#0a0e1a;color:#fff"><h2 style="color:#37c2eb">✅ Instagram conectado</h2><p>Cuenta: @' + username + '</p><p style="color:#888">Esta ventana se cerrara automaticamente...</p><script>setTimeout(()=>{ window.opener?.postMessage({type:"ig_connected",username:"' + username + '",ig_token:"' + longToken + '",ig_user_id:"' + userId + '"},"*"); window.close(); },2000)</script></body></html>');
+        // Success page - encode data as base64, use compatible JS
+        const msgPayload = JSON.stringify({ type: 'ig_connected', username: username || '', ig_token: longToken || '', ig_user_id: String(userId || '') });
+        const msgB64 = Buffer.from(msgPayload).toString('base64');
+        return res.status(200).send('<html><body style="font-family:sans-serif;padding:40px;text-align:center;background:#0a0e1a;color:#fff"><h2 style="color:#37c2eb">Instagram conectado</h2><p>Cuenta: @' + (username || '') + '</p><p style="color:#888">Esta ventana se cerrara automaticamente...</p><script>setTimeout(function(){ try{ var d=JSON.parse(atob("' + msgB64 + '")); if(window.opener){window.opener.postMessage(d,"*");} }catch(err){if(window.opener){window.opener.postMessage({type:"ig_connected",username:"' + (username || '') + '"},"*");}} try{window.close();}catch(e2){} },2000);</script></body></html>');
       } catch (e) {
         return res.status(500).send('<html><body style="font-family:sans-serif;padding:40px;text-align:center;background:#0a0e1a;color:#fff"><h2 style="color:#ef4444">Error</h2><p>' + e.message + '</p><script>setTimeout(()=>window.close(),5000)</script></body></html>');
       }
