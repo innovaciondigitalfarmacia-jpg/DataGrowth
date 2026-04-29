@@ -29,8 +29,8 @@ export default async function handler(req, res) {
       return res.redirect(302, url);
     }
 
-    // Step 2: OAuth callback
-    if (action === 'callback') {
+    // Step 2: OAuth callback (detect by action=callback OR presence of code)
+    if (action === 'callback' || code) {
       if (!code) return res.status(400).send('No code received');
       const redirect = BASE_URL + '/api/instagram?action=callback';
       const brandId = state || brand_id || '';
