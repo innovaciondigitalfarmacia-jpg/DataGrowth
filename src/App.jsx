@@ -902,17 +902,17 @@ const BrandEditor = ({ brand, onSave, onClose, isNew }) => {
             <UploadZone label="Captura de página web" icon="🌐" files={f.websiteScreenshot || []} onAdd={(n, r) => addFile("websiteScreenshot", n, r)} multi/>
 
             {/* LEER REDES SOCIALES */}
-            {(f.website || f.instagram || f.facebook) && <div style={{ padding: 14, background: t.bgI, borderRadius: 12, border: "1px solid " + t.brd, marginBottom: 14 }}>
+            {(f.website || f.instagram || f.facebook || f.ig_token) && <div style={{ padding: 14, background: t.bgI, borderRadius: 12, border: "1px solid " + t.brd, marginBottom: 14 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                 <span style={{ fontSize: 18 }}>📡</span>
                 <div style={{ fontSize: 13, fontWeight: 600, color: t.tx }}>Leer información de redes y web</div>
               </div>
-              <div style={{ fontSize: 11, color: t.txM, marginBottom: 10 }}>La IA visitará tus redes y web para extraer información real (bio, posts, productos, precios) y usarla al generar contenido.</div>
+              <div style={{ fontSize: 11, color: t.txM, marginBottom: 10 }}>{f.ig_token ? "Lee información real de tu Instagram (bio, posts recientes) y página web para usarla al generar contenido." : "La IA visitará tu web para extraer información real (productos, precios) y usarla al generar contenido."}</div>
               <button onClick={async () => {
-                const urls = [f.website, f.instagram, f.facebook].filter(Boolean);
-                if (!urls.length) return alert("Agrega al menos una URL");
                 u("_socialLoading", true);
                 let allText = "";
+                // 1. Scrape website and Facebook (not Instagram - it blocks scraping)
+                const urls = [f.website, f.facebook].filter(Boolean);
                 for (const rawUrl of urls) {
                   try {
                     const url = rawUrl.startsWith("http") ? rawUrl : "https://" + rawUrl;
@@ -921,12 +921,36 @@ const BrandEditor = ({ brand, onSave, onClose, isNew }) => {
                     if (d.text) allText += "\n\n🌐 " + rawUrl + ":\n" + d.text.substring(0, 2000);
                   } catch (e) {}
                 }
+                // 2. Use Instagram API to fetch real data (bio + recent posts)
+                if (f.ig_token && f.ig_user_id) {
+                  try {
+                    // Fetch profile info
+                    const profileRes = await fetch("https://graph.instagram.com/me?fields=username,biography,followers_count,media_count,website&access_token=" + f.ig_token);
+                    const profile = await profileRes.json();
+                    if (profile.username) {
+                      allText += "\n\n📸 Instagram @" + profile.username + ":";
+                      if (profile.biography) allText += "\nBio: " + profile.biography;
+                      if (profile.followers_count) allText += "\nSeguidores: " + profile.followers_count;
+                      if (profile.media_count) allText += "\nPublicaciones: " + profile.media_count;
+                      if (profile.website) allText += "\nWeb: " + profile.website;
+                    }
+                    // Fetch recent posts (last 10)
+                    const mediaRes = await fetch("https://graph.instagram.com/me/media?fields=caption,timestamp,media_type,like_count&limit=10&access_token=" + f.ig_token);
+                    const media = await mediaRes.json();
+                    if (media.data && media.data.length > 0) {
+                      allText += "\n\nÚltimos posts de Instagram:";
+                      media.data.forEach((post, i) => {
+                        if (post.caption) allText += "\n" + (i + 1) + ". " + post.caption.substring(0, 200);
+                      });
+                    }
+                  } catch (e) { /* Instagram API error, continue */ }
+                }
                 if (allText) {
                   const prev = f.knowledge || "";
                   u("knowledge", (prev + allText).substring(0, 15000));
-                  alert("✅ Se leyeron " + urls.length + " fuentes y se agregaron al conocimiento de la marca");
+                  alert("✅ Información leída y agregada al conocimiento de la marca");
                 } else {
-                  alert("❌ No se pudo leer ninguna fuente. Algunas redes sociales bloquean la lectura automática.");
+                  alert("❌ No se pudo leer ninguna fuente. Agrega una página web o conecta Instagram.");
                 }
                 u("_socialLoading", false);
               }} disabled={f._socialLoading} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", background: t.ac, border: "none", borderRadius: 8, color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
@@ -1225,11 +1249,10 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
     setVideoLoading(true); setVideoProgress(provider === 'gemini' ? "Generando video con Gemini Veo... (2-5 min)" : "Generando video con IA... (1-3 min)");
     let attempts = 0;
     const maxAttempts = provider === 'gemini' ? 90 : 60;
-    let falInfo = "";
     while (attempts < maxAttempts) {
       await new Promise(r => setTimeout(r, 5000));
       attempts++;
-      setVideoProgress("Generando video... " + Math.min(Math.round((attempts/maxAttempts)*100), 95) + "%" + falInfo);
+      setVideoProgress("Generando video... " + Math.min(Math.round((attempts/maxAttempts)*100), 95) + "%");
       try {
         let url = "/api/video?action=check&op=" + encodeURIComponent(opName);
         if (ep) url += "&endpoint=" + encodeURIComponent(ep);
@@ -1258,7 +1281,6 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
         }
         if (d.status === "error") { setVideoProgress("Error: " + (d.error || "fallo")); setVideoLoading(false); return; }
         if (d.status === "completed_no_url") { setVideoProgress("Video completo pero sin URL. Debug: " + (d.debug || "sin info")); setVideoLoading(false); return; }
-        if (d.fal_status) falInfo = " [" + d.fal_status + (d.queue_position ? " pos:" + d.queue_position : "") + "]";
       } catch (e) { /* keep polling */ }
     }
     setVideoProgress("El video tardo demasiado. Intenta de nuevo con una instruccion mas corta o sin foto."); setVideoLoading(false);
@@ -1356,7 +1378,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
         if (wd.text) realInfo = wd.text.substring(0, 1500);
       } catch (e) { /* continue without web info */ }
     }
-    // Start video generation for reels: Gemini image first, then fal.ai animates it
+    // Start video generation for reels
     const fmt = ct.fmt;
     if (fmt === "reel") {
       const brandFullInfo = "Brand: " + brand.name + " (" + brand.industry + "). Colors: " + brandColors + ". Style: " + brandStyle + ". Products: " + (brand.products || "N/A") + ". " + (brand.description ? "Description: " + brand.description.substring(0, 150) + ". " : "") + (realInfo ? "Real info from website: " + realInfo.substring(0, 300) + ". " : "") + (brand.knowledge ? "Knowledge: " + brand.knowledge.substring(0, 300) + ". " : "");
