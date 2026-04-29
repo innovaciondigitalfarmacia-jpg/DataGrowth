@@ -1528,7 +1528,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
               });
             } catch (e) {}
           }
-          const videoBody = { prompt: videoPrompt.substring(0, 480), image_base64: videoImageB64 || undefined };
+          const videoBody = { prompt: videoPrompt.substring(0, 480), image_base64: videoImageB64 || undefined, brand: brandFull };
           const r = await fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(videoBody) });
           const d = await r.json();
           if (d.operation) { pollVideo(d.operation, d.endpoint, d.response_url, d.status_url, d.provider); } else { setVideoProgress("Error: " + (d.error || "no se pudo iniciar")); setVideoLoading(false); }
