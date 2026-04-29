@@ -11,7 +11,7 @@ const TH = {
 };
 
 const ADMIN_EMAIL = "innovaciondigitalfarmacia@gmail.com";
-const ADMIN_EMAILS = ["innovaciondigitalfarmacia@gmail.com", "yelimar8a19@gmail.com"];
+const ADMIN_EMAILS = ["innovaciondigitalfarmacia@gmail.com", "yelimarochoa19@gmail.com"];
 const ADMIN_PASS = "F@rmacia.i.2026.";
 
 const AGENCY_BRANDS = [
