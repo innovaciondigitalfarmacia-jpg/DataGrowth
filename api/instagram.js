@@ -145,7 +145,7 @@ setTimeout(function(){ try { window.close(); } catch(e) {} }, 3000);
           const statusRes = await fetch(GRAPH + '/' + createData.id + '?fields=status_code&access_token=' + ig_token);
           const statusData = await statusRes.json();
           if (statusData.status_code === 'FINISHED') { ready = true; break; }
-          if (statusData.status_code === 'ERROR') return res.status(400).json({ error: 'Video processing failed' });
+          if (statusData.status_code === 'ERROR') return res.status(400).json({ error: 'Video processing failed: ' + JSON.stringify(statusData).substring(0, 500) });
         }
         if (!ready) return res.status(400).json({ error: 'Video processing timed out' });
 
