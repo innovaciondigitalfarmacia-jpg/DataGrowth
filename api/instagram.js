@@ -58,21 +58,45 @@ export default async function handler(req, res) {
         const userData = await userRes.json();
         const username = userData.username || '';
 
-        // Save to brand in Supabase
+        // Save to brand in Supabase (with retry)
+        let saveOk = false;
         if (brandId && SERVICE_KEY) {
-          try {
-            await fetch(SUPABASE_URL + '/rest/v1/brands?id=eq.' + brandId, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json', 'apikey': SERVICE_KEY, 'Authorization': 'Bearer ' + SERVICE_KEY, 'Prefer': 'return=minimal' },
-              body: JSON.stringify({ ig_token: longToken, ig_user_id: String(userId), instagram: '@' + username })
-            });
-          } catch (e2) { /* continue */ }
+          for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+              const patchRes = await fetch(SUPABASE_URL + '/rest/v1/brands?id=eq.' + brandId, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'apikey': SERVICE_KEY, 'Authorization': 'Bearer ' + SERVICE_KEY, 'Prefer': 'return=minimal' },
+                body: JSON.stringify({ ig_token: longToken, ig_user_id: String(userId), instagram: '@' + username })
+              });
+              if (patchRes.ok || patchRes.status === 204) {
+                saveOk = true;
+                break;
+              }
+              // If PATCH failed, try waiting
+              await new Promise(r => setTimeout(r, 1000));
+            } catch (e2) { /* retry */ }
+          }
         }
 
-        // Success page - encode data as base64, use compatible JS
-        const msgPayload = JSON.stringify({ type: 'ig_connected', username: username || '', ig_token: longToken || '', ig_user_id: String(userId || '') });
+        // Success page - send postMessage IMMEDIATELY then close
+        const msgPayload = JSON.stringify({ type: 'ig_connected', username: username || '', ig_token: longToken || '', ig_user_id: String(userId || ''), saved: saveOk });
         const msgB64 = Buffer.from(msgPayload).toString('base64');
-        return res.status(200).send('<html><body style="font-family:sans-serif;padding:40px;text-align:center;background:#0a0e1a;color:#fff"><h2 style="color:#37c2eb">Instagram conectado</h2><p>Cuenta: @' + (username || '') + '</p><p style="color:#888">Esta ventana se cerrara automaticamente...</p><script>setTimeout(function(){ try{ var d=JSON.parse(atob("' + msgB64 + '")); if(window.opener){window.opener.postMessage(d,"*");} }catch(err){if(window.opener){window.opener.postMessage({type:"ig_connected",username:"' + (username || '') + '"},"*");}} try{window.close();}catch(e2){} },2000);</script></body></html>');
+        return res.status(200).send(`<html><body style="font-family:sans-serif;padding:40px;text-align:center;background:#0a0e1a;color:#fff">
+<h2 style="color:#37c2eb">✅ Instagram conectado</h2>
+<p>Cuenta: @${username || ''}</p>
+<p style="color:#888">Guardando token... Esta ventana se cerrará automáticamente.</p>
+<script>
+// Send token to opener immediately
+try {
+  var d = JSON.parse(atob("${msgB64}"));
+  if (window.opener) { window.opener.postMessage(d, "*"); }
+} catch(err) {
+  if (window.opener) { window.opener.postMessage({type:"ig_connected",username:"${username || ''}",ig_token:"${longToken}",ig_user_id:"${String(userId)}"},"*"); }
+}
+// Close after short delay
+setTimeout(function(){ try { window.close(); } catch(e) {} }, 3000);
+</script>
+</body></html>`);
       } catch (e) {
         return res.status(500).send('<html><body style="font-family:sans-serif;padding:40px;text-align:center;background:#0a0e1a;color:#fff"><h2 style="color:#ef4444">Error</h2><p>' + e.message + '</p><script>setTimeout(()=>window.close(),5000)</script></body></html>');
       }
@@ -121,7 +145,7 @@ export default async function handler(req, res) {
           const statusRes = await fetch(GRAPH + '/' + createData.id + '?fields=status_code&access_token=' + ig_token);
           const statusData = await statusRes.json();
           if (statusData.status_code === 'FINISHED') { ready = true; break; }
-          if (statusData.status_code === 'ERROR') return res.status(400).json({ error: 'Video processing failed' });
+          if (statusData.status_code === 'ERROR') return res.status(400).json({ error: 'Video processing failed: ' + JSON.stringify(statusData).substring(0, 500) });
         }
         if (!ready) return res.status(400).json({ error: 'Video processing timed out' });
 
@@ -135,7 +159,6 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Failed to publish: ' + JSON.stringify(pubData).substring(0, 300) });
       }
 
-      
       // IMAGE publishing
       let publicUrl = image_url;
 
