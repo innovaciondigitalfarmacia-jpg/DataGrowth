@@ -1503,8 +1503,8 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
 
           // Only describe if we don't have a saved prompt
           if (!videoPrompt) {
-            // STEP 2: Describe the generated image in extreme detail for Veo
-            setVideoProgress("Preparando descripcion del video...");
+            // STEP 2: Build cinematic video prompt that RESPECTS user's request
+            setVideoProgress("Preparando video cinematografico...");
             videoPrompt = motionPrompt;
             
             if (generatedImageB64) {
@@ -1513,8 +1513,8 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
-                    system: "You describe images for video generation AI. Return ONLY the video prompt. Max 450 chars.",
-                    messages: [{ content: "Describe this image in EXTREME detail for a video AI. Include EVERY visual element: exact colors (mention hex if possible), composition, layout, objects, text visible, lighting, atmosphere, background, foreground. The video must look EXACTLY like this image but with cinematic motion (slow camera dolly, gentle breeze, atmospheric effects). Any text visible must stay in Spanish. Brand: " + brand.name + ". Under 450 chars. Return ONLY the prompt." }],
+                    system: "Eres un director de cine experto creando prompts para IA de video. Tu prompt debe ser CINEMATOGRAFICO PROFESIONAL. Retorna SOLO el prompt en ingles, max 1500 chars. Sin explicaciones.",
+                    messages: [{ content: "Crea un prompt CINEMATOGRAFICO de alta calidad para generar un video de 8 segundos basado en esta imagen. EL VIDEO DEBE RESPETAR EXACTAMENTE LO QUE EL USUARIO PIDIO: '" + topic + "'. Incluye: 1) Movimiento de camara dinamico (no solo zoom estatico - usa dolly, crash zoom, orbit, tracking shots, parallax). 2) Iluminacion volumetrica y atmosferica. 3) Particulas, fog, god rays. 4) Cinematografia profesional estilo Blade Runner / Marvel / Apple keynote. 5) Color grading dramatico. 6) Energia y dinamismo en cada segundo. CRITICAL: el resultado visual debe coincidir con: '" + topic + "'. Marca: " + brand.name + ". Cualquier texto visible debe estar en español. Retorna SOLO el prompt en ingles, max 1500 chars." }],
                     images: [generatedImageB64],
                     brand: brandFull
                   })
@@ -1522,7 +1522,10 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
                 if (descRes.ok) {
                   const descData = await descRes.json();
                   const desc = descData.content?.[0]?.text || "";
-                  if (desc.length > 20) videoPrompt = desc.substring(0, 480);
+                  if (desc.length > 20) {
+                    // ⬇ FIX: combinar prompt cinematografico + prompt del usuario (no solo descripcion)
+                    videoPrompt = (desc + " | USER REQUEST (must respect): " + topic).substring(0, 1900);
+                  }
                 }
               } catch (e) {}
             }
@@ -1553,7 +1556,15 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
               });
             } catch (e) {}
           }
-          const videoBody = { prompt: videoPrompt.substring(0, 480), image_base64: videoImageB64 || undefined, brand: brandFull };
+          const videoBody = { 
+            prompt: videoPrompt.substring(0, 2000),  // ⬅ FIX: prompt completo (era 480)
+            image_base64: videoImageB64 || undefined, 
+            brand: brandFull,
+            duration_ms: 8000,                        // ⬅ FIX: 8 segundos (era 5)
+            resolution: '720p',                        // ⬅ FIX: alta calidad (era 540p)
+            aspect_ratio: '9:16',
+            user_prompt: topic                          // ⬅ FIX: prompt original del usuario para Hedra
+          };
           const r = await fetch("/api/video", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(videoBody) });
           const d = await r.json();
           if (d.operation) { pollVideo(d.operation, d.endpoint, d.response_url, d.status_url, d.provider); } else { setVideoProgress("Error: " + (d.error || "no se pudo iniciar")); setVideoLoading(false); }
