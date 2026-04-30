@@ -1346,6 +1346,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
     const brandColors = (brand.colors || [brand.color]).join(", ");
     const brandStyle = brand.imgStyle || "professional modern";
 
+<<<<<<< HEAD
     // ⬇ Scrape web SIEMPRE al inicio (disponible para TODOS los flows)
     let realInfo = "";
     const scrapeUrl = brand.website || brand.instagram || brand.facebook || "";
@@ -1365,6 +1366,8 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
     // Brand completo con realInfo embebido para pasar a las APIs
     const brandFull = { ...brand, realInfo };
 
+=======
+>>>>>>> 8b492001b81ce7517352d98f0fd03012a8859f8a
     // ── DIRECT EDIT: user uploaded a photo, send instruction directly to image API ──
     if (isDirectEdit) {
       const brandInfo = "BRAND: " + brand.name + ". BRAND COLORS: " + brandColors + ". STYLE: " + brandStyle + ". INDUSTRY: " + (brand.industry || "") + ". PRODUCTS: " + (brand.products || "N/A") + ". ";
@@ -1391,7 +1394,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       const promptWithContext = editPrompt;
       setChatHistory(prev => [...prev, { role: "ai", text: "", headline: "", loading: true }]);
       try {
-        const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: promptWithContext, images: allImages, brand: brandFull }) });
+        const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: promptWithContext, images: allImages }) });
         if (!r.ok) throw new Error("API error " + r.status);
         const b = await r.blob();
         if (!r.headers.get("content-type")?.includes("image")) throw new Error("No image");
@@ -1412,7 +1415,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       const editPrompt = brandInfo + contextInfo + "USER WANTS THIS SPECIFIC CHANGE: " + currentTopic + ". CRITICAL: Make ONLY the change the user asked for. Keep the ENTIRE rest of the image IDENTICAL. Same scene, same layout, same elements, same style. ONLY modify what was requested. Use brand colors (" + brandColors + "). Any visible text must be in Spanish.";
       setChatHistory(prev => [...prev, { role: "ai", text: "", headline: "", loading: true }]);
       try {
-        const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: editPrompt, image_base64: lastAiImage, brand: brandFull }) });
+        const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: editPrompt, image_base64: lastAiImage }) });
         if (!r.ok) throw new Error("API error " + r.status);
         const b = await r.blob();
         if (!r.headers.get("content-type")?.includes("image")) throw new Error("No image");
@@ -1426,7 +1429,24 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       return;
     }
 
+<<<<<<< HEAD
     // ── NORMAL GENERATION FLOW ── (realInfo y brandFull ya calculados arriba)
+=======
+    // ── NORMAL GENERATION FLOW ──
+    // Fetch real info from brand website (5 sec timeout)
+    let realInfo = "";
+    const scrapeUrl = brand.website || brand.instagram || brand.facebook || "";
+    if (scrapeUrl) {
+      try {
+        const ctrl = new AbortController();
+        const tmout = setTimeout(() => ctrl.abort(), 5000);
+        const wr = await fetch("/api/scrape?url=" + encodeURIComponent(scrapeUrl.startsWith("http") ? scrapeUrl : "https://" + scrapeUrl), { signal: ctrl.signal });
+        clearTimeout(tmout);
+        const wd = await wr.json();
+        if (wd.text) realInfo = wd.text.substring(0, 1500);
+      } catch (e) { /* continue without web info */ }
+    }
+>>>>>>> 8b492001b81ce7517352d98f0fd03012a8859f8a
     // Start video generation for reels
     const fmt = ct.fmt;
     if (fmt === "reel") {
@@ -1449,8 +1469,8 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
             setVideoProgress("Generando imagen base con IA...");
             
             const imgBody = currentImages[0] 
-              ? { prompt: imgPrompt, images: currentImages, brand: brandFull }
-              : { prompt: imgPrompt, brand: brandFull };
+              ? { prompt: imgPrompt, images: currentImages }
+              : { prompt: imgPrompt };
             
             try {
               const imgRes = await fetch("/api/image", {
@@ -1484,8 +1504,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
                   body: JSON.stringify({
                     system: "You describe images for video generation AI. Return ONLY the video prompt. Max 450 chars.",
                     messages: [{ content: "Describe this image in EXTREME detail for a video AI. Include EVERY visual element: exact colors (mention hex if possible), composition, layout, objects, text visible, lighting, atmosphere, background, foreground. The video must look EXACTLY like this image but with cinematic motion (slow camera dolly, gentle breeze, atmospheric effects). Any text visible must stay in Spanish. Brand: " + brand.name + ". Under 450 chars. Return ONLY the prompt." }],
-                    images: [generatedImageB64],
-                    brand: brandFull
+                    images: [generatedImageB64]
                   })
                 });
                 if (descRes.ok) {
@@ -1550,7 +1569,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
     } else {
       msg = 'Escribe un copy para redes sociales de ' + brand.name + ' sobre: "' + currentTopic + '". Escribe el caption de corrido con emojis, gancho al inicio, valor en el medio, CTA al final. NO uses JSON. Solo el texto listo para copiar y pegar en Instagram. Agrega saltos de linea para que se vea bien. Al final agrega 8 hashtags relevantes.';
     }
-    try { const gc = new AbortController(); const gt = setTimeout(() => gc.abort(), 60000); const r = await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"gemini-2.5-flash",max_tokens:2500,system:sys,messages:[{role:"user",content:msg}],brand:brandFull}),signal:gc.signal}); clearTimeout(gt); const d = await r.json(); const raw = d.content?.map(c=>c.text||"").join("")||""; if(fmt==="text"){setTxt(raw);setResult({t:"text"});}else{try{let clean=raw;if(clean.indexOf("{")>-1)clean=clean.substring(clean.indexOf("{"),clean.lastIndexOf("}")+1);const pd=JSON.parse(clean);
+    try { const gc = new AbortController(); const gt = setTimeout(() => gc.abort(), 60000); const r = await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"gemini-2.5-flash",max_tokens:2500,system:sys,messages:[{role:"user",content:msg}]}),signal:gc.signal}); clearTimeout(gt); const d = await r.json(); const raw = d.content?.map(c=>c.text||"").join("")||""; if(fmt==="text"){setTxt(raw);setResult({t:"text"});}else{try{let clean=raw;if(clean.indexOf("{")>-1)clean=clean.substring(clean.indexOf("{"),clean.lastIndexOf("}")+1);const pd=JSON.parse(clean);
       // Image generation
       const hasUserImg = currentImages.length > 0;
       const imgToSend = hasUserImg ? currentImages[0] : (lastAiImage || null);
@@ -1571,9 +1590,9 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
           }
         };
         if(imgToSend){
-          saveAndShow("/api/image", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:imgPrompt,image_base64:imgToSend,brand:brandFull})});
+          saveAndShow("/api/image", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:imgPrompt,image_base64:imgToSend})});
         }else{
-          saveAndShow("/api/image", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:imgPrompt,brand:brandFull})});
+          saveAndShow("/api/image?prompt="+encodeURIComponent(imgPrompt));
         }
         setResult(null);
       }else{
