@@ -1,4 +1,4 @@
-// v23 - Hedra como motor principal (Kling/Veo/Sora/Character-3 via Hedra)
+// v24 - Hedra como motor principal (Kling/Veo/Sora/Character-3 via Hedra)
 //       Gemini Veo solo como fallback de emergencia. SIN fal.ai.
 export const config = { api: { bodyParser: { sizeLimit: '10mb' }, responseLimit: '15mb' } };
 
@@ -60,7 +60,8 @@ export default async function handler(req, res) {
   };
 
   // ═══ Selecciona el mejor modelo según el caso ═══
-  const pickHedraModel = (models, mode) => {
+  // PRIORIDAD: calidad y fidelidad a la imagen > velocidad
+  const pickHedraModel = (models, mode, hasImage) => {
     if (!models || models.length === 0) return null;
     const videoModels = models.filter(m => m && (m.type === 'video' || !m.type));
 
@@ -69,15 +70,29 @@ export default async function handler(req, res) {
       if (charModel) return charModel;
     }
 
-    // Para escenas - orden de preferencia (rápido y bueno primero)
+    // Si hay imagen de referencia, priorizar modelos image-to-video más fieles
+    if (hasImage) {
+      const imageFirst = [
+        /kling.*3.*pro/i,           // Kling 3 Pro - más fiel a la imagen
+        /kling.*3/i,                 // Kling 3
+        /seedance.*pro/i,            // Seedance Pro
+        /veo.*3\.1(?!.*fast)/i,      // Veo 3.1 (NO fast)
+        /kling.*2\.5(?!.*turbo)/i,   // Kling 2.5 normal
+        /kling.*2\.5.*turbo/i,       // Kling 2.5 Turbo (último recurso)
+      ];
+      for (const pattern of imageFirst) {
+        const found = videoModels.find(m => pattern.test(m.name || '') && !m.requires_audio_input && (m.requires_start_frame !== false));
+        if (found) return found;
+      }
+    }
+
+    // Sin imagen: balance calidad/velocidad
     const preferences = [
-      /kling.*2\.5.*turbo/i,
-      /kling.*2\.5/i,
+      /kling.*3/i,
       /veo.*3\.1.*fast/i,
-      /veo.*3\.1/i,
+      /kling.*2\.5/i,
       /hailuo/i,
       /minimax/i,
-      /kling.*3/i,
       /seedance/i,
       /sora/i,
     ];
@@ -110,7 +125,7 @@ export default async function handler(req, res) {
       } else {
         checks.hedra = "NO";
       }
-      return res.status(200).json({ status: 'ready', v: '23', primary: 'hedra', fallback: 'gemini-veo', checks });
+      return res.status(200).json({ status: 'ready', v: '24', primary: 'hedra', fallback: 'gemini-veo', priority: 'image-fidelity', checks });
     }
 
     if (action === 'proxy' && req.query.uri) {
@@ -206,7 +221,7 @@ export default async function handler(req, res) {
       if (HEDRA_KEY) {
         try {
           const models = await getHedraModels();
-          const selected = pickHedraModel(models, mode);
+          const selected = pickHedraModel(models, mode, !!image_base64);
 
           if (selected && selected.id) {
             console.log('Hedra: usando modelo', selected.name, '(', selected.id, ')');
