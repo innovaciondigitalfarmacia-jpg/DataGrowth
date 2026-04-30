@@ -1,4 +1,4 @@
-// v24 - Hedra como motor principal (Kling/Veo/Sora/Character-3 via Hedra)
+// v25 - Hedra como motor principal (Kling/Veo/Sora/Character-3 via Hedra)
 //       Gemini Veo solo como fallback de emergencia. SIN fal.ai.
 export const config = { api: { bodyParser: { sizeLimit: '10mb' }, responseLimit: '15mb' } };
 
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
   };
 
   // ═══ Selecciona el mejor modelo según el caso ═══
-  // PRIORIDAD: calidad y fidelidad a la imagen > velocidad
+  // PRIORIDAD: cuando HAY imagen → Kling 3 Pro (mejor fidelidad). Sin imagen → Kling 2.5 Turbo (rápido).
   const pickHedraModel = (models, mode, hasImage) => {
     if (!models || models.length === 0) return null;
     const videoModels = models.filter(m => m && (m.type === 'video' || !m.type));
@@ -70,23 +70,26 @@ export default async function handler(req, res) {
       if (charModel) return charModel;
     }
 
-    // Si hay imagen de referencia, priorizar modelos image-to-video más fieles
+    // CON imagen → priorizar modelos que respetan al máximo el keyframe
     if (hasImage) {
       const imageFirst = [
-        /kling.*3.*pro/i,           // Kling 3 Pro - más fiel a la imagen
-        /kling.*3/i,                 // Kling 3
-        /seedance.*pro/i,            // Seedance Pro
-        /veo.*3\.1(?!.*fast)/i,      // Veo 3.1 (NO fast)
+        /kling.*3.*pro/i,            // Kling 3 Pro (más fiel a la imagen)
+        /kling.*3(?!.*pro)/i,        // Kling 3 normal
+        /seedance.*pro/i,            // Seedance Pro (también muy fiel)
+        /veo.*3\.1(?!.*fast)/i,      // Veo 3.1 normal (NO fast)
         /kling.*2\.5(?!.*turbo)/i,   // Kling 2.5 normal
-        /kling.*2\.5.*turbo/i,       // Kling 2.5 Turbo (último recurso)
+        /minimax.*hailuo/i,          // Hailuo
       ];
       for (const pattern of imageFirst) {
-        const found = videoModels.find(m => pattern.test(m.name || '') && !m.requires_audio_input && (m.requires_start_frame !== false));
-        if (found) return found;
+        const found = videoModels.find(m => pattern.test(m.name || '') && !m.requires_audio_input);
+        if (found) {
+          console.log('Modelo con alta fidelidad a imagen seleccionado:', found.name);
+          return found;
+        }
       }
     }
 
-    // Sin imagen: balance calidad/velocidad
+    // Sin imagen → balance calidad/velocidad
     const preferences = [
       /kling.*3/i,
       /veo.*3\.1.*fast/i,
@@ -125,7 +128,7 @@ export default async function handler(req, res) {
       } else {
         checks.hedra = "NO";
       }
-      return res.status(200).json({ status: 'ready', v: '24', primary: 'hedra', fallback: 'gemini-veo', priority: 'image-fidelity', checks });
+      return res.status(200).json({ status: 'ready', v: '25', primary: 'hedra', fallback: 'gemini-veo', priority: 'image-fidelity', checks });
     }
 
     if (action === 'proxy' && req.query.uri) {
@@ -270,7 +273,8 @@ export default async function handler(req, res) {
                 ai_model_id: selected.id,
                 resolution: finalRes,
                 aspect_ratio: finalAR,
-                duration_ms: finalDur
+                duration_ms: finalDur,
+                seed: Math.floor(Math.random() * 1000000)  // ⬅ FIX: seed aleatorio = video único cada vez
               }
             };
             if (startKeyframeId) hedraPayload.start_keyframe_id = startKeyframeId;
