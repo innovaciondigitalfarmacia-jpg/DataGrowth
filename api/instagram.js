@@ -7,37 +7,39 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const APP_ID = process.env.INSTAGRAM_APP_ID;
-  const APP_SECRET = process.env.INSTAGRAM_APP_SECRET;
-  const SUPABASE_URL = process.env.SUPABASE_URL || 'https://wmonacfzxjpndbhwsdsf.supabase.co';
-  const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-  const BASE_URL = 'https://datagrowthagency.com';
-  const GRAPH = 'https://graph.instagram.com';
+  var APP_ID = process.env.INSTAGRAM_APP_ID;
+  var APP_SECRET = process.env.INSTAGRAM_APP_SECRET;
+  var SUPABASE_URL = process.env.SUPABASE_URL || 'https://wmonacfzxjpndbhwsdsf.supabase.co';
+  var SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+  var BASE_URL = 'https://datagrowthagency.com';
+  var GRAPH = 'https://graph.instagram.com';
 
-  if (!APP_ID || !APP_SECRET) return res.status(500).json({ error: 'Instagram App not configured. Set INSTAGRAM_APP_ID and INSTAGRAM_APP_SECRET.' });
+  if (!APP_ID || !APP_SECRET) return res.status(500).json({ error: 'Instagram App not configured' });
 
   // ── GET: OAuth flow ──
   if (req.method === 'GET') {
-    const { action, code, state } = req.query;
-    const brand_id = req.query.brand_id || state || '';
+    var action = req.query.action;
+    var code = req.query.code;
+    var state = req.query.state;
+    var brand_id = req.query.brand_id || state || '';
 
     if (action === 'connect') {
-      const redirect = BASE_URL + '/api/instagram';
-      const scope = 'instagram_business_basic,instagram_business_content_publish';
-      const url = 'https://www.instagram.com/oauth/authorize?client_id=' + APP_ID + '&redirect_uri=' + encodeURIComponent(redirect) + '&scope=' + scope + '&response_type=code&state=' + encodeURIComponent(brand_id);
-      return res.redirect(302, url);
+      var redirect = BASE_URL + '/api/instagram';
+      var scope = 'instagram_business_basic,instagram_business_content_publish';
+      var authUrl = 'https://www.instagram.com/oauth/authorize?client_id=' + APP_ID + '&redirect_uri=' + encodeURIComponent(redirect) + '&scope=' + scope + '&response_type=code&state=' + encodeURIComponent(brand_id);
+      return res.redirect(302, authUrl);
     }
 
     if (action === 'callback' || code) {
       if (!code) return res.status(400).send('No code received');
-      const redirect = BASE_URL + '/api/instagram';
-      const brandId = state || brand_id || '';
+      var redirect2 = BASE_URL + '/api/instagram';
+      var brandId = state || brand_id || '';
 
       try {
         var tokenRes = await fetch('https://api.instagram.com/oauth/access_token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: 'client_id=' + APP_ID + '&client_secret=' + APP_SECRET + '&grant_type=authorization_code&redirect_uri=' + encodeURIComponent(redirect) + '&code=' + code
+          body: 'client_id=' + APP_ID + '&client_secret=' + APP_SECRET + '&grant_type=authorization_code&redirect_uri=' + encodeURIComponent(redirect2) + '&code=' + code
         });
         var tokenData = await tokenRes.json();
         if (!tokenData.access_token) return res.status(400).send('<html><body style="font-family:sans-serif;padding:40px;text-align:center;background:#0a0e1a;color:#fff"><h2 style="color:#ef4444">Error de token</h2><p>' + JSON.stringify(tokenData).substring(0, 300) + '</p><script>setTimeout(function(){window.close()},5000)</script></body></html>');
@@ -77,11 +79,11 @@ export default async function handler(req, res) {
     }
 
     if (action === 'status') {
-      var ig_t = req.query.ig_token;
-      var ig_u = req.query.ig_user_id;
-      if (!ig_t || !ig_u) return res.status(200).json({ connected: false });
+      var igT = req.query.ig_token;
+      var igU = req.query.ig_user_id;
+      if (!igT || !igU) return res.status(200).json({ connected: false });
       try {
-        var sr = await fetch(GRAPH + '/me?fields=username&access_token=' + ig_t);
+        var sr = await fetch(GRAPH + '/me?fields=username&access_token=' + igT);
         var sd = await sr.json();
         return res.status(200).json({ connected: !!sd.username, username: sd.username });
       } catch (e) {
@@ -108,7 +110,6 @@ export default async function handler(req, res) {
     try {
       // ── VIDEO publishing (REELS or STORIES) ──
       if ((media_type === 'REELS' || media_type === 'STORIES') && video_url) {
-        // Upload video to Supabase Storage so Instagram can access a permanent URL
         var finalVideoUrl = video_url;
         if (SERVICE_KEY) {
           try {
@@ -125,7 +126,7 @@ export default async function handler(req, res) {
                 finalVideoUrl = SUPABASE_URL + '/storage/v1/object/public/public-images/' + vidName;
               }
             }
-          } catch (ve) { /* use original URL */ }
+          } catch (ve) {}
         }
 
         var vidMediaBody = media_type === 'STORIES'
@@ -157,7 +158,7 @@ export default async function handler(req, res) {
         });
         var vidPubData = await vidPubRes.json();
         if (vidPubData.id) return res.status(200).json({ success: true, post_id: vidPubData.id });
-        return res.status(400).json({ error: 'Failed to publish: ' + JSON.stringify(vidPubData).substring(0, 300) });
+        return res.status(400).json({ error: 'Failed to publish video: ' + JSON.stringify(vidPubData).substring(0, 300) });
       }
 
       // ── IMAGE publishing ──
@@ -165,14 +166,6 @@ export default async function handler(req, res) {
 
       if (image_base64 && !publicUrl) {
         var imgBuf = Buffer.from(image_base64, 'base64');
-        // Resize to Instagram format (1080x1080)
-        try {
-          var sharp = require('sharp');
-          imgBuf = await sharp(imgBuf)
-            .resize(1080, 1080, { fit: 'cover', position: 'center' })
-            .jpeg({ quality: 90 })
-            .toBuffer();
-        } catch (se) { /* sharp not available, send original */ }
         var fileName = 'ig_' + Date.now() + '.jpg';
         var imgUploadRes = await fetch(SUPABASE_URL + '/storage/v1/object/public-images/' + fileName, {
           method: 'POST',
