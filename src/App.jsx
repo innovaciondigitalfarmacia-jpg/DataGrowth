@@ -1412,7 +1412,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       // and the uploaded photos as additional reference
       const allImages = lastAiImage ? [lastAiImage, ...currentImages] : currentImages;
       const promptWithContext = editPrompt;
-      setChatHistory(prev => { const lastAi = [...prev].reverse().find(m => m.role === "ai"); return [...prev, { role: "ai", text: lastAi?.text || "", headline: lastAi?.headline || "", hashtags: lastAi?.hashtags || "", loading: true }]; });
+      setChatHistory(prev => [...prev, { role: "ai", text: "", headline: "", loading: true }]);
       try {
         const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: promptWithContext, images: allImages, brand: brandFull }) });
         if (!r.ok) throw new Error("API error " + r.status);
@@ -1433,7 +1433,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       const brandInfo = "BRAND: " + brand.name + ". BRAND COLORS: " + brandColors + ". STYLE: " + brandStyle + ". INDUSTRY: " + (brand.industry || "") + ". PRODUCTS: " + (brand.products || "N/A") + ". ";
       const contextInfo = lastImageContext ? "ORIGINAL IMAGE CONTEXT (do NOT change the overall scene, keep this as base): " + lastImageContext + ". " : "";
       const editPrompt = brandInfo + contextInfo + "USER WANTS THIS SPECIFIC CHANGE: " + currentTopic + ". CRITICAL: Make ONLY the change the user asked for. Keep the ENTIRE rest of the image IDENTICAL. Same scene, same layout, same elements, same style. ONLY modify what was requested. Use brand colors (" + brandColors + "). Any visible text must be in Spanish.";
-      setChatHistory(prev => { const lastAi = [...prev].reverse().find(m => m.role === "ai"); return [...prev, { role: "ai", text: lastAi?.text || "", headline: lastAi?.headline || "", hashtags: lastAi?.hashtags || "", loading: true }]; });
+      setChatHistory(prev => [...prev, { role: "ai", text: "", headline: "", loading: true }]);
       try {
         const r = await fetch("/api/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: editPrompt, image_base64: lastAiImage, brand: brandFull }) });
         if (!r.ok) throw new Error("API error " + r.status);
