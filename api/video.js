@@ -1,4 +1,4 @@
-// v25 - Hedra como motor principal (Kling/Veo/Sora/Character-3 via Hedra)
+// v26 - Hedra como motor principal (Kling/Veo/Sora/Character-3 via Hedra)
 //       Gemini Veo solo como fallback de emergencia. SIN fal.ai.
 export const config = { api: { bodyParser: { sizeLimit: '10mb' }, responseLimit: '15mb' } };
 
@@ -128,7 +128,7 @@ export default async function handler(req, res) {
       } else {
         checks.hedra = "NO";
       }
-      return res.status(200).json({ status: 'ready', v: '25', primary: 'hedra', fallback: 'gemini-veo', priority: 'image-fidelity', checks });
+      return res.status(200).json({ status: 'ready', v: '26', primary: 'hedra', fallback: 'gemini-veo', priority: 'image-fidelity', checks });
     }
 
     if (action === 'proxy' && req.query.uri) {
@@ -209,8 +209,8 @@ export default async function handler(req, res) {
       const mode = body && body.mode;
       const script = body && body.script;
       const aspect_ratio = (body && body.aspect_ratio) || '9:16';
-      const resolution = (body && body.resolution) || '540p';
-      const duration_ms = (body && body.duration_ms) || 5000;
+      const resolution = (body && body.resolution) || '720p';        // ⬅ FIX: 720p default (era 540p)
+      const duration_ms = (body && body.duration_ms) || 8000;        // ⬅ FIX: 8 seg default (era 5)
       const voice_id = body && body.voice_id;
 
       if (!prompt && !script) return res.status(400).json({ error: 'No prompt' });
