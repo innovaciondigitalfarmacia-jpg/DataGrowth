@@ -101,12 +101,16 @@ export default async function handler(req, res) {
     if (!caption) return res.status(400).json({ error: 'No caption' });
 
     try {
-      // VIDEO/REELS publishing
-      if (media_type === 'REELS' && video_url) {
+      // VIDEO publishing (REELS or STORIES)
+      if ((media_type === 'REELS' || media_type === 'STORIES') && video_url) {
+        const mediaBody = media_type === 'STORIES'
+          ? { video_url: video_url, media_type: 'STORIES', access_token: ig_token }
+          : { video_url: video_url, caption: caption, media_type: 'REELS', access_token: ig_token };
+
         const createRes = await fetch(GRAPH + '/' + ig_user_id + '/media', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ video_url: video_url, caption: caption, media_type: 'REELS', access_token: ig_token })
+          body: JSON.stringify(mediaBody)
         });
         const createData = await createRes.json();
         if (!createData.id) return res.status(400).json({ error: 'Failed to create video: ' + JSON.stringify(createData).substring(0, 300) });
@@ -131,6 +135,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Failed to publish: ' + JSON.stringify(pubData).substring(0, 300) });
       }
 
+      
       // IMAGE publishing
       let publicUrl = image_url;
 
