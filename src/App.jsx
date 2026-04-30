@@ -992,7 +992,7 @@ const BrandEditor = ({ brand, onSave, onClose, isNew }) => {
                       const igUsername = "@" + (e.data.username || "");
                       if (token && igUserId && f.id) {
                         await supabase.from("brands").update({ ig_token: token, ig_user_id: igUserId, instagram: igUsername }).eq("id", f.id);
-                        u("ig_token", token); u("ig_user_id", igUserId); u("instagram", igUsername);
+                        setF(prev => ({ ...prev, ig_token: token, ig_user_id: igUserId, instagram: igUsername }));u("ig_token", token); u("ig_user_id", igUserId); u("instagram", igUsername);
                       }
                     }
                   };
@@ -1006,9 +1006,7 @@ const BrandEditor = ({ brand, onSave, onClose, isNew }) => {
                       if (f.id) {
                         const { data: updated } = await supabase.from("brands").select("ig_token,ig_user_id,instagram").eq("id", f.id).single();
                         if (updated && updated.ig_token) {
-                          u("ig_token", updated.ig_token);
-                          u("ig_user_id", updated.ig_user_id);
-                          u("instagram", updated.instagram);
+                          setF(prev => ({ ...prev, ig_token: updated.ig_token, ig_user_id: updated.ig_user_id, instagram: updated.instagram }));
                           alert("✅ Instagram conectado: " + updated.instagram);
                         } else if (!f.ig_token) {
                           alert("No se pudo guardar el token. Intenta conectar de nuevo.");
