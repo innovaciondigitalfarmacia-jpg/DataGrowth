@@ -1463,10 +1463,12 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
       
       const generateAndAnimate = async () => {
         try {
-          let generatedImageB64 = lastVideoImage || null;
-          let videoPrompt = lastVideoPrompt || "";
+          // ⬇ FIX: Si el usuario subió una imagen nueva O cambió el prompt, IGNORAR el cache del video anterior
+          const userChangedSomething = currentImages.length > 0 || (lastVideoPrompt && lastVideoPrompt !== topic);
+          let generatedImageB64 = userChangedSomething ? null : (lastVideoImage || null);
+          let videoPrompt = userChangedSomething ? "" : (lastVideoPrompt || "");
           
-          // ⬇ NUEVO: si el user no subió foto y la marca tiene fotos del IG, usarlas como referencia
+          // ⬇ FIX: si el user no subió foto y la marca tiene fotos del IG, usarlas como referencia
           let effectiveImages = currentImages;
           if (effectiveImages.length === 0 && brand.ig_image_refs && Array.isArray(brand.ig_image_refs) && brand.ig_image_refs.length > 0) {
             effectiveImages = brand.ig_image_refs.slice(0, 2).map(r => r.base64);
