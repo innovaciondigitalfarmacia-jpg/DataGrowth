@@ -135,6 +135,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Failed to publish: ' + JSON.stringify(pubData).substring(0, 300) });
       }
 
+      
       // IMAGE publishing
       let publicUrl = image_url;
 
