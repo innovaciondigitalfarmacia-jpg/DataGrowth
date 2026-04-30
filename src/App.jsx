@@ -1084,12 +1084,36 @@ const BrandKit = ({ brands, setBrands, user }) => {
           if (profileRes.ok) {
             const profile = await profileRes.json();
             let igInfo = "=== INSTAGRAM ===\nUsuario: @" + (profile.username || "") + "\nBio: " + (profile.biography || "") + "\nSeguidores: " + (profile.followers_count || 0);
-            const mediaRes = await fetch("https://graph.instagram.com/me/media?fields=caption,timestamp,media_type,like_count&limit=10&access_token=" + b.ig_token);
+            // ⬇ NUEVO: traer fotos con media_url para descargarlas
+            const mediaRes = await fetch("https://graph.instagram.com/me/media?fields=caption,timestamp,media_type,media_url,thumbnail_url,like_count&limit=10&access_token=" + b.ig_token);
             if (mediaRes.ok) {
               const media = await mediaRes.json();
               if (media.data && media.data.length > 0) {
                 igInfo += "\n\nULTIMOS POSTS:\n";
                 media.data.forEach((p, i) => { if (p.caption) igInfo += (i + 1) + ". " + p.caption.substring(0, 200) + "\n"; });
+                
+                // ⬇ NUEVO: descargar las primeras 3 imágenes como base64
+                const imageRefs = [];
+                const imageItems = media.data.filter(p => p.media_type === "IMAGE" || p.media_type === "CAROUSEL_ALBUM").slice(0, 3);
+                for (const item of imageItems) {
+                  try {
+                    const imgUrl = item.media_url || item.thumbnail_url;
+                    if (!imgUrl) continue;
+                    const imgRes = await fetch(imgUrl);
+                    if (imgRes.ok) {
+                      const blob = await imgRes.blob();
+                      const reader = new FileReader();
+                      const b64 = await new Promise((resolve) => {
+                        reader.onloadend = () => resolve(reader.result.split(",")[1]);
+                        reader.readAsDataURL(blob);
+                      });
+                      if (b64) imageRefs.push({ base64: b64, caption: (item.caption || "").substring(0, 200) });
+                    }
+                  } catch (e) {}
+                }
+                if (imageRefs.length > 0) {
+                  b.ig_image_refs = imageRefs; // se guardan como JSON en supabase
+                }
               }
             }
             if (!autoKnowledge.includes("=== INSTAGRAM ===")) {
@@ -1101,10 +1125,10 @@ const BrandKit = ({ brands, setBrands, user }) => {
     } catch (e) {}
     const finalB = { ...b, knowledge: autoKnowledge };
     if (cr) {
-      const { data } = await supabase.from("brands").insert({ user_id: user.id, name: finalB.name, short: finalB.short, color: finalB.color, industry: finalB.industry, tone: finalB.tone, audience: finalB.audience, emoji: finalB.emoji, brand_voice: finalB.brandVoice, img_style: finalB.imgStyle, sector: finalB.sector, colors: finalB.colors, products: finalB.products, description: finalB.description, differentiator: finalB.differentiator, website: finalB.website, instagram: finalB.instagram, facebook: finalB.facebook, knowledge: finalB.knowledge || "", ig_token: finalB.ig_token || "", ig_user_id: finalB.ig_user_id || "" }).select().single();
+      const { data } = await supabase.from("brands").insert({ user_id: user.id, name: finalB.name, short: finalB.short, color: finalB.color, industry: finalB.industry, tone: finalB.tone, audience: finalB.audience, emoji: finalB.emoji, brand_voice: finalB.brandVoice, img_style: finalB.imgStyle, sector: finalB.sector, colors: finalB.colors, products: finalB.products, description: finalB.description, differentiator: finalB.differentiator, website: finalB.website, instagram: finalB.instagram, facebook: finalB.facebook, knowledge: finalB.knowledge || "", ig_token: finalB.ig_token || "", ig_user_id: finalB.ig_user_id || "", ig_image_refs: finalB.ig_image_refs || null }).select().single();
       if (data) { const nb = { ...data, brandVoice: data.brand_voice, imgStyle: data.img_style }; setBrands([...brands, nb]); setSel(nb); }
     } else {
-      await supabase.from("brands").update({ name: finalB.name, short: finalB.short, color: finalB.color, industry: finalB.industry, tone: finalB.tone, audience: finalB.audience, emoji: finalB.emoji, brand_voice: finalB.brandVoice, img_style: finalB.imgStyle, sector: finalB.sector, colors: finalB.colors, products: finalB.products, description: finalB.description, differentiator: finalB.differentiator, website: finalB.website, instagram: finalB.instagram, facebook: finalB.facebook, knowledge: finalB.knowledge || "", ig_token: finalB.ig_token || "", ig_user_id: finalB.ig_user_id || "" }).eq("id", finalB.id);
+      await supabase.from("brands").update({ name: finalB.name, short: finalB.short, color: finalB.color, industry: finalB.industry, tone: finalB.tone, audience: finalB.audience, emoji: finalB.emoji, brand_voice: finalB.brandVoice, img_style: finalB.imgStyle, sector: finalB.sector, colors: finalB.colors, products: finalB.products, description: finalB.description, differentiator: finalB.differentiator, website: finalB.website, instagram: finalB.instagram, facebook: finalB.facebook, knowledge: finalB.knowledge || "", ig_token: finalB.ig_token || "", ig_user_id: finalB.ig_user_id || "", ig_image_refs: finalB.ig_image_refs || null }).eq("id", finalB.id);
       setBrands(brands.map(x => x.id === finalB.id ? finalB : x)); setSel(finalB);
     }
     setEd(null); setCr(false);
@@ -1346,7 +1370,7 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
     const brandColors = (brand.colors || [brand.color]).join(", ");
     const brandStyle = brand.imgStyle || "professional modern";
 
-    // ⬇ Scrape web SIEMPRE al inicio (disponible para TODOS los flows)
+    // ⬇ Scrape web + setup brandFull SIEMPRE al inicio (disponible para TODOS los flows)
     let realInfo = "";
     const scrapeUrl = brand.website || brand.instagram || brand.facebook || "";
     if (scrapeUrl) {
@@ -1360,9 +1384,8 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
           const wd = await wr.json();
           if (wd.text) realInfo = wd.text.substring(0, 2000);
         }
-      } catch (e) { /* sigue sin web */ }
+      } catch (e) {}
     }
-    // Brand completo con realInfo embebido para pasar a las APIs
     const brandFull = { ...brand, realInfo };
 
     // ── DIRECT EDIT: user uploaded a photo, send instruction directly to image API ──
@@ -1443,13 +1466,19 @@ const Factory = ({ brands, gemKey, isAdmin, user }) => {
           let generatedImageB64 = lastVideoImage || null;
           let videoPrompt = lastVideoPrompt || "";
           
+          // ⬇ NUEVO: si el user no subió foto y la marca tiene fotos del IG, usarlas como referencia
+          let effectiveImages = currentImages;
+          if (effectiveImages.length === 0 && brand.ig_image_refs && Array.isArray(brand.ig_image_refs) && brand.ig_image_refs.length > 0) {
+            effectiveImages = brand.ig_image_refs.slice(0, 2).map(r => r.base64);
+            console.log("Usando " + effectiveImages.length + " fotos del IG de la marca como referencia visual");
+          }
+          
           // Only generate new image if we don't have one saved
           if (!generatedImageB64) {
-            // STEP 1: Generate a beautiful image with Gemini first
             setVideoProgress("Generando imagen base con IA...");
             
-            const imgBody = currentImages[0] 
-              ? { prompt: imgPrompt, images: currentImages, brand: brandFull }
+            const imgBody = effectiveImages[0] 
+              ? { prompt: imgPrompt, images: effectiveImages, brand: brandFull }
               : { prompt: imgPrompt, brand: brandFull };
             
             try {
