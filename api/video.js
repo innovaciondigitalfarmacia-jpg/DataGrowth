@@ -1,5 +1,11 @@
-// v21 - Brand-aware: recibe brand y lo inyecta al prompt antes de mandar al modelo
+// v23 - Hedra como motor principal (Kling/Veo/Sora/Character-3 via Hedra)
+//       Gemini Veo solo como fallback de emergencia. SIN fal.ai.
 export const config = { api: { bodyParser: { sizeLimit: '10mb' }, responseLimit: '15mb' } };
+
+// Cache en memoria de modelos Hedra (refresca cada 1h)
+let HEDRA_MODELS_CACHE = null;
+let HEDRA_MODELS_CACHE_TIME = 0;
+const CACHE_TTL = 60 * 60 * 1000;
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -7,15 +13,14 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const FAL_KEY = process.env.FAL_KEY;
   const GEMINI_KEY = process.env.GEMINI_API_KEY;
   const HEDRA_KEY = process.env.HEDRA_API_KEY;
   const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
   const HEDRA_BASE = "https://api.hedra.com/web-app/public";
-  const HEDRA_CHARACTER_3 = "d1dd37a3-e39a-4854-a298-6510289f9cf2";
 
-  if (!FAL_KEY && !GEMINI_KEY && !HEDRA_KEY) return res.status(500).json({ error: "No API keys configured" });
+  if (!GEMINI_KEY && !HEDRA_KEY) return res.status(500).json({ error: "No API keys configured" });
 
+  // ═══ Construye contexto del brand ═══
   const buildBrandContext = (brand) => {
     if (!brand) return "";
     const parts = [];
@@ -38,9 +43,75 @@ export default async function handler(req, res) {
       : "";
   };
 
+  // ═══ Trae modelos de Hedra (con cache) ═══
+  const getHedraModels = async () => {
+    const now = Date.now();
+    if (HEDRA_MODELS_CACHE && (now - HEDRA_MODELS_CACHE_TIME) < CACHE_TTL) return HEDRA_MODELS_CACHE;
+    try {
+      const r = await fetch(HEDRA_BASE + '/models', { headers: { 'X-API-Key': HEDRA_KEY } });
+      if (r.ok) {
+        const models = await r.json();
+        HEDRA_MODELS_CACHE = Array.isArray(models) ? models : [];
+        HEDRA_MODELS_CACHE_TIME = now;
+        return HEDRA_MODELS_CACHE;
+      }
+    } catch (e) { console.log('Error fetching Hedra models:', e.message); }
+    return [];
+  };
+
+  // ═══ Selecciona el mejor modelo según el caso ═══
+  const pickHedraModel = (models, mode) => {
+    if (!models || models.length === 0) return null;
+    const videoModels = models.filter(m => m && (m.type === 'video' || !m.type));
+
+    if (mode === 'talking') {
+      const charModel = videoModels.find(m => /character-3|omnia/i.test(m.name || '') && m.requires_audio_input);
+      if (charModel) return charModel;
+    }
+
+    // Para escenas - orden de preferencia (rápido y bueno primero)
+    const preferences = [
+      /kling.*2\.5.*turbo/i,
+      /kling.*2\.5/i,
+      /veo.*3\.1.*fast/i,
+      /veo.*3\.1/i,
+      /hailuo/i,
+      /minimax/i,
+      /kling.*3/i,
+      /seedance/i,
+      /sora/i,
+    ];
+    for (const pattern of preferences) {
+      const found = videoModels.find(m => pattern.test(m.name || '') && !m.requires_audio_input);
+      if (found) return found;
+    }
+    return videoModels.find(m => !m.requires_audio_input) || videoModels[0];
+  };
+
   if (req.method === 'GET') {
-    const { action, op, endpoint, response_url, status_url, provider } = req.query;
-    if (action === 'test') return res.status(200).json({ status: 'ready', model: 'hedra+minimax+veo-fallback', v: '21' });
+    const { action, op, provider } = req.query;
+
+    if (action === 'test') {
+      const checks = {
+        gemini: GEMINI_KEY ? "SI" : "NO",
+        hedra: "checking..."
+      };
+      if (HEDRA_KEY) {
+        try {
+          const r = await fetch(HEDRA_BASE + '/models', { headers: { 'X-API-Key': HEDRA_KEY } });
+          if (r.ok) {
+            const models = await r.json();
+            checks.hedra = "SI";
+            checks.hedra_models_count = Array.isArray(models) ? models.length : 0;
+          } else {
+            checks.hedra = "FALLO_" + r.status;
+          }
+        } catch (e) { checks.hedra = "ERROR"; }
+      } else {
+        checks.hedra = "NO";
+      }
+      return res.status(200).json({ status: 'ready', v: '23', primary: 'hedra', fallback: 'gemini-veo', checks });
+    }
 
     if (action === 'proxy' && req.query.uri) {
       try {
@@ -52,12 +123,16 @@ export default async function handler(req, res) {
     }
 
     if (action === 'check') {
+      // Hedra check
       if (provider === 'hedra' && op) {
         try {
           const r = await fetch(HEDRA_BASE + '/generations/' + op + '/status', { headers: { 'X-API-Key': HEDRA_KEY } });
           if (r.ok) {
             const d = await r.json();
-            if (d.status === 'complete') {
+            const status = d.status || '';
+            if (status === 'complete' || status === 'completed' || status === 'success') {
+              const directUrl = d.url || d.video_url || d.download_url;
+              if (directUrl) return res.status(200).json({ status: 'completed', video_url: directUrl });
               const assetId = d.asset_id || d.video_id;
               if (assetId) {
                 try {
@@ -70,15 +145,16 @@ export default async function handler(req, res) {
                   }
                 } catch (e) {}
               }
-              return res.status(200).json({ status: 'error', error: 'Hedra completo sin URL' });
+              return res.status(200).json({ status: 'error', error: 'Hedra completo pero sin URL: ' + JSON.stringify(d).substring(0, 300) });
             }
-            if (d.status === 'error') return res.status(200).json({ status: 'error', error: d.error || 'Hedra falló' });
-            return res.status(200).json({ status: 'processing', provider: 'hedra' });
+            if (status === 'error' || status === 'failed') return res.status(200).json({ status: 'error', error: d.error || d.error_message || 'Hedra falló' });
+            return res.status(200).json({ status: 'processing', provider: 'hedra', progress: d.progress });
           }
           return res.status(200).json({ status: 'processing', provider: 'hedra' });
         } catch (e) { return res.status(200).json({ status: 'processing', provider: 'hedra' }); }
       }
 
+      // Gemini Veo check (fallback)
       if (provider === 'gemini' && op) {
         try {
           const r = await fetch(GEMINI_BASE + '/' + op, { headers: { 'x-goog-api-key': GEMINI_KEY } });
@@ -98,44 +174,14 @@ export default async function handler(req, res) {
         } catch (e) { return res.status(200).json({ status: 'processing', provider: 'gemini' }); }
       }
 
-      try {
-        const base = endpoint || 'fal-ai/minimax/video-01-live';
-        const urls = [];
-        if (response_url) urls.push(response_url);
-        if (status_url) urls.push(status_url);
-        if (op) {
-          urls.push('https://queue.fal.run/' + base + '/requests/' + op);
-          urls.push('https://queue.fal.run/' + base + '/requests/' + op + '/status');
-        }
-        for (const url of urls) {
-          try {
-            const r = await fetch(url, { headers: { 'Authorization': 'Key ' + FAL_KEY } });
-            if (r.status === 200) {
-              const text = await r.text();
-              if (!text) continue;
-              const d = JSON.parse(text);
-              if (d.video?.url) return res.status(200).json({ status: 'completed', video_url: d.video.url });
-              if (d.status === 'COMPLETED') {
-                const resultUrl = d.response_url || ('https://queue.fal.run/' + base + '/requests/' + op);
-                try {
-                  const r2 = await fetch(resultUrl, { headers: { 'Authorization': 'Key ' + FAL_KEY } });
-                  const d2 = await r2.json();
-                  if (d2.video?.url) return res.status(200).json({ status: 'completed', video_url: d2.video.url });
-                } catch (e) {}
-                return res.status(200).json({ status: 'completed_no_url' });
-              }
-              if (d.status === 'FAILED') return res.status(200).json({ status: 'error', error: d.detail || d.error || 'Video falló' });
-              if (d.status === 'IN_QUEUE' || d.status === 'IN_PROGRESS') return res.status(200).json({ status: 'processing', fal_status: d.status });
-            }
-            if (r.status === 202) return res.status(200).json({ status: 'processing' });
-          } catch (e) { continue; }
-        }
-        return res.status(200).json({ status: 'processing' });
-      } catch (e) { return res.status(200).json({ status: 'processing' }); }
+      return res.status(200).json({ status: 'processing' });
     }
     return res.status(400).json({ error: 'Unknown action' });
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // POST: Iniciar generación
+  // ═══════════════════════════════════════════════════════════
   if (req.method === 'POST') {
     try {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
@@ -151,94 +197,114 @@ export default async function handler(req, res) {
 
       if (!prompt && !script) return res.status(400).json({ error: 'No prompt' });
 
-      // ⬇ INYECTAR BRAND CONTEXT al prompt
       const brandContext = buildBrandContext(brand);
       const finalPrompt = brandContext + (prompt || "");
 
-      // HEDRA - persona hablando
-      if (mode === 'talking' && script && HEDRA_KEY) {
+      // ═══════════════════════════════════════════════════════════
+      // PRIMARY: HEDRA (Kling/Veo/Sora/Character-3 según el caso)
+      // ═══════════════════════════════════════════════════════════
+      if (HEDRA_KEY) {
         try {
-          const hedraPayload = {
-            type: 'video',
-            ai_model_id: HEDRA_CHARACTER_3,
-            generated_video_inputs: {
-              text_prompt: finalPrompt.substring(0, 500) || 'A person talking naturally',
-              ai_model_id: HEDRA_CHARACTER_3,
-              resolution: resolution,
-              aspect_ratio: aspect_ratio,
-              duration_ms: duration_ms
-            },
-            audio_generation: { text: script, type: 'text_to_speech', language: 'auto', stability: 1, speed: 1 }
-          };
-          if (voice_id) hedraPayload.audio_generation.voice_id = voice_id;
+          const models = await getHedraModels();
+          const selected = pickHedraModel(models, mode);
 
-          const r = await fetch(HEDRA_BASE + '/generations', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-API-Key': HEDRA_KEY },
-            body: JSON.stringify(hedraPayload)
-          });
-          if (r.ok) {
-            const d = await r.json();
-            if (d.id) return res.status(200).json({ status: 'started', operation: d.id, provider: 'hedra' });
-          }
-        } catch (e) { console.log('Hedra exception:', e.message); }
-      }
+          if (selected && selected.id) {
+            console.log('Hedra: usando modelo', selected.name, '(', selected.id, ')');
 
-      // PRIMARY: fal.ai
-      if (FAL_KEY) {
-        try {
-          let imageUrl = null;
-          if (image_base64) {
-            try {
-              const imgBuf = Buffer.from(image_base64, 'base64');
-              const uploadRes = await fetch('https://fal.run/fal-ai/storage/upload', {
-                method: 'POST',
-                headers: { 'Authorization': 'Key ' + FAL_KEY, 'Content-Type': 'application/octet-stream' },
-                body: imgBuf
-              });
-              if (uploadRes.ok) {
-                const uploadData = await uploadRes.json();
-                imageUrl = uploadData.url || uploadData.file_url || uploadData.access_url;
+            // Subir imagen como asset si tenemos image_base64
+            let startKeyframeId = null;
+            if (image_base64) {
+              try {
+                const createRes = await fetch(HEDRA_BASE + '/assets', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'X-API-Key': HEDRA_KEY },
+                  body: JSON.stringify({ type: 'image', name: 'keyframe.jpg' })
+                });
+                if (createRes.ok) {
+                  const created = await createRes.json();
+                  const assetId = created.id || created.asset_id;
+                  if (assetId) {
+                    const imgBuf = Buffer.from(image_base64, 'base64');
+                    const formData = new FormData();
+                    formData.append('file', new Blob([imgBuf], { type: 'image/jpeg' }), 'keyframe.jpg');
+                    const uploadRes = await fetch(HEDRA_BASE + '/assets/' + assetId + '/upload', {
+                      method: 'POST',
+                      headers: { 'X-API-Key': HEDRA_KEY },
+                      body: formData
+                    });
+                    if (uploadRes.ok) startKeyframeId = assetId;
+                  }
+                }
+              } catch (e) { console.log('Hedra upload image error:', e.message); }
+            }
+
+            // Adaptar resolución / aspect ratio / duración a lo que el modelo soporta
+            const isCharacter = mode === 'talking' || selected.requires_audio_input;
+            const supportedRes = (selected.resolutions && selected.resolutions.length > 0) ? selected.resolutions : ['540p', '720p'];
+            const finalRes = supportedRes.includes(resolution) ? resolution : supportedRes[0];
+            const supportedAR = (selected.aspect_ratios && selected.aspect_ratios.length > 0) ? selected.aspect_ratios : ['9:16', '16:9', '1:1'];
+            const finalAR = supportedAR.includes(aspect_ratio) ? aspect_ratio : supportedAR[0];
+            const maxDur = selected.max_duration_ms || 8000;
+            const finalDur = Math.min(duration_ms, maxDur);
+
+            const hedraPayload = {
+              type: 'video',
+              ai_model_id: selected.id,
+              generated_video_inputs: {
+                text_prompt: finalPrompt.substring(0, 2000) || (isCharacter ? 'A person talking naturally' : 'Cinematic shot'),
+                ai_model_id: selected.id,
+                resolution: finalRes,
+                aspect_ratio: finalAR,
+                duration_ms: finalDur
               }
-            } catch (e) {}
-            if (!imageUrl) imageUrl = 'data:image/jpeg;base64,' + image_base64;
-          }
+            };
+            if (startKeyframeId) hedraPayload.start_keyframe_id = startKeyframeId;
 
-          const falEndpoint = (image_base64 && imageUrl)
-            ? 'fal-ai/minimax/video-01-live/image-to-video'
-            : 'fal-ai/minimax/video-01-live';
+            // Si es talking + script → TTS
+            if (isCharacter && script) {
+              hedraPayload.audio_generation = {
+                text: script,
+                type: 'text_to_speech',
+                language: 'auto',
+                stability: 1,
+                speed: 1
+              };
+              if (voice_id) hedraPayload.audio_generation.voice_id = voice_id;
+            }
 
-          const payload = { prompt: finalPrompt.substring(0, 2000), prompt_optimizer: false };
-          if (imageUrl) payload.image_url = imageUrl;
-
-          const r = await fetch('https://queue.fal.run/' + falEndpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Key ' + FAL_KEY },
-            body: JSON.stringify(payload)
-          });
-          const text = await r.text();
-          const d = JSON.parse(text);
-          const falError = d.detail || d.error || '';
-          const isFalDown = falError.toLowerCase().includes('locked') ||
-                            falError.toLowerCase().includes('balance') ||
-                            falError.toLowerCase().includes('unauthorized') ||
-                            falError.toLowerCase().includes('forbidden') ||
-                            r.status >= 400;
-
-          if (d.request_id && !isFalDown) {
-            return res.status(200).json({
-              status: 'started',
-              operation: d.request_id,
-              endpoint: falEndpoint,
-              provider: 'fal',
-              response_url: d.response_url || '',
-              status_url: d.status_url || ''
+            const r = await fetch(HEDRA_BASE + '/generations', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-API-Key': HEDRA_KEY },
+              body: JSON.stringify(hedraPayload)
             });
+
+            if (r.ok) {
+              const d = await r.json();
+              if (d.id) {
+                console.log('Hedra started:', d.id, 'with model:', selected.name);
+                return res.status(200).json({
+                  status: 'started',
+                  operation: d.id,
+                  provider: 'hedra',
+                  model_used: selected.name,
+                  eta_sec: d.eta_sec
+                });
+              }
+            } else {
+              const errText = await r.text();
+              console.log('Hedra error ' + r.status + ':', errText.substring(0, 500));
+            }
+          } else {
+            console.log('Hedra: no se encontró modelo apropiado, cayendo a Gemini Veo');
           }
-        } catch (e) { console.log('fal exception:', e.message); }
+        } catch (e) {
+          console.log('Hedra exception, cayendo a Gemini Veo:', e.message);
+        }
       }
 
-      // FALLBACK: Gemini Veo
+      // ═══════════════════════════════════════════════════════════
+      // FALLBACK: Gemini Veo (solo de emergencia)
+      // ═══════════════════════════════════════════════════════════
       if (GEMINI_KEY) {
         try {
           const instance = { prompt: finalPrompt.substring(0, 500) };
@@ -273,11 +339,11 @@ export default async function handler(req, res) {
               }
             } catch (e) { console.log('Gemini Veo exception:', e.message); }
           }
-          return res.status(200).json({ status: 'error', error: 'Gemini Veo errors: ' + errors.join(' | ') });
+          return res.status(200).json({ status: 'error', error: 'Hedra y Gemini Veo fallaron. Errors: ' + errors.join(' | ') });
         } catch (e) { console.log('Gemini Veo outer exception:', e.message); }
       }
 
-      return res.status(200).json({ status: 'error', error: 'Todos los servicios fallaron' });
+      return res.status(200).json({ status: 'error', error: 'Todos los servicios de video fallaron' });
     } catch (e) {
       return res.status(500).json({ error: e.message });
     }
